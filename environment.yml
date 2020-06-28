@@ -1,0 +1,16 @@
+name: competition
+channels:
+  - conda-forge
+dependencies:
+  - cython=0.29.20
+  - gsl=2.6
+  - matplotlib=3.2.2
+  - numpy=1.16.2
+  - pandas=0.23.4
+  - pytest=5.3.1
+  - python=3.6
+  - scipy=1.2.1
+  - seaborn=0.9.0
+  - cythongsl=0.2.2
+  - treelib=1.6.1
+
