@@ -118,7 +118,7 @@ class HexAnimator:
             offset_position="data"
         )
 
-        # Adjust the corners.
+        # Adjust the corners
         xmin = -0.5
         ymin = -0.5
         xmax = xmax

@@ -149,10 +149,14 @@ def compare_single_res(old, new):
                 return False
             return True
         elif isinstance(old, (lil_matrix, csr_matrix)):
-            return (old != new).nnz == 0
+            if isinstance((old != new), bool):
+                return (old != new)
+            else:
+                return (old != new).nnz == 0
+
         elif old is None:
             return new is None
-        elif isinstance(old, list):
+        elif isinstance(old, (list, tuple)):
             if len(old) != len(new):
                 return False
             res = [compare_single_res(old[i], new[i]) for i in range(len(old))]
@@ -179,6 +183,9 @@ def compare_to_old_results(algorithm, new_results, test_name, result_type='sim',
     if overwrite_results:
         store_new_results(algorithm, test_name, new_results)
     old_results = get_stored_results(algorithm, test_name)
+
+    mismatching_results = []
+    last_error = None
     if not isinstance(new_results, dict):
         assert compare_single_res(old_results, new_results)
     else:
@@ -189,6 +196,9 @@ def compare_to_old_results(algorithm, new_results, test_name, result_type='sim',
             except KeyError as e:
                 print('Missing {} for test {}:{}'.format(attr_key, algorithm, test_name))
                 raise e
+            except AssertionError as e:
+                mismatching_results.append(attr_key)
+                last_error = e
             except Exception as e:
                 print('Failed to compare {} for test {}:{}'.format(attr_key, algorithm, test_name))
                 # print(attr_result.toarray())
@@ -199,6 +209,10 @@ def compare_to_old_results(algorithm, new_results, test_name, result_type='sim',
         new_keys = new_results.keys()
         if old_keys.difference(new_keys):
             assert False, "Missing keys: {}".format(old_keys.difference(new_keys))
+
+    if len(mismatching_results) > 0:
+        print('Mismatching keys:', mismatching_results)
+        raise last_error  # Just pick one to raise
 
 
 def test_simple(axes, algorithm, overwrite_results=False):
@@ -255,7 +269,7 @@ def test_mutations(axes, algorithm, overwrite_results=False):
                   synonymous_proportion=0.8),
              Gene('uniform_driver', mutation_distribution=UniformDist(low=0.7, high=1.2),
                   synonymous_proportion=0.2),
-             Gene('exp_driver', mutation_distribution=ExponentialDist(mean=0.3, offset=0.8),
+             Gene('exp_driver', mutation_distribution=ExponentialDist(mean=1.3, offset=0.8),
                   synonymous_proportion=0.2)]
     mut_gen1 = MutationGenerator(multi_gene_array=False, genes=genes, combine_mutations='add')
 
@@ -335,8 +349,8 @@ def test_mutations(axes, algorithm, overwrite_results=False):
     sim.muller_plot(quick=True, allow_y_extension=True, ax=ax)
     ax.set_title('Replace fitness')
 
-    #  Replace_lower fitness
-    mut_gen = MutationGenerator(multi_gene_array=False, genes=genes, combine_mutations='replace_lower')
+    #  max fitness
+    mut_gen = MutationGenerator(multi_gene_array=False, genes=genes, combine_mutations='max')
     ax = next_ax(axes, algorithm)
     np.random.seed(0)
     p = Parameters(algorithm=algorithm, initial_cells=INITIAL_CELLS, max_time=MAX_TIME,
@@ -344,9 +358,22 @@ def test_mutations(axes, algorithm, overwrite_results=False):
                    mutation_generator=mut_gen)
     sim = p.get_simulator()
     sim.run_sim()
-    compare_to_old_results(algorithm, sim, test_name='replace_lower', overwrite_results=overwrite_results)
+    compare_to_old_results(algorithm, sim, test_name='max', overwrite_results=overwrite_results)
     sim.muller_plot(quick=True, allow_y_extension=True, ax=ax)
-    ax.set_title('Replace_lower')
+    ax.set_title('max')
+
+    # min fitness
+    mut_gen = MutationGenerator(multi_gene_array=False, genes=genes, combine_mutations='min')
+    ax = next_ax(axes, algorithm)
+    np.random.seed(0)
+    p = Parameters(algorithm=algorithm, initial_cells=INITIAL_CELLS, max_time=MAX_TIME,
+                   print_warnings=False, division_rate=DIVISION_RATE, mutation_rates=mutation_rate,
+                   mutation_generator=mut_gen)
+    sim = p.get_simulator()
+    sim.run_sim()
+    compare_to_old_results(algorithm, sim, test_name='min', overwrite_results=overwrite_results)
+    sim.muller_plot(quick=True, allow_y_extension=True, ax=ax)
+    ax.set_title('min')
 
     #  Add array
     mut_gen = MutationGenerator(multi_gene_array=True, genes=genes, combine_array='add',
@@ -389,6 +416,20 @@ def test_mutations(axes, algorithm, overwrite_results=False):
     compare_to_old_results(algorithm, sim, test_name='max_array', overwrite_results=overwrite_results)
     sim.muller_plot(quick=True, allow_y_extension=True, ax=ax)
     ax.set_title('Max array')
+
+    #  Min array
+    mut_gen = MutationGenerator(multi_gene_array=True, genes=genes, combine_array='min',
+                                combine_mutations='add')
+    ax = next_ax(axes, algorithm)
+    np.random.seed(0)
+    p = Parameters(algorithm=algorithm, initial_cells=INITIAL_CELLS, max_time=MAX_TIME,
+                   print_warnings=False, division_rate=DIVISION_RATE, mutation_rates=mutation_rate,
+                   mutation_generator=mut_gen)
+    sim = p.get_simulator()
+    sim.run_sim()
+    compare_to_old_results(algorithm, sim, test_name='min_array', overwrite_results=overwrite_results)
+    sim.muller_plot(quick=True, allow_y_extension=True, ax=ax)
+    ax.set_title('Min array')
 
     #  Logistic
     if algorithm == 'Branching':
@@ -823,7 +864,7 @@ def test_random_sampling(axes, algorithm, overwrite_results=False):
                           Gene('driver2', mutation_distribution=NormalDist(mean=2, var=0.1),
                                synonymous_proportion=0.8)]
         mut_gen = MutationGenerator(multi_gene_array=False, genes=non_neut_genes,
-                                    combine_mutations='replace_lower')
+                                    combine_mutations='max')
         biopsies = [
             {'biopsy_origin': (0, 0), 'biopsy_shape': (50, 10)},
             {'biopsy_origin': (0, 10), 'biopsy_shape': (50, 10)},
@@ -894,7 +935,7 @@ def test_post_processing(axes, algorithm, overwrite_results=False):
                       Gene('driver2', mutation_distribution=FixedValue(1.1),
                            synonymous_proportion=0.8)]
     mut_gen = MutationGenerator(multi_gene_array=True, genes=non_neut_genes, combine_array='max',
-                                combine_mutations='replace_lower')
+                                combine_mutations='max')
 
     if algorithm in SPATIAL_ALGS:
         initial_size_array = None
@@ -942,6 +983,64 @@ def test_post_processing(axes, algorithm, overwrite_results=False):
     ax.set_title('Populations')
 
     compare_to_old_results(algorithm, sim, test_name='post_process', overwrite_results=overwrite_results)
+
+    res_dict = {}
+    res_dict['labeled_pop1'] = sim.get_labeled_population(label=1)
+    res_dict['labeled_pop2'] = sim.get_labeled_population(label=2)
+    res_dict['mean_mutant_clone_size'] = sim.get_mean_clone_size()
+    res_dict['mean_driver1_clone_size'] = sim.get_mean_clone_size(gene_mutated="driver1")
+    res_dict['mean_clone_sizes_syn_nonsyn'] = sim.get_mean_clone_sizes_syn_and_non_syn()
+    res_dict['get_average_fitness'] = sim.get_average_fitness()
+    compare_to_old_results(algorithm, res_dict, test_name='post_process_dict', result_type='dict',
+                           overwrite_results=overwrite_results)
+
+
+def test_post_processing_non_mutation(axes, algorithm, overwrite_results=False):
+    # Generate as many of the post processing results as possible, like the mutant clone array etc.
+    # Run all plotting functions
+
+    if algorithm in SPATIAL_ALGS:
+        initial_size_array = None
+        initial_grid = np.tile([0, 1, 1, 2, 2, 2, 3, 3, 3, 3], 100).reshape(20, 50)
+    else:
+        initial_size_array = [100, 200, 300, 400]
+        initial_grid = None
+
+    label_array = [0, 1, 1, 2]
+    fitness_array = [0.9, 1, 1.1, 1.2]
+
+    res_dict = {}
+
+    np.random.seed(0)
+    p = Parameters(algorithm=algorithm, initial_size_array=initial_size_array,
+                   initial_grid=initial_grid, fitness_array=fitness_array,
+                   label_array=label_array, max_time=5,
+                   print_warnings=False, division_rate=DIVISION_RATE)
+    sim = p.get_simulator()
+    sim.run_sim()
+    res_dict['clone_sizes_array1'] = sim.get_clone_sizes_array_for_non_mutation()
+    res_dict['clone_sizes_array2'] = sim.get_clone_sizes_array_for_non_mutation(t=3, index_given=False,
+                                                                                exclude_zeros=False)
+    res_dict['clone_sizes_array3'] = sim.get_clone_sizes_array_for_non_mutation(t=3, index_given=True,
+                                                                                exclude_zeros=True, label=1)
+
+    res_dict['clone_size_dist1'] = sim.get_clone_size_distribution_for_non_mutation()
+    res_dict['clone_size_dist2'] = sim.get_clone_size_distribution_for_non_mutation(t=3, index_given=False,
+                                                                                    exclude_zeros=True)
+    res_dict['clone_size_dist3'] = sim.get_clone_size_distribution_for_non_mutation(t=3, index_given=True,
+                                                                                    exclude_zeros=False, label=1)
+
+    res_dict['surviving_clones1'] = sim.get_surviving_clones_for_non_mutation()
+    res_dict['surviving_clones2'] = sim.get_surviving_clones_for_non_mutation(label=1)
+    res_dict['surviving_clones3'] = sim.get_surviving_clones_for_non_mutation(times=[1, 2, 3, 3.1, 3.2, 4], label=1)
+
+    res_dict['labeled_pop1'] = sim.get_labeled_population(label=1)
+    res_dict['labeled_pop2'] = sim.get_labeled_population(label=2)
+
+    res_dict['get_average_fitness'] = sim.get_average_fitness()
+
+    compare_to_old_results(algorithm, res_dict, test_name='post_process_non_mutation_dict', result_type='dict',
+                           overwrite_results=overwrite_results)
 
 
 def test_irregular_sampling(axes, algorithm, overwrite_results=False):

@@ -5,13 +5,13 @@ Python3 simulations of clone competition during ongoing mutagenesis.
 To install, clone the git repository  
 `git clone https://github.com/michaelhall28/clone-competition-simulation.git`
 
-Dependencies can be installed using conda (https://docs.conda.io)  
+Dependencies can be installed using conda (https://docs.conda.io). If installing dependencies using another method, be aware that this code may not work with old versions of Scipy because of changes to scipy.sparse (tested for scipy 1.5.2).  
 `cd clone-competition-simulation`  
 `conda env create -f environment.yml`  
-`conda activate competition`  
+`conda activate competition`
 
-and install the code  
-`pip install -e .`  
+and install the code in this repository  
+`pip install -e .`
 
 ## Running simulations
 
@@ -30,7 +30,7 @@ p = Parameters(algorithm='WF2D', grid_shape=(100, 100),
                 mutation_rates=0.01, max_time=20,
                 print_warnings=False, division_rate=1,
                 cell_in_own_neighbourhood=True)
-                
+
 ```
 
 Then the simulation can be initialised and run from the parameter object
@@ -40,6 +40,3 @@ s = p.get_simulator()
 s.run_sim()
 s.muller_plot()
 ```
-
-
-

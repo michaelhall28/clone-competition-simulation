@@ -218,12 +218,9 @@ class GeneralSimClass(object):
         else:
             non_zero_clones = None
 
-        if self.progress:
-            print('Steps completed:')
-
         # Change treatment if required (can change fitness of clones)
         if self._check_treatment_time():
-            self._change_treatment()
+            self._change_treatment(initial=True)
 
         # Add a label (similar to a lineage tracing label) if requested
         if self._check_label_time():
@@ -233,6 +230,8 @@ class GeneralSimClass(object):
                                                                   self.label_values[self.label_count],
                                                                   self.label_fitness[self.label_count],
                                                                   self.label_genes[self.label_count])
+        if self.progress:
+            print('Steps completed:')
 
         while self.plot_idx < self.sim_length:
             # Run step of the simulation
@@ -298,11 +297,10 @@ class GeneralSimClass(object):
 
     def _take_sample(self, current_population, non_zero_clones):
         if self.non_zero_calc:
-            self.population_array[non_zero_clones, self.plot_idx] = current_population.reshape(
-                len(current_population), 1)
+            self.population_array[non_zero_clones, self.plot_idx] = current_population
         else:
             non_zero = np.where(current_population > 0)[0]
-            self.population_array[non_zero, self.plot_idx] = current_population[non_zero].reshape(len(non_zero), 1)
+            self.population_array[non_zero, self.plot_idx] = current_population[non_zero]
         self.plot_idx += 1
         if self.tmp_store is not None:  # Store current state of the simulation.
             if self.store_rotation == 0:
@@ -323,14 +321,20 @@ class GeneralSimClass(object):
             return True
         return False
 
-    def _change_treatment(self):
+    def _change_treatment(self, initial=False):
         self.treatment_count += 1
         self.current_fitness_multiplier = self.treatment_effects[self.treatment_count]
         self.next_treatment_time = self.treatment_timings[self.treatment_count+1]
-        if self.mutation_generator.multi_gene_array:
-            self.clones_array[:, self.fitness_idx] = self._apply_treatment(fitness_arrays=self.raw_fitness_array)
+        if initial:
+            if self.mutation_generator.multi_gene_array:
+                self.clones_array[:self.initial_clones, self.fitness_idx] = self._apply_treatment(fitness_arrays=self.raw_fitness_array[:self.initial_clones])
+            else:
+                self.clones_array[:self.initial_clones, self.fitness_idx] = self._apply_treatment(fitness_values=self.raw_fitness_array[:self.initial_clones])
         else:
-            self.clones_array[:, self.fitness_idx] = self._apply_treatment(fitness_values=self.raw_fitness_array)
+            if self.mutation_generator.multi_gene_array:
+                self.clones_array[:, self.fitness_idx] = self._apply_treatment(fitness_arrays=self.raw_fitness_array)
+            else:
+                self.clones_array[:, self.fitness_idx] = self._apply_treatment(fitness_values=self.raw_fitness_array)
 
     def _apply_treatment(self, fitness_values=None, fitness_arrays=None):
         # Apply the treatment affects to an array of fitnesses
@@ -555,11 +559,11 @@ class GeneralSimClass(object):
             i = t
         if label is not None:
             clones_to_select = np.where(self.clones_array[:, self.label_idx] == label)
-            clones = self.population_array[clones_to_select, i][0]
+            clones = self.population_array[clones_to_select, i]
         else:
             clones = self.population_array[:, i]
 
-        clones = np.squeeze(clones.toarray().astype(int))  # Must convert to 1D array to use bincount
+        clones = clones.toarray().astype(int).flatten()  # Must convert to 1D array to use bincount
         if exclude_zeros:
             clones = clones[clones > 0]
 
@@ -716,7 +720,7 @@ class GeneralSimClass(object):
         else:
             muts = list(muts)
 
-        mutant_clones = np.squeeze(self.mutant_clone_array[muts][:, i].toarray().astype(int))
+        mutant_clones = self.mutant_clone_array[muts][:, i].toarray().astype(int).flatten()
 
         if non_zero_only:
             return mutant_clones[mutant_clones > 0]
@@ -761,7 +765,7 @@ class GeneralSimClass(object):
         counts = np.bincount(clones)
         return counts
 
-    def get_dnds(self, t=None, min_size=0, gene=None):
+    def get_dnds(self, t=None, min_size=1, gene=None):
         """
         Returns the dN/dS at a particular time.
         :param t: Time. If None, will be the end of the simulation.
@@ -773,9 +777,9 @@ class GeneralSimClass(object):
             t = self.max_time
         ns_mut = self.get_mutant_clone_sizes(t, selection='ns', gene_mutated=gene)
         s_mut = self.get_mutant_clone_sizes(t, selection='s', gene_mutated=gene)
-        ns_mut_measured = ns_mut[ns_mut > min_size]
+        ns_mut_measured = ns_mut[ns_mut >= min_size]
         total_ns = len(ns_mut_measured)
-        s_mut_measured = s_mut[s_mut > min_size]
+        s_mut_measured = s_mut[s_mut >= min_size]
         total_s = len(s_mut_measured)
 
         gene_num = self.mutation_generator.get_gene_number(gene)  # If gene is None, will get the overall ns
@@ -793,12 +797,12 @@ class GeneralSimClass(object):
         :return: Array of population at all time points
         """
         if label is not None:
-            clones_to_select = np.where(self.clones_array[:, self.label_idx] == label)[0]
-            pop = self.population_array[clones_to_select, :].astype(int)
+            clones_to_select = np.where(self.clones_array[:, self.label_idx] == label)
+            pop = self.population_array[clones_to_select]
         else:
             pop = self.population_array
-        pop = pop.toarray()
-        return pop.sum(axis=0)
+
+        return pop.toarray().sum(axis=0)
 
     def get_mean_clone_size(self, t=None, selection='mutations', index_given=False, gene_mutated=None):
         clone_sizes = self.get_mutant_clone_sizes(t=t, selection=selection, index_given=index_given,
@@ -1094,7 +1098,7 @@ class GeneralSimClass(object):
         """The expected incomplete moment if the simulation is neutral and all clones are measured accurately"""
         return np.exp(-np.arange(1, max_n + 1) / (self.division_rate * t))
 
-    def plot_dnds(self, plt_file=None, min_size=0, gene=None, clear_previous=True, legend_label=None, ax=None):
+    def plot_dnds(self, plt_file=None, min_size=1, gene=None, clear_previous=True, legend_label=None, ax=None):
         if clear_previous and ax is None:
             plt.close('all')
             fig, ax = plt.subplots()
@@ -1201,7 +1205,8 @@ class GeneralSimClass(object):
         ax.set_ylabel('Surviving clones')
         ax.set_yscale("log")
 
-    def plot_clone_size_distribution_for_non_mutation(self, t=None, label=None, legend_label=None, ax=None):
+    def plot_clone_size_distribution_for_non_mutation(self, t=None, label=None, legend_label=None, ax=None,
+                                                      as_bar=False):
         """
         Plots the clone size distribution, with the clones defined by the clones_array - i.e. not one clone per
         mutation, one clone per unique set of mutations.
@@ -1214,7 +1219,10 @@ class GeneralSimClass(object):
             t = self.max_time
         csd = self.get_clone_size_distribution_for_non_mutation(t, label=label)
         csd = csd / csd[1:].sum()
-        ax.scatter(range(1, len(csd)), csd[1:], label=legend_label)
+        if as_bar:
+            ax.bar(range(1, len(csd)), csd[1:], label=legend_label)
+        else:
+            ax.scatter(range(1, len(csd)), csd[1:], label=legend_label)
         ax.set_ylim([0, csd[1:].max() * 1.1])
 
     def plot_clone_size_scaling_for_non_mutation(self, times, markersize=2, label=None, legend_label="", ax=None):

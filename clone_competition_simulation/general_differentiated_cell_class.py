@@ -126,16 +126,13 @@ class GeneralSimDiffCells(GeneralSimClass):
         :return:
         """
         if self.non_zero_calc:
-            self.population_array[non_zero_clones, self.plot_idx] = current_population.reshape(
-                len(current_population), 1)
-            self.diff_cell_population[non_zero_clones, self.plot_idx] = current_diff_cell_population.reshape(
-                len(current_diff_cell_population), 1)
+            self.population_array[non_zero_clones, self.plot_idx] = current_population
+            self.diff_cell_population[non_zero_clones, self.plot_idx] = current_diff_cell_population
         else:
             full_clone_size = current_population + current_diff_cell_population
             non_zero = np.where(full_clone_size > 0)[0]
-            self.population_array[non_zero, self.plot_idx] = current_population[non_zero].reshape(len(non_zero), 1)
-            self.diff_cell_population[non_zero, self.plot_idx] = current_diff_cell_population[non_zero].reshape(len(non_zero),
-                                                                                                                1)
+            self.population_array[non_zero, self.plot_idx] = current_population[non_zero]
+            self.diff_cell_population[non_zero, self.plot_idx] = current_diff_cell_population[non_zero]
         self.plot_idx += 1
         if self.tmp_store is not None:  # Store current state of the simulation.
             if self.store_rotation == 0:
@@ -171,8 +168,8 @@ class GeneralSimDiffCells(GeneralSimClass):
     ############ Functions for post-processing simulations ############
     def change_sparse_to_csr(self):
         if self.is_lil:
-            self.population_array = self.population_array.toarray()  # Convert back to numpy array
-            self.diff_cell_population = self.diff_cell_population.toarray()  # Convert back to numpy array
+            self.population_array = self.population_array.tocsr()  # Convert back to numpy array
+            self.diff_cell_population = self.diff_cell_population.tocsr()  # Convert back to numpy array
         self.is_lil = False
 
     def get_clone_size_distribution_for_non_mutation(self, t=None, index_given=False, label=None, include_diff_cells=False):
@@ -197,16 +194,18 @@ class GeneralSimDiffCells(GeneralSimClass):
             i = t
         if label is not None:
             clones_to_select = np.where(self.clones_array[:, self.label_idx] == label)
-            clones = self.population_array[clones_to_select, i][0].astype(int)
+            clones = self.population_array[clones_to_select, i]
         else:
-            clones = self.population_array[:, i].astype(int)
+            clones = self.population_array[:, i]
 
         if include_diff_cells:
             if label is not None:
-                b_clones = self.diff_cell_population[clones_to_select, i][0].astype(int)
+                b_clones = self.diff_cell_population[clones_to_select, i]
             else:
-                b_clones = self.diff_cell_population[:, i].astype(int)
+                b_clones = self.diff_cell_population[:, i]
             clones = clones + b_clones
+
+        clones = clones.toarray().astype(int).flatten()
 
         counts = np.bincount(clones)
         return counts

@@ -80,11 +80,14 @@ class WrightFisherSim(GeneralSimClass):
         :return:
         """
         if total_mutations > 0:
+            # List out all cells and the clone they belong to.
             flattened_pop = np.repeat(np.arange(current_population.size), current_population)
+            # Randomly select the cells to mutate (can have more than one per cell)
             coords = np.random.randint(self.total_pop, size=total_mutations)  # the positions of the parents
-            unique, counts = np.unique(coords, return_counts=True)
+            unique, counts = np.unique(coords, return_counts=True)  # Count the mutations per cell.
 
-            u1, c1 = np.unique(flattened_pop[coords], return_counts=True)
+            # Remove mutated cells from their parent clones. Will be added as new clones below.
+            u1, c1 = np.unique(flattened_pop[unique], return_counts=True)
             current_population[u1] -= c1
 
             new_surviving_clone_numbers = []

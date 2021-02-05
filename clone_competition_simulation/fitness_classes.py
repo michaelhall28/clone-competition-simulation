@@ -1,6 +1,7 @@
 # Functions/classes to calculate the fitness of clones from the random mutation fitnesses
 import math
 import numpy as np
+import matplotlib.pyplot as plt
 import csv
 
 
@@ -22,6 +23,9 @@ class NormalDist(object):
             return self()
         return g
 
+    def get_mean(self):
+        return self.mean
+
 
 class FixedValue(object):
     def __init__(self, value):
@@ -31,6 +35,9 @@ class FixedValue(object):
         return 'Fixed value {0}'.format(self.mean)
 
     def __call__(self):
+        return self.mean
+
+    def get_mean(self):
         return self.mean
 
 
@@ -46,6 +53,9 @@ class ExponentialDist(object):
         g = self.offset + np.random.exponential(self.mean - self.offset)
         return g
 
+    def get_mean(self):
+        return self.mean
+
 
 class UniformDist(object):
     def __init__(self, low, high):
@@ -58,6 +68,9 @@ class UniformDist(object):
     def __call__(self):
         g = np.random.uniform(self.low, self.high)
         return g
+
+    def get_mean(self):
+        return (self.high + self.low)/2
 
 
 ##################
@@ -130,18 +143,20 @@ class MutationGenerator(object):
      - If multi_gene_array=False, the effects of mutations are simply combined according to the combine_mutations option
      - If multi_gene_array=True, the effects of mutations within each gene are calculated first according to the
        combine_mutations option, then the effects of each gene are combined using the combine_array option.
-       This is useful for cases like where a second mutation in a gene will not have a further fitness effect.
+       This is useful for cases such as where a second mutation in a gene will not have a further fitness effect.
 
     combine_mutations options:
         multiply - multiplies the fitness effect of all mutations in a gene to get a new fitness
         add - multiplies the fitness effect of all mutations in a gene to get a new fitness
         replace - a new mutation will define the fitness of a gene and any previous effects are ignored
-        replace_lower - the new gene fitness is the max of the old and the new
+        max - the new gene fitness is the max of the old and the new
+        min - the new gene fitness is the min of the old and the new
 
     combine_array options (only if multi_gene_array=True):
         multiply - multiplies the fitness effects on each gene to get a new fitness for the cell
         add - adds the fitness effects on each gene to get a new fitness for the cell
         max - the cell fitness is given by the gene with the highest fitness
+        min - the cell fitness is given by the gene with the minimum fitness
         priority - the cell fitness is given by the last gene in the list given
                    (or by the last epistatic effect in any are used)
 
@@ -151,24 +166,26 @@ class MutationGenerator(object):
         Those epistatic effects are then combined (along with any genes not in a triggered epistatic effect)
         according to the combine_array option.
         Each item in the list is (name for epistatic, gene_name1, gene_name2, ..., epistatic fitness distribution)
+        Only intended for quite simple combinations of a few genes.
 
     Fitness changes imposed by labelling events will be applied elsewhere.
     Any effects due to treatment are applied elsewhere.
     There are many options here and when applying treatment and labels, so be careful that the clone fitnesses are
-    combining as intended, especially if defining epistatic effects
+    combining as intended, especially if defining epistatic effects.
+    Can use MutationGenerator.plot_fitness_combinations to check the fitness combinations are as intended.
     """
     # Options for combining mutations in the same gene or when multi_gene_array=False
-    combine_options = ('multiply', 'add', 'replace', 'replace_lower')
+    combine_options = ('multiply', 'add', 'replace', 'max', 'min')
 
     # Options for combining mutations in different genes or epistatic effects.
-    combine_array_options = ('multiply', 'add', 'max', 'priority')
+    combine_array_options = ('multiply', 'add', 'max', 'min', 'priority')
 
     def __init__(self, combine_mutations='multiply', multi_gene_array=False, combine_array='multiply',
                  genes=(Gene('all', NormalDist(1.1), synonymous_proportion=0.5, weight=1),),
                  mutation_combination_class=UnboundedFitness(), epistatics=None):
         if combine_mutations not in self.combine_options:
             raise ValueError(
-                "'{0}' is not a valid option for 'combine_mutaions'. Pick from {1}".format(combine_mutations,
+                "'{0}' is not a valid option for 'combine_mutations'. Pick from {1}".format(combine_mutations,
                                                                                            self.combine_options))
         if combine_array not in self.combine_array_options:
             raise ValueError("'{0}' is not a valid option for 'combine_array'. Pick from {1}".format(combine_array,
@@ -191,7 +208,7 @@ class MutationGenerator(object):
         self.mutation_combination_class = mutation_combination_class  # E.g. BoundedLogisticFitness above
         if epistatics is not None:
             if not multi_gene_array:
-                print('Using multi_gene_array becuase there are epistatic relationships')
+                print('Using multi_gene_array because there are epistatic relationships')
                 self.multi_gene_array = True
             # List of epistatic relationships
             # Each item in the list is (name, gene_name1, gene_name2, ..., epistatic fitness distribution)
@@ -297,8 +314,10 @@ class MutationGenerator(object):
             combined_fitness[combined_fitness < 0] = 0
         elif self.combine_mutations == 'replace':
             combined_fitness = new_mutation_fitnesses
-        elif self.combine_mutations == 'replace_lower':
+        elif self.combine_mutations == 'max':
             combined_fitness = np.maximum(new_mutation_fitnesses, old_fitnesses)
+        elif self.combine_mutations == 'min':
+            combined_fitness = np.minimum(new_mutation_fitnesses, old_fitnesses)
         else:
             raise NotImplementedError("Have tried to use {}".format(self.combine_mutations))
         return combined_fitness
@@ -361,9 +380,11 @@ class MutationGenerator(object):
             combined_fitness[combined_fitness < 0] = 0
         elif self.combine_array == 'max':
             combined_fitness = np.nanmax(fitness_arrays, axis=1)
+        elif self.combine_array == 'min':
+            combined_fitness = np.nanmin(fitness_arrays, axis=1)
         elif self.combine_array == 'priority':
-            # Find the right-most non-zero value. Useful for epistatic interactions that are superceded by another
-            # To find the last non-zero columns, reverse the column order and find the first non-zero entry.
+            # Find the right-most non-nan value. Useful for epistatic interactions that are superseded by another
+            # To find the last non-nan columns, reverse the column order and find the first non-zero entry.
             fitness_arrays = fitness_arrays[:, ::-1]
             c = np.isnan(fitness_arrays)
             d = np.argmin(c, axis=1)
@@ -382,5 +403,69 @@ class MutationGenerator(object):
             return self.overall_synonymous_proportion
         else:
             return self.synonymous_proportion[gene_num]
+
+    def plot_fitness_combinations(self):
+        """
+        The combinations of multiple mutations can be complicated, especially if epistatic relationships are defined.
+        This will plot the average fitness of all fitness combinations of all genes defined as a visual check that
+        it is as intended.
+        Assumes that the background fitness (first column of the fitness array) is 1.
+        """
+        if not self.multi_gene_array and self.combine_mutations == 'replace':
+            # No combinations here. Just need to plot individual genes
+            print('No combinations defined. Only most recent non-silent mutation defines fitness')
+            xticklabels = ['Background']
+            fitness_values = [1]
+            for i, gene in enumerate(self.genes):
+                xticklabels.append(gene.name)
+                fitness_values.append(gene.mutation_distribution.get_mean())
+            plt.bar(range(len(fitness_values)), fitness_values)
+            plt.ylabel('Fitness')
+            plt.xticks(range(len(fitness_values)), xticklabels, rotation=90)
+            return fitness_values
+        else:
+            # Make a fitness array with all possible combinations of genes
+            num_genes = len(self.genes)
+
+            if self.epistatics is None:
+                num_epi = 0
+            else:
+                num_epi = len(self.epistatics)
+            fitness_array = np.full((2 ** num_genes, num_genes + num_epi + 1), np.nan)
+
+            fitness_array[:, 0] = 1  # Assume background fitness is 1
+            xticklabels = ['Background']
+            for i in range(fitness_array.shape[0]):
+                binary_string = format(i, '#0{}b'.format(num_genes + 2))[2:][::-1]
+                tick_label = []
+                for j, b in enumerate(binary_string):
+                    if b == '1':
+                        # Mutate the gene
+                        gene_fitness = self.mutation_distributions[j].get_mean()
+                        fitness_array[i, j + 1] = gene_fitness
+                        tick_label.append(self.genes[j].name)
+                if i > 0:
+                    xticklabels.append(" + ".join(tick_label))
+
+            if self.multi_gene_array:
+                new_fitnesses, new_mutation_arrays = self.combine_vectors(fitness_array)
+            else:
+                # Temporarily change the combine_mutations attribute so same combination functions can be used
+                if self.combine_mutations in ('add', 'multiply'):
+                    print('This allows multiple mutations per gene to have an effect. ' \
+                          'Just showing combinations of up to one (mean fitness) mutation from each gene.')
+                ca = self.combine_array
+                self.combine_array = self.combine_mutations
+                self.multi_gene_array = True
+                new_fitnesses, new_mutation_arrays = self.combine_vectors(fitness_array)
+                self.combine_array = ca
+                self.multi_gene_array = False
+
+            plt.bar(range(fitness_array.shape[0]), new_fitnesses)
+            plt.ylabel('Fitness')
+            plt.xticks(range(fitness_array.shape[0]), xticklabels, rotation=90)
+
+            return new_fitnesses
+
 
 

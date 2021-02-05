@@ -449,7 +449,9 @@ Find a commit pre 20/11/17 to use this algorithm.'.format(self.algorithm))
             if self.fitness_array is None:
                 self.fitness_array = np.full(len(self.initial_size_array), self.default_fitness, dtype=float)
             elif len(self.fitness_array) != len(self.initial_size_array):
-                raise ParameterException('Inconsistent initial_size_array and fitness_array. Ensure same length.')
+                raise ParameterException('Inconsistent initial_size_array and fitness_array. Ensure same length.' +
+                                         '\nlen(initial_size_array): {}, len(fitness_array): {}'.format(
+                                             len(self.initial_size_array), len(self.fitness_array)))
 
     def _check_other_2D_parameters(self):
         # Check that the hexagonal grid has only even dimensions.
