@@ -542,7 +542,7 @@ Find a commit pre 20/11/17 to use this algorithm.'.format(self.algorithm))
             # Which points to take a sample
             sample_points_float = self.times * steps_per_unit_time
             self.sample_points = np.around(sample_points_float).astype(int)
-            # Can sometimes can duplicates for close timepoints and slow division rate
+            # Can sometimes have duplicates for close time points and slow division rate
             self.sample_points = np.unique(self.sample_points)
             if self.algorithm in self.moran_algorithms:
                 rounded_times = self.sample_points / self.division_rate / self.initial_cells
@@ -552,7 +552,7 @@ Find a commit pre 20/11/17 to use this algorithm.'.format(self.algorithm))
             times_changed = False
             if len(self.times) != len(rounded_times):
                 times_changed = True
-            elif (self.times - rounded_times).sum() > 0:
+            elif not np.allclose(self.times, rounded_times) > 0:
                 times_changed = True
             if times_changed:
                 self.warnings.append('Times rounded to match simulation steps:')
@@ -680,9 +680,9 @@ Find a commit pre 20/11/17 to use this algorithm.'.format(self.algorithm))
 
     def _get_simulation_steps(self):
         if self.algorithm in ['Moran', 'Moran2D']:
-            sim_steps = int(self.max_time * self.division_rate * self.initial_cells)
-        elif self.algorithm in ['WF', 'WFBal', 'RelFit', 'WF2D']:
-            sim_steps = int(self.max_time * self.division_rate)
+            sim_steps = round(self.max_time * self.division_rate * self.initial_cells)
+        elif self.algorithm in ['WF', 'WFBal', 'WF2D']:
+            sim_steps = round(self.max_time * self.division_rate)
         elif self.algorithm in ['Branching']:
             sim_steps = None
         else:

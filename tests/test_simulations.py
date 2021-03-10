@@ -1286,8 +1286,7 @@ def test_animation(algorithm):
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description="Overwrite results with new versions. " \
-                                                 "Not for updating plots unless all tests are run.")
+    parser = argparse.ArgumentParser(description="Overwrite results with new versions. ")
     parser.add_argument('--overwrite', action='store_true', help="Must use this to run. To prevent accidental use. ")
     parser.add_argument('-a', '--algorithm', nargs='*',
                         help='Algorithms to overwrite. Will run all if none given')
