@@ -15,7 +15,11 @@ class HexAnimator:
     Turns the grids of the 2D simulations into a video.
     Colours based on the clones each cell belong to and the colourscale chosen.
     """
-    def __init__(self, comp, figxsize=5, figsize=None, dpi=100, bitrate=500, fps=5, external_call=False):
+    def __init__(self, comp, figxsize=5, figsize=None, dpi=100, bitrate=500, fps=5, external_call=False,
+                 fixed_label_text=None, fixed_label_loc=(0, 0), fixed_label_kwargs=None,
+                 show_time_label=False, time_label_units=None, time_label_decimal_places=0,
+                 time_label_loc=(0, 0), time_label_kwargs=None
+                 ):
         self.comp = comp
         if self.comp.colours is None:
             self.comp._get_colours(self.comp.clones_array)
@@ -28,6 +32,23 @@ class HexAnimator:
         self.bitrate = bitrate
         self.fps = fps
         self.external_call = external_call
+
+        # parameters for text overlaying the video
+        self.fixed_label_text = fixed_label_text
+        self.fixed_label_loc = fixed_label_loc
+        if fixed_label_kwargs is None:
+            self.fixed_label_kwargs = {}
+        else:
+            self.fixed_label_kwargs = fixed_label_kwargs
+
+        self.show_time_label = show_time_label
+        self.time_label_units = time_label_units
+        self.time_label_loc = time_label_loc
+        self.time_label_decimal_places = time_label_decimal_places
+        if time_label_kwargs is None:
+            self.time_label_kwargs = {}
+        else:
+            self.time_label_kwargs = time_label_kwargs
 
     def animate(self, animation_file):
         if self.external_call:
@@ -134,6 +155,19 @@ class HexAnimator:
         # add the collection last
         self.ax.add_collection(self.col, autolim=False)
 
+    def _add_fixed_label(self):
+        self.ax.text(*self.fixed_label_loc, self.fixed_label_text, **self.fixed_label_kwargs)
+
+    def _add_time_label(self):
+        self.time_label = self.ax.text(*self.time_label_loc, "", **self.time_label_kwargs)
+
+    def _update_time_label(self, frame_number):
+        t = self.comp.times[frame_number]
+        text = "{:.{dp}f}".format(t, dp=self.time_label_decimal_places)
+        if self.time_label_units is not None:
+            text += " " + self.time_label_units
+        self.time_label.set_text(text)
+
     def _setup_frame(self, ax=None):
         # Some of this is based on the matplotlib function to plot a hexgrid
 
@@ -149,6 +183,10 @@ class HexAnimator:
             self.ax = ax
 
         self._setup_polygons_and_frame()
+        if self.show_time_label:
+            self._add_time_label()
+        if self.fixed_label_text is not None:
+            self._add_fixed_label()
 
         if not ax_given:
             plt.axis('off')
@@ -205,7 +243,12 @@ class HexAnimator:
                 colours.append(self.comp.colours[grid[i, j]])
 
         self.col.set_facecolor(colours)  # Sets the colours for each polygon
-        return self.col,
+
+        if self.show_time_label:
+            self._update_time_label(frame_number)
+            return self.col, self.time_label,
+        else:
+            return self.col,
 
     def _update(self, frame_number):
         if frame_number == 0:
@@ -223,7 +266,11 @@ class HexAnimator:
                         self.col._facecolors[idx] = new_col
                     idx += 1
 
-            return self.col,
+            if self.show_time_label:
+                self._update_time_label(frame_number)
+                return self.col, self.time_label,
+            else:
+                return self.col,
 
 
 class HexFitnessAnimator(HexAnimator):

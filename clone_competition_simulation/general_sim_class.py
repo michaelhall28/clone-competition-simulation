@@ -1129,7 +1129,9 @@ class GeneralSimClass(object):
 
     def animate(self, animation_file, grid_size=None, generations_per_frame=1, starting_clones=1,
                 figsize=None, figxsize=5, bitrate=500, min_prop=0, external_call=False, dpi=100, fps=5,
-                fitness=False, fitness_cmap=cm.Reds):
+                fitness=False, fitness_cmap=cm.Reds, fixed_label_text=None, fixed_label_loc=(0, 0),
+                fixed_label_kwargs=None, show_time_label=False, time_label_units=None,
+                time_label_decimal_places=0, time_label_loc=(0, 0), time_label_kwargs=None):
         """
         Output an animation of the simulation on a 2D grid
         :param external_call: Only for 2D grids. Will run a version which is cruder and may run faster
@@ -1143,7 +1145,11 @@ class GeneralSimClass(object):
                                        bitrate=bitrate, fps=fps)
             else:
                 animator = HexAnimator(self, figxsize=figxsize, figsize=figsize, dpi=dpi, bitrate=bitrate,
-                                       fps=fps, external_call=external_call)
+                                       fps=fps, external_call=external_call, fixed_label_text=fixed_label_text,
+                                       fixed_label_loc=fixed_label_loc, fixed_label_kwargs=fixed_label_kwargs,
+                                       show_time_label=show_time_label, time_label_units=time_label_units,
+                                       time_label_decimal_places=time_label_decimal_places,
+                                       time_label_loc=time_label_loc, time_label_kwargs=time_label_kwargs)
 
         else:
             if fitness:
