@@ -816,7 +816,7 @@ def test_neighbours(axes, algorithm):
             sim.run_sim()
             sim.change_sparse_to_csr()
             np.random.seed(0)
-            h = HexAnimator(sim)
+            h = HexAnimator(sim, equal_aspect=True)
             grid = np.zeros(60)
             coords = np.array([0, 3, 17, 35, 39])
             for i, c in enumerate(coords):

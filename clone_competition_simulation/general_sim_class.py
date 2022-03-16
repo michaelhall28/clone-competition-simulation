@@ -1131,7 +1131,7 @@ class GeneralSimClass(object):
                 figsize=None, figxsize=5, bitrate=500, min_prop=0, external_call=False, dpi=100, fps=5,
                 fitness=False, fitness_cmap=cm.Reds, fixed_label_text=None, fixed_label_loc=(0, 0),
                 fixed_label_kwargs=None, show_time_label=False, time_label_units=None,
-                time_label_decimal_places=0, time_label_loc=(0, 0), time_label_kwargs=None):
+                time_label_decimal_places=0, time_label_loc=(0, 0), time_label_kwargs=None, equal_aspect=False):
         """
         Output an animation of the simulation on a 2D grid
         :param external_call: Only for 2D grids. Will run a version which is cruder and may run faster
@@ -1149,7 +1149,8 @@ class GeneralSimClass(object):
                                        fixed_label_loc=fixed_label_loc, fixed_label_kwargs=fixed_label_kwargs,
                                        show_time_label=show_time_label, time_label_units=time_label_units,
                                        time_label_decimal_places=time_label_decimal_places,
-                                       time_label_loc=time_label_loc, time_label_kwargs=time_label_kwargs)
+                                       time_label_loc=time_label_loc, time_label_kwargs=time_label_kwargs,
+                                       equal_aspect=equal_aspect)
 
         else:
             if fitness:
@@ -1163,8 +1164,9 @@ class GeneralSimClass(object):
     ## Plots for lineage tracing experiments
     # These assume no mutations occurred during the simulation,
     # but all mutations (or labelled clones) are induced at the start.
-    def plot_mean_clone_size_graph_for_non_mutation(self, times=None, label=None, plot_fit=True, fit_rate=None,
-                                                    legend_label=None, legend_label_fit=None, ax=None):
+    def plot_mean_clone_size_graph_for_non_mutation(self, times=None, label=None, show_spm_fit=True, spm_fit_rate=None,
+                                                    legend_label=None, legend_label_fit=None, ax=None,
+                                                    plot_kwargs=None, fit_plot_kwargs=None):
         """
         Follows the mean clone sizes of each row in the clone array. This is a clone defined by a unique set of
         mutations, not be a particular mutation.
@@ -1180,16 +1182,21 @@ class GeneralSimClass(object):
 
         if ax is None:
             fig, ax = plt.subplots()
-        if plot_fit:
-            if fit_rate is None:
-                fit_rate = self.division_rate
+        if show_spm_fit:
+            if spm_fit_rate is None:
+                spm_fit_rate = self.division_rate
             # Plot the theoretical mean clone size from the single progenitor model
-            ax.plot(times, mean_clone_size_fit(times, fit_rate), 'r--', label=legend_label_fit)
+            if fit_plot_kwargs is None:
+                fit_plot_kwargs = {}
+            ax.plot(times, mean_clone_size_fit(times, spm_fit_rate), label=legend_label_fit, **fit_plot_kwargs)
         ax.set_xlabel('Time')
         ax.set_ylabel('Mean clone size of surviving clones')
-        ax.scatter(times, means, label=legend_label)
+        if plot_kwargs is None:
+            plot_kwargs = {}
+        ax.plot(times, means, label=legend_label, **plot_kwargs)
 
-    def plot_surviving_clones_for_non_mutation(self, times=None, ax=None, label=None, show_spm_fit=False):
+    def plot_surviving_clones_for_non_mutation(self, times=None, ax=None, label=None, show_spm_fit=False,
+                                           spm_fit_rate=None, plot_kwargs=None, legend_label=None):
         """
         Follows the surviving clones based on of each row in the clone array. This is a clone defined by a unique set of
         mutations, not be a particular mutation.
@@ -1203,10 +1210,14 @@ class GeneralSimClass(object):
 
         # Plot the theoretical number of surviving clones from the single progenitor model
         if show_spm_fit:   # Assumes the Moran model. Timing will be wrong for the WF models.
-            ax.plot(times, surviving_clones_fit(times, self.division_rate,
+            if spm_fit_rate is None:
+                spm_fit_rate = self.division_rate
+            ax.plot(times, surviving_clones_fit(times, spm_fit_rate,
                                                 self.get_surviving_clones_for_non_mutation(times=[0], label=label)),
                     'r--')
-        ax.scatter(times, surviving_clones)
+        if plot_kwargs is None:
+            plot_kwargs = {}
+        ax.plot(times, surviving_clones, label=legend_label, **plot_kwargs)
         ax.set_xlabel('Time')
         ax.set_ylabel('Surviving clones')
         ax.set_yscale("log")

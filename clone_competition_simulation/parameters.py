@@ -244,11 +244,6 @@ class Parameters(object):
         self.default_wraparound_grid = False
         self.default_stratification_sim_percentile = 1
 
-        # OPTIONS. Where one of a few limited options are required, put here
-        if self.algorithm in {'WFBal', 'RelFit'}:
-            raise NotImplementedError('{0} algorithm not implemented in this version of code. \
-Find a commit pre 20/11/17 to use this algorithm.'.format(self.algorithm))
-
         # Other. Attributes used internally to help printing etc.
         self.initial_grid_provided = False
         self.print_warnings = print_warnings
@@ -286,7 +281,9 @@ Find a commit pre 20/11/17 to use this algorithm.'.format(self.algorithm))
         """Check parameters for consistency. Defines any missing parameters which can be calculated from others."""
         try:
             if self.mutation_generator is None:
-                self.warnings.append('Using the default mutation generator: {0}'.format(self.default_mutation_generator.__str__()))
+                if self.mutation_rates is not None and self.mutation_rates != 0:
+                    self.warnings.append('Using the default mutation generator: {0}'.format(
+                        self.default_mutation_generator.__str__()))
                 self.mutation_generator = self.default_mutation_generator
             self._check_algorithm()
             self._check_populations()
@@ -798,6 +795,8 @@ Find a commit pre 20/11/17 to use this algorithm.'.format(self.algorithm))
                 else:
                     self.sim_class = Moran2D
             elif self.algorithm == 'Branching':
+                if self.end_condition_function is not None:
+                    raise ParameterException('Cannot use an end_condition_function for the branching algorithm')
                 self.sim_class = SimpleBranchingProcess
             elif self.algorithm == 'WF2D':
                 if self.end_condition_function is not None:
@@ -805,6 +804,9 @@ Find a commit pre 20/11/17 to use this algorithm.'.format(self.algorithm))
                 else:
                     self.sim_class = WrightFisher2D
         else:  # Simulations including B cells.
+            if self.end_condition_function is not None:
+                raise ParameterException(
+                    'Cannot use an end_condition_function for the simulations including differentiated cells')
             if self.algorithm == 'Moran':
                 self.sim_class = MoranWithDiffCells
             elif self.algorithm == 'Moran2D':

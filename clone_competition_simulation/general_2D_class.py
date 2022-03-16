@@ -1,4 +1,5 @@
 import numpy as np
+from clone_competition_simulation.animator import HexAnimator
 
 
 class GeneralHexagonalGridSim(object):
@@ -47,3 +48,79 @@ class GeneralHexagonalGridSim(object):
             self.next_label_time = np.inf
 
         return current_population, non_zero_clones
+
+    def get_1D_coord(self, row, col):
+        """
+        Convert a 2D grid coordinate into the index for the same cell in the 1D array
+        return int
+        """
+        return row * self.grid_shape[0] + col
+
+    def get_2D_coord(self, idx):
+        """
+        Convert an index from the 1D array to a location on the 2D grid.
+        return tuple: (row, column)
+        """
+        return idx // self.grid_shape[0], idx % self.grid_shape[0]
+
+    def get_neighbour_coords_2D(self, idx, col=None):
+        """
+        Get the neighbouring coordinates in the 2D grid from either the index in the 1D array or the coordinates in the
+        2D grid.
+        return array of ints
+        """
+        if col is not None:
+            # Given the 2D coordinates
+            idx = self.get_1D_coord(idx, col)
+
+        neighbours = self.neighbour_map[idx]
+        return np.array([self.get_2D_coord(n) for n in neighbours])
+
+    def get_neighbour_coords_1D(self, idx, col=None):
+        """
+        Get the neighbouring indices in the 1D array from either the index in the 1D array or the coordinates in the
+        2D grid.
+        return array of ints
+        """
+        if col is not None:
+            # Given the 2D coordinates
+            idx = self.get_1D_coord(idx, col)
+
+        return self.neighbour_map[idx]
+
+    def get_neighbours(self, idx, col=None):
+        """
+        Returns the clone ids of the neighbouring cells.
+        :param idx: The index of the cell in the 1D array, or the row of the cell in the 2D grid if using with col
+        :param col: The column of the cell in the 2D grid. If None, will use idx alone to get the cell from the 1D array
+        :return:
+        """
+        if col is not None:
+            # Given the 2D coordinates
+            idx = self.get_1D_coord(idx, col)
+        return self.grid_array[self.neighbour_map[idx]]
+
+    def plot_grid(self, t=None, index_given=False, grid=None, figsize=None, figxsize=5, bitrate=500, dpi=100,
+                  equal_aspect=False, ax=None):
+        """
+        Plot a hexagonal grid of clones.
+        The colours will be based on the colourscale defined in the Parameter object used to run the simulation.
+        By default will plot the final grid of the simulation. Can pass a time point (or time index) or any 2D grid of
+        the correct size (matching the size of the simulation grid).
+
+        :param t: time or index of the sample to get the distribution for.
+        :param index_given: True if t is the index. False if t is a time.
+        :param grid: 2D numpy array of integers.
+        """
+        if grid is None:
+            if t is None: # By default, plot the final grid
+                grid = self.grid_results[-1]
+            elif not index_given:
+                grid = self.grid_results[self._convert_time_to_index(t)]
+            else:
+                grid = self.grid_results[t]
+
+        # The plotting uses the HexAnimator class (same process to produce a single frame of an animation)
+        animator = HexAnimator(self, figxsize=figxsize, figsize=figsize, dpi=dpi, bitrate=bitrate,
+                               equal_aspect=equal_aspect)
+        animator.plot_grid(grid, ax)

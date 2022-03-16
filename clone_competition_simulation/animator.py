@@ -18,7 +18,7 @@ class HexAnimator:
     def __init__(self, comp, figxsize=5, figsize=None, dpi=100, bitrate=500, fps=5, external_call=False,
                  fixed_label_text=None, fixed_label_loc=(0, 0), fixed_label_kwargs=None,
                  show_time_label=False, time_label_units=None, time_label_decimal_places=0,
-                 time_label_loc=(0, 0), time_label_kwargs=None
+                 time_label_loc=(0, 0), time_label_kwargs=None, equal_aspect=False
                  ):
         self.comp = comp
         if self.comp.colours is None:
@@ -28,6 +28,11 @@ class HexAnimator:
             self.figxsize = 5
         else:
             self.figxsize = figxsize  # X-dim of figure. Y-dim will be automatically calculated. Alternative to figsize.
+        if equal_aspect:
+            self.aspect = 'equal'  # Force equal aspect on the plot axes
+        else:
+            self.aspect = 'auto'
+
         self.dpi = dpi
         self.bitrate = bitrate
         self.fps = fps
@@ -177,7 +182,7 @@ class HexAnimator:
             self._get_figsize()
 
             self.fig = plt.figure(figsize=self.figsize, dpi=self.dpi)
-            self.ax = self.fig.add_axes([0, 0, 1, 1],aspect='equal')
+            self.ax = self.fig.add_axes([0, 0, 1, 1], aspect=self.aspect)
         else:
             ax_given = True
             self.ax = ax

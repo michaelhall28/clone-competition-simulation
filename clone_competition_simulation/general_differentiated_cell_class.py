@@ -336,7 +336,7 @@ class GeneralSimDiffCells(GeneralSimClass):
         csd = csd / csd[1:].sum()
         plt.scatter(range(1, len(csd)), csd[1:])
 
-    def plot_mean_clone_size_graph_for_non_mutation(self, times=None, label=None, plot_fit=True, fit_rate=None,
+    def plot_mean_clone_size_graph_for_non_mutation(self, times=None, label=None, show_spm_fit=True, spm_fit_rate=None,
                                                     legend_label=None, legend_label_fit=None, include_diff_cells=False,
                                                     ax=None):
         """
@@ -354,11 +354,11 @@ class GeneralSimDiffCells(GeneralSimClass):
 
         if ax is None:
             fig, ax = plt.subplots()
-        if plot_fit:
-            if fit_rate is None:
-                fit_rate = self.division_rate
+        if show_spm_fit:
+            if spm_fit_rate is None:
+                spm_fit_rate = self.division_rate
             # Plot the theoretical mean clone size from the single progenitor model
-            ax.plot(times, mean_clone_size_fit(times, fit_rate), 'r--', label=legend_label_fit)
+            ax.plot(times, mean_clone_size_fit(times, spm_fit_rate), 'r--', label=legend_label_fit)
         ax.set_xlabel('Time')
         ax.set_ylabel('Mean clone size of surviving clones')
         ax.scatter(times, means, label=legend_label)
