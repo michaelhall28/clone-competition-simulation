@@ -68,7 +68,8 @@ class Parameters(object):
                  gamma=None,
                  stratification_sim_percentile=None,
 
-                 population_limit=None,  # For the branching model, will stop if exceeding this limit
+                 population_limit=None,  # For the branching model, will stop the simulation if exceeding this limit
+                                         # THIS IS NOT A CARRYING CAPACITY
                  end_condition_function=None,
 
                  tmp_store=None,  # File to store the partial results of simulation.
@@ -168,6 +169,7 @@ class Parameters(object):
 
             Conditions to end simulations early. Useful for ABC or to find first occurence of mutant combinations.
         :param population_limit: Int. For Branching process only. Stops simulating clones if the population limit is reached.
+        THIS IS NOT A CARRYING CAPACITY.
         :param end_condition_function: Function that takes a simulation object as the only argument and
         raises EndConditionError if the simulation should stop.
 

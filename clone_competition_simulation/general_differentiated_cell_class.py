@@ -562,7 +562,7 @@ class BranchingWithDiffCells(SimpleBranchingProcess, GeneralSimDiffCells):
 
         return current_diff_cell_population
 
-    def _sim_step(self, c, current_population, current_diff_cell_population):
+    def _sim_step(self, clone_id, current_population, current_diff_cell_population):
 
         # Division rate is taken as r*lambda.
         # The rate of either a symmetric AA or BB division is then 2*r*lambda = 2*division_rate
@@ -606,7 +606,7 @@ class BranchingWithDiffCells(SimpleBranchingProcess, GeneralSimDiffCells):
         # If the draw is below the fitness, the cell will divide (and possibly mutate).
         # This means the higher the fitness, the more the clone will proliferate.
         # Fitnesses above 2 are essentially infinite, the clone will not die.
-        if np.random.uniform(0, 2) <= self.clones_array[c, self.fitness_idx]:
+        if np.random.uniform(0, 2) <= self.clones_array[clone_id, self.fitness_idx]:
             if self.current_mutation_rate > 0:
                 new_muts = np.random.poisson(self.current_mutation_rate)
             else:
@@ -618,8 +618,8 @@ class BranchingWithDiffCells(SimpleBranchingProcess, GeneralSimDiffCells):
 
                 # Current population does not change. Record the existence of a new clone at this timepoint
                 # and simulate later.
-                parents = np.concatenate([[c], np.arange(self.next_mutation_index,
-                                                         self.next_mutation_index + new_muts - 1)])
+                parents = np.concatenate([[clone_id], np.arange(self.next_mutation_index,
+                                                                self.next_mutation_index + new_muts - 1)])
 
                 self.plot_idx = np.searchsorted(self.times, self.time)  # Make sure the "generation_born" is correct
                 self._draw_mutations_for_single_cell(parents)
@@ -677,7 +677,7 @@ class BranchingWithDiffCells(SimpleBranchingProcess, GeneralSimDiffCells):
         self.raw_fitness_array = self.raw_fitness_array[:self.next_mutation_index]
         self.diff_cell_population = self.diff_cell_population[:self.next_mutation_index]
 
-    def _record_results(self, c, clone_sizes, clone_sizes_diff, clone_times):
+    def _record_results(self, clone_id, clone_sizes, clone_sizes_diff, clone_times):
         """
         Record the results at the point the simulation is up to.
         Report progress if required
@@ -694,8 +694,8 @@ class BranchingWithDiffCells(SimpleBranchingProcess, GeneralSimDiffCells):
             a.append(clone_sizes[j])
             b.append(clone_sizes_diff[j])
 
-        self.population_array[c] = a
-        self.diff_cell_population[c] = b
+        self.population_array[clone_id] = a
+        self.diff_cell_population[clone_id] = b
 
 
 def set_gsl_random_seed(s):

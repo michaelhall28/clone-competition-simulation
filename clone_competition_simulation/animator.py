@@ -1,3 +1,10 @@
+"""
+Classes for making videos from the simulations. Can also be used to plot a single grid of a 2D simulation.
+
+Intended for the 2D simulations on hexagonal grids. Also includes a class for representing the clone proportions from
+a non-spatial simulation on a 2D grid. This is unreliable and unmaintained, but is left for those who are interested.
+"""
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation

@@ -1,3 +1,12 @@
+"""
+A class for running a branching process of clone growth.
+This is based on the single progenitor model (Clayton et al 2007).
+
+For easier comparison with the Moran and Wright–Fisher models, the differentiated cells in the basal layer are not
+simulated. A class including those cells is available in general_differentiated_cell_class.py (accessed by defining r
+and gamma when setting up the Parameters).
+"""
+
 from clone_competition_simulation.general_sim_class import GeneralSimClass
 import numpy as np
 from scipy.sparse import lil_matrix
@@ -11,16 +20,38 @@ class SimpleBranchingProcess(GeneralSimClass):
     A simplified version of the single progenitor model
     Progenitor cells either divide to form two new progenitor cells or they die
     The chance of division/death is determined by the fitness of the clone
+    Cell fitness does not alter the cell turnover rate.
+    The maximum fitness is 2. This results in no cell death and a cell division at every step, so all fitness values
+    above 2 cannot increase the division probability any further.
+
     Unlike the Wright-Fisher or Moran models, the total population size is not fixed.
-    Each cell/clone acts independently of all other cells.
+    Each cell acts independently of all other cells.
+
+    Clones are simulated one at a time from the start to the end of the simulation time.
+    This means you cannot stop the simulation early and get the full results up to a particular time point, it will be
+    partial results (possibly up to the end of the simulation time) for some proportion of the cell population.
+
     """
     def __init__(self, parameters):
+        """
+
+        :param parameters: Parameters object (with algorithm="Branching")
+        """
 
         self.time = 0
         super().__init__(parameters)
+
+        # Optional limit on the population size.
+        # THIS DOES NOT ACT AS A CARRYING CAPACITY
+        # This prevent overly long/memory-hungry simulations by stopping if a population limit is reached.
+        # It will not necessarily stop at the simulated time the population limit is reached since clones
+        # are simulated one at a time from start to end of the simulation.
+        # If at any point the population_limit is reached, the simulation stops.
         self.population_limit = parameters.population_limit
 
+        # Set the mutation rate at the start of the simulation.
         self.current_mutation_rate = self.mutation_rates[0][1]
+        # Set up the next time when the mutation rate will change (if any).
         self.mutation_rate_idx = 0
         if self.mutation_rate_idx + 1 < len(self.mutation_rates):
             self.next_rate_change_time = self.mutation_rates[self.mutation_rate_idx+1][0]
@@ -30,8 +61,16 @@ class SimpleBranchingProcess(GeneralSimClass):
         self.new_mutations = {}  # Store clone_id and start time for each newly created clone.
 
     def _reset_to_start(self, start_time):
-        # Settings such as treatment regime must be reset for each clone
+        """
+        Resets the conditions (e.g. mutation rate) for the start of a simulation of a new clone.
+        This may be to the initial conditions of the simulation, or if the clone was created by a mutation during
+        the simulation, it will reset to the conditions at the birth time of the clone.
+        :param start_time: The time the clone was "born"
+        :return:
+        """
         self.time = start_time
+
+        # Set the correct mutation rate
         self.current_mutation_rate = self.mutation_rates[0][1]
         self.mutation_rate_idx = 0
         if self.mutation_rate_idx + 1 < len(self.mutation_rates):
@@ -40,6 +79,7 @@ class SimpleBranchingProcess(GeneralSimClass):
             self.next_rate_change_time = np.inf
         self.plot_idx = 0
 
+        # Set the correct time for the next labelling event (if any)
         self.label_count = 0
         if self.label_times is not None:
             self.next_label_time = self.label_times[0]
@@ -52,6 +92,7 @@ class SimpleBranchingProcess(GeneralSimClass):
         else:
             self.next_label_time = np.inf
 
+        # Set the correct treatment (will affect the fitness).
         self.current_fitness_multiplier = 1  # The effect of the current treatment
         self.treatment_count = -1
         if self.parameters.treatment_timings is None:
@@ -69,12 +110,13 @@ class SimpleBranchingProcess(GeneralSimClass):
                                                                            self.raw_fitness_array)
 
     def run_sim(self, continue_sim=False):
-        # Functions which runs any of the simulation types.
-        # self.sim_step will include the differences between the methods.
-        # Each step can be a generation (Wright-Fisher) or a single birth-death-mutation event (Moran).
+        """
+        This overrides the method from GeneralSimClass because clones are simulated one at a time, rather than
+        simulating the entire cell population from the start time to end time.
 
-        # In it is possible for a clone to not survive until the next sample after being created by a mutation.
-        # This will leave an all zeros row in the population array.
+        :param continue_sim:
+        :return:
+        """
         if self.i > 0:
             # Not the first time it has been run
             if self.finished:
@@ -86,16 +128,22 @@ class SimpleBranchingProcess(GeneralSimClass):
                 print('Simulation already started but incomplete')
                 return
 
+        # Set up the initial treatment, if any
         self._change_treatment()
 
+        # Simulate the clones that exist at the initiation of the simulation.
         for clone_id in range(len(self.clones_array)):
             self._run_for_clone(clone_id=clone_id, start_time=0)
+
+            # Stop early if the population size has got too big.
             if self.population_limit is not None:
                 total_pop = self.population_array[:, -1].sum()
                 if total_pop > self.population_limit:
                     self.finished = True
                     raise OverPopulationError('Ending early as population limit exceeded')
 
+        # Simulated of the clones that have been created by mutations during the simulation of the original clones.
+        # Continue until all mutant clones have been simulated of the population limit has been exceeded.
         while self.new_mutations:
             clone_id += 1
             start_time = self.new_mutations.pop(clone_id, None)
@@ -111,11 +159,21 @@ class SimpleBranchingProcess(GeneralSimClass):
             self.i = 1
             print('Finished')
 
+        # Tidy up the results arrays.
         self._finish_up()
         self.finished = True
 
     def _run_for_clone(self, clone_id, start_time):
+        """
+        Simulated an individual clone.
+        :param clone_id:
+        :param start_time:
+        :return:
+        """
+        # Set conditions to those at the birth time of the clone.
         self._reset_to_start(start_time)
+
+        # Set up the current clone size and the lists to record sizes over time
         if clone_id < len(self.initial_size_array):
             current_population = self.initial_size_array[clone_id]  # One of the initial cells
             clone_sizes = [current_population]
@@ -126,10 +184,13 @@ class SimpleBranchingProcess(GeneralSimClass):
             clone_times = [start_time]
 
         while self.time < self.max_time:
+            # Run until the next cell division (or death event).
+            # Will update the clone size and self.time
             current_population = self._sim_step(clone_id, current_population)  # Run step of the simulation
             clone_sizes.append(current_population)
             clone_times.append(self.time)
 
+            # Add any labels introduced
             while self._check_label_time():
                 current_population = self._add_label(clone_id, current_population,
                                                      self.label_frequencies[self.label_count],
@@ -138,27 +199,38 @@ class SimpleBranchingProcess(GeneralSimClass):
                                                      self.label_genes[self.label_count]
                                                      )
 
+            # Adjust the treatment if it has changed.
             while self._check_treatment_time():
                 self._change_treatment()
+
             if current_population == 0:
                 # The population can go extinct in this simulation. Must then stop the sim.
                 self.time = self.max_time
                 clone_times.append(self.time)
             elif self.population_limit is not None:
+                # Check if the clone is too large and the simulation must be stopped.
                 if current_population > self.population_limit:
                     raise OverPopulationError("Ending early as single clone exceeded population limit")
 
         self._record_results(clone_id, clone_sizes, clone_times)
 
-    def _sim_step(self, c, current_population):
+    def _sim_step(self, clone_id, current_population):
+        """
+        A step of the simulation here is up until the next "division". Division can produce two differentiated cells
+        (not explicitly simulated here), so is effectively cell death.
+        :param clone_id: Int.
+        :param current_population: Int. Current clone size.
+        :return:
+        """
 
         # Division rate is taken as r*lambda.
         # The rate of either a symmetric AA or BB division is then 2*r*lambda = 2*division_rate
         # This then matches with the Moran model.
-        # This branching model required twice as many simulations steps as the Moran as the divisions and deaths
+        # This branching model requires twice as many simulations steps as the Moran because the divisions and deaths
         # happen in different steps
         self.time += np.random.exponential(1 / (current_population * 2 * self.division_rate))
 
+        # Update the mutation rate
         while self.time > self.next_rate_change_time:
             self.mutation_rate_idx += 1
             self.current_mutation_rate = self.mutation_rates[self.mutation_rate_idx][1]
@@ -173,20 +245,22 @@ class SimpleBranchingProcess(GeneralSimClass):
         # If the draw is below the fitness, the cell will divide (and possibly mutate).
         # This means the higher the fitness, the more the clone will proliferate.
         # Fitnesses above 2 are essentially infinite, the clone will not die.
-        if np.random.uniform(0, 2) <= self.clones_array[c, self.fitness_idx]:
+        if np.random.uniform(0, 2) <= self.clones_array[clone_id, self.fitness_idx]:
+            # The cell divides.
+            # Add any new mutations to the new cell.
             if self.current_mutation_rate > 0:
                 new_muts = np.random.poisson(self.current_mutation_rate)
             else:
                 new_muts = 0
             if new_muts > 0:
                 if self.next_mutation_index + new_muts >= self.population_array.shape[0]:
-                    self._extend_arrays(c, min_extension=self.population_array.shape[
+                    self._extend_arrays(clone_id, min_extension=self.population_array.shape[
                                                                              0] - self.next_mutation_index + new_muts)
 
                 # Current population does not change. Record the existence of a new clone at this timepoint
                 # and simulate later.
-                parents = np.concatenate([[c], np.arange(self.next_mutation_index,
-                                                         self.next_mutation_index + new_muts - 1)])
+                parents = np.concatenate([[clone_id], np.arange(self.next_mutation_index,
+                                                                self.next_mutation_index + new_muts - 1)])
 
                 self.plot_idx = np.searchsorted(self.times, self.time)  # Make sure the "generation_born" is correct
                 self._draw_mutations_for_single_cell(parents)
@@ -196,16 +270,19 @@ class SimpleBranchingProcess(GeneralSimClass):
             else:
                 current_population += 1
         else:
+            # The cell dies (or divides to produce two differentiated cells).
+            # Reduce the clone size by 1.
             current_population -= 1
 
         return current_population
 
-    def _record_results(self, c, clone_sizes, clone_times):
+    def _record_results(self, clone_id, clone_sizes, clone_times):
         """
         Record the results at the point the simulation is up to.
         Report progress if required
-        :param i:
-        :param current_population:
+        :param clone_id: Int.
+        :param clone_sizes: List of clone sizes (integers)
+        :param clone_times: List of times associated with the changes in clone size.
         :return:
         """
         j = 0
@@ -215,7 +292,7 @@ class SimpleBranchingProcess(GeneralSimClass):
                 j += 1
             a.append(clone_sizes[j])
 
-        self.population_array[c] = a
+        self.population_array[clone_id] = a
 
     def _extend_arrays(self, clone_id, min_extension=1):
         """
@@ -243,11 +320,10 @@ class SimpleBranchingProcess(GeneralSimClass):
                                                 axis=0)
 
     def _add_label(self, clone_id, current_population, label_frequency, label, label_fitness, label_gene):
-        # parent_idx, label, label_fitness, label_gene
         """
         Add some labelling at the current label frequency.
         The labelling is not exact, so each cell has same chance.
-        Use a Poisson distribution of events for each clone.
+        Each labelled cell is subsequently tracked as an independent clone. 
         """
         self.plot_idx = np.searchsorted(self.times, self.time)  # Make sure the "generation_born" is correct
         marked_cells = np.random.binomial(current_population, label_frequency)
