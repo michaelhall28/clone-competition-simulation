@@ -1,4 +1,6 @@
-# Functions/classes to calculate the fitness of clones from the random mutation fitnesses
+"""
+Functions/classes to randomly draw and/or calculate the fitness of clones
+"""
 import math
 import numpy as np
 import matplotlib.pyplot as plt
@@ -116,9 +118,22 @@ class BoundedLogisticFitness:
 ################
 # Class for storing information about a gene
 class Gene(object):
-    """Determines the mutations which are create for a gene"""
+    """Determines the mutations which are created for a gene"""
 
     def __init__(self, name, mutation_distribution, synonymous_proportion, weight=1.):
+        """
+
+        :param name: The name for the gene.
+        :param mutation_distribution: A class from clone_competition_simulation.fitness_classes,
+        e.g. NormalDist, UniformDist, ExponentialDist or FixedValue. This defines the distribution from which the
+        fitness of a non-synonymous mutation in this gene is drawn.
+        :param synonymous_proportion: The proportion of mutations in this gene which are synonymous. These will have no
+        impact on cell fitness, but are used in dN/dS calculations.
+        :param weight: Along with the mutations_rates, this determines the rate of mutation in this gene. The
+        total mutation rate of all genes passed to the MutationGenerator will equal the mutation_rates defined in
+        Parameters. The relative weights of the genes are used. E.g. if Gene1 has a weight of 3 and Gene2 has a
+        weight of 7, then 30% of the mutations will be drawn from Gene1 and 70% from Gene2.
+        """
         self.name = name
         self.mutation_distribution = mutation_distribution
         self.synonymous_proportion = synonymous_proportion
@@ -271,7 +286,7 @@ class MutationGenerator(object):
         return k
 
     def _update_fitness_arrays(self, old_mutation_arrays, genes_mutated, syns):
-        # Only have to update the cells in which
+        # Only have to update the cells in which non-synonymous mutations occur
         non_syns = np.where(1 - syns)
         new_mutation_fitnesses_non_syn = [self.mutation_distributions[g]() for g in
                                           genes_mutated[non_syns]]  # The fitness of the new mutation alone
