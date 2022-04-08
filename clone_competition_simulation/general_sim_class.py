@@ -871,7 +871,8 @@ class GeneralSimClass(object):
                                                                     tuple(np.where(~np.isnan(self.raw_fitness_array[i]))[0]))
 
     def muller_plot(self, plot_file=None, plot_against_time=True, quick=False, min_size=1,
-                    allow_y_extension=False, plot_order=None, figsize=None, force_new_colours=False, ax=None):
+                    allow_y_extension=False, plot_order=None, figsize=None, force_new_colours=False, ax=None,
+                    show_mutations_with_x=True):
         """
         Plots the results of the simulation over time.
         Mutations marked with X
@@ -886,6 +887,7 @@ class GeneralSimClass(object):
         :param min_size: 0<= Float <= 1. Show only clones which reach this proportion of the total population.
          Showing less clones speeds up the plotting and can make the plot clearer.
         :param allow_y_extension: If the population is not constant, allows the y-axis to extend beyond the initial pop
+        :param show_mutations_with_x: If True, will place Xs on the plot to mark the origins of clones
         :return: None
         """
         if self.is_lil:
@@ -914,27 +916,29 @@ class GeneralSimClass(object):
             self._make_stackplot(ax, cumulative_array, plot_order, plot_against_time)  # Add the clone populations to the plots
 
         # Add the clone births to the plot as X's
-        x = []
-        y = []
-        c = []
-        for clone in clone_array:
-            gen = clone[self.generation_born_idx]
-            if gen > 0:
-                plot_gen = int(gen - 1)  # Puts the mutation mark so it appears at the start of the clone region
-                pops = np.where(plot_order == clone[self.id_idx])[0][0]
-                if plot_against_time:
-                    x.append(self.times[int(plot_gen)])
-                else:
-                    x.append(plot_gen)
-                y.append(split_pops_for_plotting[:pops][:, plot_gen].sum())
-                if clone[self.id_idx] in self.ns_muts:
-                    c.append('r')  # Plot non-synonymous mutations with a red X
-                elif clone[self.id_idx] in self.s_muts:
-                    c.append('b') # Plot synonymous mutations with a blue X
-                else:
-                    c.append('k')  # Plot a labelling event with a black X
+        if show_mutations_with_x:
+            x = []
+            y = []
+            c = []
+            for clone in clone_array:
+                gen = clone[self.generation_born_idx]
+                if gen > 0:
+                    plot_gen = int(gen - 1)  # Puts the mutation mark so it appears at the start of the clone region
+                    pops = np.where(plot_order == clone[self.id_idx])[0][0]
+                    if plot_against_time:
+                        x.append(self.times[int(plot_gen)])
+                    else:
+                        x.append(plot_gen)
+                    y.append(split_pops_for_plotting[:pops][:, plot_gen].sum())
+                    if clone[self.id_idx] in self.ns_muts:
+                        c.append('r')  # Plot non-synonymous mutations with a red X
+                    elif clone[self.id_idx] in self.s_muts:
+                        c.append('b') # Plot synonymous mutations with a blue X
+                    else:
+                        c.append('k')  # Plot a labelling event with a black X
 
-        ax.scatter(x, y, c=c, marker='x')
+            ax.scatter(x, y, c=c, marker='x')
+
         if allow_y_extension:
             plt.gca().set_ylim(bottom=0)
         else:

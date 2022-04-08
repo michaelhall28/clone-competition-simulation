@@ -20,9 +20,9 @@ class HexAnimator:
     """
     Turns the grids of the 2D simulations into a video.
     Colours based on the clones each cell belong to and the colourscale chosen.
-    Also can be used to plot inidividual grids as images.
+    Also can be used to plot individual grids as images.
     """
-    def __init__(self, comp, figxsize=5, figsize=None, dpi=100, bitrate=500, fps=5, external_call=False,
+    def __init__(self, sim, figxsize=5, figsize=None, dpi=100, bitrate=500, fps=5, external_call=False,
                  fixed_label_text=None, fixed_label_loc=(0, 0), fixed_label_kwargs=None,
                  show_time_label=False, time_label_units=None, time_label_decimal_places=0,
                  time_label_loc=(0, 0), time_label_kwargs=None, equal_aspect=False
@@ -38,8 +38,14 @@ class HexAnimator:
         To plot an individual grid (e.g. grid=sim.grid_results[10] to get the 10th grid from a simulation), run
         > h.plot_grid(grid)
 
+        Alternatively, you can run
+        > sim.animate(outfile)
+        or
+        > sim.plot_grid()
+        which will create the Hexanimator object for you.
 
-        :param comp: The simulation object (i.e. the object returned by Parameters.get_simulator()).
+
+        :param sim: The simulation object (i.e. the object returned by Parameters.get_simulator()).
         :param figxsize: The x-dimension of the video/figure. If figsize not given, the y-dimension will be picked
         automatically based on the dimensions of the grid. If figsize is also defined, then figxsize will be ignored.
         :param figsize: Tuple. The figure size to use. If given, will ignore figsize.
@@ -61,9 +67,9 @@ class HexAnimator:
         :param equal_aspect: If True, will force the aspect ratio of the x and y axes to have the same scale. However,
         this will not look equal aspect in terms of the number of cells per unit due to the tesselation of the hexagons.
         """
-        self.comp = comp
-        if self.comp.colours is None:
-            self.comp._get_colours(self.comp.clones_array)
+        self.sim = sim
+        if self.sim.colours is None:
+            self.sim._get_colours(self.sim.clones_array)
         self.figsize = figsize
         if self.figsize is None and figxsize is None:
             self.figxsize = 5
@@ -122,7 +128,7 @@ class HexAnimator:
         colours = []
         for i in range(self.x):
             for j in range(self.y):
-                colours.append(self.comp.colours[grid[i, j]])
+                colours.append(self.sim.colours[grid[i, j]])
 
         self.col.set_facecolor(colours)  # Sets the colours for each polygon
 
@@ -236,7 +242,7 @@ class HexAnimator:
 
     def _update_time_label(self, frame_number):
         # Get the time for the frame
-        t = self.comp.times[frame_number]
+        t = self.sim.times[frame_number]
 
         # Get the right number of decimal places, add the time unit, and update the plot.
         text = "{:.{dp}f}".format(t, dp=self.time_label_decimal_places)
@@ -252,7 +258,7 @@ class HexAnimator:
         :return:
         """
 
-        self.x, self.y = self.comp.grid.shape
+        self.x, self.y = self.sim.grid.shape
         if ax is None:
             ax_given = False
             self._get_figsize()
@@ -279,7 +285,7 @@ class HexAnimator:
         self._setup_frame()
 
         ani = animation.FuncAnimation(self.fig, self._update, blit=True, init_func=self._first_frame,
-                                      frames=len(self.comp.grid_results))
+                                      frames=len(self.sim.grid_results))
         ani.save(animation_file, fps=self.fps, bitrate=self.bitrate, codec="libx264", dpi=self.dpi,
                  extra_args=['-pix_fmt','yuv420p'])
         plt.close('all')
@@ -305,7 +311,7 @@ class HexAnimator:
 
         p = subprocess.Popen(cmd, stdin=subprocess.PIPE)
 
-        for frame in range(len(self.comp.grid_results)):
+        for frame in range(len(self.sim.grid_results)):
             self._update(frame)
             self.fig.canvas.draw()
             string = self.fig.canvas.tostring_argb()
@@ -321,13 +327,13 @@ class HexAnimator:
         with this function if needed.
         :return:
         """
-        grid = self.comp.grid_results[frame_number]
+        grid = self.sim.grid_results[frame_number]
 
         # Make a list of colours
         colours = []
         for i in range(self.x):
             for j in range(self.y):
-                colours.append(self.comp.colours[grid[i, j]])
+                colours.append(self.sim.colours[grid[i, j]])
 
         self.col.set_facecolor(colours)  # Sets the colours for each polygon
 
@@ -347,14 +353,14 @@ class HexAnimator:
             return self._update_first(frame_number)
         else:
             # Only update colours which have changed.
-            grid = self.comp.grid_results[frame_number]
-            grid_old = self.comp.grid_results[frame_number - 1]
+            grid = self.sim.grid_results[frame_number]
+            grid_old = self.sim.grid_results[frame_number - 1]
             idx = 0
             for i in range(self.x):
                 for j in range(self.y):
                     new_grid_val = grid[i, j]
                     if grid_old[i, j] != new_grid_val:
-                        new_col = self.comp.colours[new_grid_val]
+                        new_col = self.sim.colours[new_grid_val]
                         self.col._facecolors[idx] = new_col
                     idx += 1
 
@@ -372,10 +378,10 @@ class HexFitnessAnimator(HexAnimator):
     fitness to a colour, and adds a colourbar.
     """
 
-    def __init__(self, comp, cmap, figxsize=5, figsize=None, dpi=100, bitrate=500, fps=5, min_fitness=0):
+    def __init__(self, sim, cmap, figxsize=5, figsize=None, dpi=100, bitrate=500, fps=5, min_fitness=0):
         """
 
-        :param comp: The simulation object (i.e. the object returned by Parameters.get_simulator()).
+        :param sim: The simulation object (i.e. the object returned by Parameters.get_simulator()).
         :param cmap: Colourmap for mapping fitness to a colour.
         :param figxsize: The x-dimension of the video/figure. If figsize not given, the y-dimension will be picked
         automatically based on the dimensions of the grid. If figsize is also defined, then figxsize will be ignored.
@@ -385,9 +391,9 @@ class HexFitnessAnimator(HexAnimator):
         :param fps: Frames per second for the video.
         :param min_fitness: Minimum fitness to use for the scaling of the colours.
         """
-        self.comp = comp
-        if self.comp.colours is None:
-            self.comp._get_colours(self.comp.clones_array)
+        self.sim = sim
+        if self.sim.colours is None:
+            self.sim._get_colours(self.sim.clones_array)
         self.cmap = cmap
         self.figsize = figsize
         if self.figsize is None and figxsize is None:
@@ -434,7 +440,7 @@ class HexFitnessAnimator(HexAnimator):
         :param ax: Axis to plot onto.
         :return:
         """
-        self.x, self.y = self.comp.grid.shape
+        self.x, self.y = self.sim.grid.shape
         if ax is None:
             ax_given = False
             self._get_figsize()
@@ -448,7 +454,7 @@ class HexFitnessAnimator(HexAnimator):
         self._setup_polygons_and_frame()
 
         self.col.set_cmap(self.cmap)
-        self.col.set_clim([self.min_fitness, self.comp.clones_array[:, self.comp.fitness_idx].max()])
+        self.col.set_clim([self.min_fitness, self.sim.clones_array[:, self.sim.fitness_idx].max()])
 
         if not ax_given:
             self.ax.axis('off')
@@ -464,7 +470,7 @@ class HexFitnessAnimator(HexAnimator):
         for i in range(grid_shape[0]):
             for j in range(grid_shape[1]):
                 clone = clones_grid[i, j]
-                fitness_grid[i, j] = self.comp.clones_array[clone, self.comp.fitness_idx]
+                fitness_grid[i, j] = self.sim.clones_array[clone, self.sim.fitness_idx]
         return fitness_grid
 
     def _first_frame(self):
@@ -476,7 +482,7 @@ class HexFitnessAnimator(HexAnimator):
         :param frame_number: Int.
         :return:
         """
-        grid = self._get_fitness_grid(self.comp.grid_results[frame_number])
+        grid = self._get_fitness_grid(self.sim.grid_results[frame_number])
 
         # Make a list of colours
         colours = []
@@ -494,7 +500,7 @@ class HexFitnessAnimator(HexAnimator):
         self._setup_frame()
 
         ani = animation.FuncAnimation(self.fig, self._update, blit=True, init_func=self._first_frame,
-                                      frames=len(self.comp.grid_results))
+                                      frames=len(self.sim.grid_results))
         ani.save(animation_file, fps=self.fps, bitrate=self.bitrate, codec="libx264", extra_args=['-pix_fmt', 'yuv420p'])
         plt.close('all')
 
@@ -511,16 +517,16 @@ class NonSpatialToGridAnimator:
     It doesn't always find a solution within a reasonable time and gives up.
     """
 
-    def __init__(self, competition_object, grid_size=None, generations_per_frame=1, starting_clones=1,
+    def __init__(self, sim, grid_size=None, generations_per_frame=1, starting_clones=1,
                  figsize=(3, 3), bitrate=500, min_prop=0, dpi=100, fps=5,
                  show_progress=False):
-        self.comp = competition_object
+        self.sim = sim
         if min_prop > 0:
-            self.clones_array, self.proportional_populations = absorb_small_clones_and_replace_parents(self.comp,
+            self.clones_array, self.proportional_populations = absorb_small_clones_and_replace_parents(self.sim,
                                                                                                        min_prop)
         else:
-            self.clones_array = self.comp.clones_array
-            self.proportional_populations = self.comp.population_array / self.comp.population_array.sum(axis=0)
+            self.clones_array = self.sim.clones_array
+            self.proportional_populations = self.sim.population_array / self.sim.population_array.sum(axis=0)
         self.grid_size = grid_size
         self.generations_per_frame = generations_per_frame
         self.starting_clones = starting_clones
@@ -528,9 +534,9 @@ class NonSpatialToGridAnimator:
         self.bitrate = bitrate
         self.dpi = dpi
         self.fps = fps
-        if self.comp.colours is None:
-            self.comp._get_colours(self.comp.clones_array)  # Generate colours to ensure all are available
-        colourer = lambda x: self.comp.colours[x]  # Function to convert clone id to a colour
+        if self.sim.colours is None:
+            self.sim._get_colours(self.sim.clones_array)  # Generate colours to ensure all are available
+        colourer = lambda x: self.sim.colours[x]  # Function to convert clone id to a colour
         self.colourerfunc = np.vectorize(colourer)  # Vectorize the function
         self.show_progress = show_progress
 
@@ -539,7 +545,7 @@ class NonSpatialToGridAnimator:
         if self.grid_size is None:
             print('Must provide a grid size')
             return
-        plot_generations = np.arange(0, self.comp.sim_length, self.generations_per_frame)
+        plot_generations = np.arange(0, self.sim.sim_length, self.generations_per_frame)
         size = self.grid_size
         total_cells = size ** 2
         grid = np.zeros((size, size))
@@ -549,8 +555,8 @@ class NonSpatialToGridAnimator:
 
         pop_dict = {0: [total_cells, 0]}  # Start with all WT
 
-        initial_clones = self.clones_array[self.clones_array[:, self.comp.parent_idx] == -1]
-        initial_clones_rows = np.argwhere(self.clones_array[:, self.comp.parent_idx] == -1)[:, 0]
+        initial_clones = self.clones_array[self.clones_array[:, self.sim.parent_idx] == -1]
+        initial_clones_rows = np.argwhere(self.clones_array[:, self.sim.parent_idx] == -1)[:, 0]
 
         # Initial population of first clone
         start_0_pop = int(round(total_cells * self.proportional_populations[0, 0]))
@@ -564,14 +570,14 @@ class NonSpatialToGridAnimator:
                     new_pop_dict[1 + i] = [int(start_1_pop / self.starting_clones), 0]
             grid = self._place_clones(grid, new_pop_dict, pop_dict)  # Place the initial clones on the grid
             # Replace the temporary values with the second clone id
-            other_starter_id = int(initial_clones[1, self.comp.id_idx])
+            other_starter_id = int(initial_clones[1, self.sim.id_idx])
             grid[grid >= 1] = other_starter_id
             pop_dict = {0: [start_0_pop, 0],
                         other_starter_id: [start_1_pop, 0]}  # For the next round
         else:
             total_placed = start_0_pop
             for row_idx, clone in zip(initial_clones_rows[1:], initial_clones[1:]):
-                clone_id = clone[self.comp.id_idx]
+                clone_id = clone[self.sim.id_idx]
                 clone_pop = int(round(total_cells * self.proportional_populations[row_idx, 0]))
                 if total_placed + clone_pop > total_cells:
                     clone_pop = total_cells - total_placed
@@ -614,10 +620,10 @@ class NonSpatialToGridAnimator:
         for i in range(len(self.clones_array)):
             clone = self.clones_array[i]
             pop = self.proportional_populations[i, generation]
-            parent = clone[self.comp.parent_idx]
+            parent = clone[self.sim.parent_idx]
             if parent < 0:
                 parent = 0
-            clones_dict[clone[self.comp.id_idx]] = [pop, parent]
+            clones_dict[clone[self.sim.id_idx]] = [pop, parent]
         return clones_dict
 
     def _get_clones_dict(self, generation, total_cells):
@@ -804,17 +810,17 @@ class NonSpatialToGridAnimator:
                             parent_cells = np.argwhere(grid == parent)
                             if len(parent_cells) == 0:
                                 parent_row_num = np.argwhere(self.clones_array[:,
-                                                             self.comp.id_idx] == parent)[0][0]
+                                                             self.sim.id_idx] == parent)[0][0]
                                 parent_row = self.clones_array[parent_row_num]
-                                grandparent = parent_row[self.comp.parent_idx]
+                                grandparent = parent_row[self.sim.parent_idx]
                                 grandparent_cells = np.argwhere(grid == grandparent)
                                 if len(grandparent_cells) > 0:
                                     parent_cells = grandparent_cells
                                 else:
                                     grandparent_row_num = np.argwhere(self.clones_array[:,
-                                                                      self.comp.id_idx] == grandparent)[0][0]
+                                                                      self.sim.id_idx] == grandparent)[0][0]
                                     grandparent_row = self.clones_array[grandparent_row_num]
-                                    greatgrandparent = grandparent_row[self.comp.parent_idx]
+                                    greatgrandparent = grandparent_row[self.sim.parent_idx]
                                     greatgrandparent_cells = np.argwhere(grid == greatgrandparent)
                                     if len(greatgrandparent_cells) > 0:
                                         parent_cells = greatgrandparent_cells
