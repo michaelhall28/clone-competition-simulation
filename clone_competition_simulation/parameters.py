@@ -1,5 +1,5 @@
 from clone_competition_simulation.fitness_classes import MutationGenerator, NormalDist, UnboundedFitness, Gene
-from clone_competition_simulation.colourscales import get_random_colourscale
+from clone_competition_simulation.colourscales import get_default_random_colourscale
 from clone_competition_simulation.wf import WrightFisherSim
 from clone_competition_simulation.moran import MoranSim
 from clone_competition_simulation.moran2D import Moran2D
@@ -238,7 +238,7 @@ class Parameters(object):
         self.default_mutation_rate = 0
         self.default_samples = 100
         self.default_figsize = (10, 10)
-        self.default_colourscales = get_random_colourscale(None)
+        self.default_colourscales = get_default_random_colourscale()
         self.default_label = 0
         self.default_fitness = 1
         self.default_mutation_type = -1  # Not associated with any of the genes
