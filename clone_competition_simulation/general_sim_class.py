@@ -1,7 +1,6 @@
 import numpy as np
 import math
-# import matplotlib as mpl
-# mpl.use('Agg')
+import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import itertools
@@ -512,6 +511,24 @@ class GeneralSimClass(object):
         pass
 
     ############ Functions for post-processing simulations ############
+    def view_clone_info(self):
+        """
+        This converts the clone_array into a more readable pandas dataframe
+        :return: pandas.DataFrame
+        """
+        df = pd.DataFrame({
+            'clone id': pd.Series(self.clones_array[:, self.id_idx], dtype=int),
+            'label': pd.Series(self.clones_array[:, self.label_idx], dtype=int),
+            'fitness': pd.Series(self.clones_array[:, self.fitness_idx], dtype=int),
+            'generation born': pd.Series(self.clones_array[:, self.generation_born_idx], dtype=int),
+            'parent clone id': pd.Series(self.clones_array[:, self.parent_idx], dtype=int),
+            'last gene mutated': pd.Series(
+                [self.mutation_generator.get_gene_name(int(g)) for g in self.clones_array[:, self.gene_mutated_idx]],
+                dtype=object),
+        })
+
+        return df
+
     def change_sparse_to_csr(self):
         # Converts to a different type of sparse matrix.
         # Required for some of the post-processing and plotting functions.
@@ -1124,12 +1141,16 @@ class GeneralSimClass(object):
             fig, ax = plt.subplots()
         pop = self.get_labeled_population(label=label)
         ax.plot(self.times, pop, label=legend_label)
+        ax.set_ylabel("Population")
+        ax.set_xlabel("Time")
 
     def plot_average_fitness_over_time(self, legend_label=None, ax=None):
         if ax is None:
             fig, ax = plt.subplots()
         avg_fit = [self.get_average_fitness(t) for t in self.times]
         ax.plot(self.times, avg_fit, label=legend_label)
+        ax.set_ylabel("Average fitness")
+        ax.set_xlabel("Time")
 
     def animate(self, animation_file, grid_size=None, generations_per_frame=1, starting_clones=1,
                 figsize=None, figxsize=5, bitrate=500, min_prop=0, external_call=False, dpi=100, fps=5,

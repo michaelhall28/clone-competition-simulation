@@ -398,6 +398,11 @@ class MutationGenerator(object):
             return None
         return self.gene_indices[gene_name]
 
+    def get_gene_name(self, gene_number):
+        if gene_number is None or gene_number == -1:
+            return None
+        return self.genes[gene_number].name
+
     def get_synonymous_proportion(self, gene_num):
         if gene_num is None:
             return self.overall_synonymous_proportion
