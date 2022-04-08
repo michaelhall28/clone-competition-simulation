@@ -40,3 +40,15 @@ s = p.get_simulator()
 s.run_sim()
 s.muller_plot()
 ```
+
+## Algorithms
+There are 5 algorithms that can be run.
+
+Non-spatial algorithms:
+- "Branching". A branching process based on the single progenitor model from Clayton, Elizabeth, et al. "A single type of progenitor cell maintains normal epidermis." Nature 446.7132 (2007): 185-189.
+- "Moran". A Moran-style model. At each simulation step, one cell dies and another cell divides, maintaining the overall population.  
+- "WF". A Wright-Fisher style model. At each simulation step an entire generation of cells is produced from the previous generation.
+
+2D algorithms:
+- "Moran2D". A Moran-style model constrained to a 2D hexagonal grid. At each simulation step, one cell dies and a *cell from an adjacent location in the grid* divides, maintaining the overall population.
+- "WF2D". A Wright-Fisher style model constrained to a 2D hexagonal grid. At each simulation step an entire generation of cells is produced from the previous generation, where cell parents must be from the local neighbourhood in the grid.
