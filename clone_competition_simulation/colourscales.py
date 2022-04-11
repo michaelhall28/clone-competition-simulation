@@ -146,7 +146,8 @@ COLOURSCALE_EXAMPLE1 = ColourScale(
     name='Single Green Mutant',
     all_clones_noisy=True,
     colourmaps={Key1(label=0): cm.ScalarMappable(norm=Normalize(vmin=0, vmax=2), cmap=cm.YlOrBr).to_rgba,
-                Key1(label=1): cm.Greens
+                Key1(label=1): cm.Greens,
+                Key1(label=2): cm.Purples
          }
 )
 
