@@ -128,7 +128,7 @@ class HexAnimator:
         colours = []
         for i in range(self.x):
             for j in range(self.y):
-                colours.append(self.sim.colours[grid[i, j]])
+                colours.append(self.sim.get_colour(grid[i, j]))
 
         self.col.set_facecolor(colours)  # Sets the colours for each polygon
 
@@ -333,7 +333,7 @@ class HexAnimator:
         colours = []
         for i in range(self.x):
             for j in range(self.y):
-                colours.append(self.sim.colours[grid[i, j]])
+                colours.append(self.sim.get_colour(grid[i, j]))
 
         self.col.set_facecolor(colours)  # Sets the colours for each polygon
 
@@ -360,7 +360,7 @@ class HexAnimator:
                 for j in range(self.y):
                     new_grid_val = grid[i, j]
                     if grid_old[i, j] != new_grid_val:
-                        new_col = self.sim.colours[new_grid_val]
+                        new_col = self.sim.get_colour(new_grid_val)
                         self.col._facecolors[idx] = new_col
                     idx += 1
 

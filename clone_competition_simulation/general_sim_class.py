@@ -847,7 +847,7 @@ class GeneralSimClass(object):
         return global_average_fitness
 
     ############ Plotting functions ############
-    def _get_colour(self, scaled_fitness, clone_label, ns, initial, last_mutated_gene, genes_mutated):
+    def _assign_colour(self, scaled_fitness, clone_label, ns, initial, last_mutated_gene, genes_mutated):
         """
         Gets the colour for a clone to be plotted in.
         The colour will depend on the chosen colourscale and the attributes of the clone.
@@ -883,9 +883,35 @@ class GeneralSimClass(object):
                     initial = True
                 else:
                     initial = False
-                self.colours[clone[self.id_idx]] = self._get_colour(scaled_fitness, clone[self.label_idx], ns, initial,
-                                                                    clone[self.gene_mutated_idx],
-                                                                    tuple(np.where(~np.isnan(self.raw_fitness_array[i]))[0]))
+                self.colours[clone[self.id_idx]] = self._assign_colour(scaled_fitness, clone[self.label_idx], ns, initial,
+                                                                       clone[self.gene_mutated_idx],
+                                                                       tuple(np.where(~np.isnan(self.raw_fitness_array[i]))[0]))
+
+    def get_colour(self, clone_id):
+        """
+        Return the colour for a clone_id.
+        If the clone_id is not in the clones_array (can happen if manually adding values to a grid),
+        create a random colour from the colourscale for it.
+        :param clone_id: int.
+        :return:
+        """
+        if clone_id not in self.colours:
+            # Not in the colours dictionary.
+            if clone_id in self.clones_array[self.id_idx]:
+                # It is a clone generated during the simulation, so can generate all of the colours
+                self._get_colours(force_regenerate=True)
+            else:
+                # A new clone_id not seen before. This is probably for some manually manipulation of grids for plotting.
+                # Generate a new colour for this clone. Store for later.
+                # This will ignore any complex rules for colouring. To do that, add a row to the clones_array and
+                # generated the colours dictionary.
+                if type(self.colourscales.colourmaps) == dict:
+                    colourmap = self.colourscales.colourmaps[self.colourscales.colourmaps.keys()[0]]
+                else:
+                    colourmap = self.colourscales.colourmaps
+                self.colours[clone_id] = colourmap(np.random.random())
+
+        return self.colours[clone_id]
 
     def muller_plot(self, plot_file=None, plot_against_time=True, quick=False, min_size=1,
                     allow_y_extension=False, plot_order=None, figsize=None, force_new_colours=False, ax=None,
@@ -1036,7 +1062,7 @@ class GeneralSimClass(object):
     def _make_stackplot(self, ax, cumulative_array, plot_order, plot_against_time=True):
         # Make the stackplot using fill between. Prevents gaps in the plot that appear with using matplotlib stackplot
         for i in range(len(plot_order) - 1, -1, -1):  # Start from the end/top
-            colour = self.colours[plot_order[i]]
+            colour = self.get_colour(plot_order[i])
             array = cumulative_array[i]
             if i > 0:
                 next_array = cumulative_array[i - 1]
@@ -1056,7 +1082,7 @@ class GeneralSimClass(object):
             x = self.times
         else:
             x = list(range(self.sim_length))
-        ax.stackplot(x, split_pops_for_plotting, colors=[self.colours[i] for i in plot_order])
+        ax.stackplot(x, split_pops_for_plotting, colors=[self.get_colour(i) for i in plot_order])
 
     def plot_incomplete_moment(self, t=None, selection='mutations', xlim=None, ylim=None, plt_file=None, sem=False,
                                show_fit=False, show_legend=True, fit_prop=1,

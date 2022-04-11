@@ -41,7 +41,6 @@ class ColourScale(object):
 
     def check_colourmap_dict(self):
         if type(self.colourmaps) == dict:
-            self.is_dict = True
             self.fields = next(iter(self.colourmaps))._fields
             for f in self.fields:
                 if f not in self.possible_fields:
