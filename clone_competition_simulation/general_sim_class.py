@@ -1,3 +1,10 @@
+"""
+This is a super class for all of the simulations.
+It contains the common function to setup, run and plot results from simulations.
+
+The subclasses have to define the sim_step and any other functions required for the specific algorithm
+"""
+
 import numpy as np
 import math
 import pandas as pd
@@ -23,6 +30,10 @@ class GeneralSimClass(object):
     Functions for setting up simulations and for plotting results
     """
     def __init__(self, parameters):
+        """
+
+        :param parameters: A Parameters object.
+        """
         # Get attributes from the parameters
         self.total_pop = parameters.initial_cells
         self.initial_size_array = parameters.initial_size_array
@@ -130,14 +141,20 @@ class GeneralSimClass(object):
 
     ##### Functions for setting up the simulations
     def _adjust_raw_times(self, array):
-        # Takes an array of time points and converts to number of simulation steps
-        # This is for the Moran simulations. Overwrite for the other cases
+        """
+        Takes an array of time points and converts to number of simulation steps
+        This is for the Moran simulations. Overwrite for the other cases
+        :param array: Numpy array or list of time points.
+        """
         if array is not None:
             array = np.array(array) * self.division_rate * self.total_pop
         return array
 
     def _precalculate_mutations(self):
-        # To be overwritten. Will calculate the number and timing of all mutations in the simulation
+        """
+        To be overwritten. Will calculate the number and timing of all mutations in the simulation
+        :return:
+        """
         self.new_mutation_count = 0
 
     def _init_arrays(self, labels_array, gene_label_array):
@@ -530,8 +547,10 @@ class GeneralSimClass(object):
         return df
 
     def change_sparse_to_csr(self):
-        # Converts to a different type of sparse matrix.
-        # Required for some of the post-processing and plotting functions.
+        """
+        Converts to a different type of sparse matrix.
+        Required for some of the post-processing and plotting functions.
+        """
         if self.is_lil:
             self.population_array = self.population_array.tocsr()  # Convert to CSR matrix
         self.is_lil = False
@@ -623,9 +642,19 @@ class GeneralSimClass(object):
         return surviving_clones, times
 
     def get_clone_ancestors(self, clone_idx):
+        """
+        Return the clone ids of all ancestors of a given clone.
+        :param clone_idx: int
+        :return:
+        """
         return [n for n in self.tree.rsearch(clone_idx)]
 
     def get_clone_descendants(self, clone_idx):
+        """
+        Return the clone ids of all descendants of a given clone.
+        :param clone_idx: int
+        :return:
+        """
         return list(self.tree.subtree(clone_idx).nodes.keys())  # Might be better way to do this
 
     def _trim_tree(self):
@@ -695,6 +724,7 @@ class GeneralSimClass(object):
     def get_idx_of_gene_mutated(self, gene_mutated):
         """
         Returns a set of all clones with gene_mutated given
+        :param gene_mutated: The name of the gene mutated.
         """
         gene_num = self.mutation_generator.get_gene_number(gene_mutated)
         return set(np.where(self.clones_array[:, self.gene_mutated_idx] == gene_num)[0])
@@ -822,19 +852,40 @@ class GeneralSimClass(object):
         return pop.toarray().sum(axis=0)
 
     def get_mean_clone_size(self, t=None, selection='mutations', index_given=False, gene_mutated=None):
+        """
+        Returns the mean mutant clone size.
+        Each clone is defined as the total cells containing a mutation.
+        :param t: time point. If index_given=True, it is the index of the time point required.
+        :param selection: 'mutations' for all mutant clones. 'ns' for non-synonymous mutations only. 's' for synonymonus
+        clones only.
+        :param index_given: To use with t.
+        :param gene_mutated: String. If given, will limit to clones of the gene given.
+        :return:
+        """
         clone_sizes = self.get_mutant_clone_sizes(t=t, selection=selection, index_given=index_given,
                                                   gene_mutated=gene_mutated)
         mean_ = clone_sizes[clone_sizes > 0].mean()
         return mean_
 
     def get_mean_clone_sizes_syn_and_non_syn(self, t=None, index_given=False, gene_mutated=None):
-
+        """
+        Convenient function to get mean size of both the synonymous and non-synonymous mutations.
+        :param t:
+        :param index_given:
+        :param gene_mutated:
+        :return: Tuple(float, float). Mean synonymous clone size, mean non-synonymous clone size.
+        """
         mean_syn = self.get_mean_clone_size(t=t, selection='s', index_given=index_given, gene_mutated=gene_mutated)
         mean_non_syn = self.get_mean_clone_size(t=t, selection='ns', index_given=index_given, gene_mutated=gene_mutated)
 
         return mean_syn, mean_non_syn
 
     def get_average_fitness(self, t=None):
+        """
+        Get the average fitness of the entire population at the given time point.
+        :param t: If None, will be the end of the simulation.
+        :return: float
+        """
         self.change_sparse_to_csr()
         if t is None:
             idx = -1
@@ -918,20 +969,22 @@ class GeneralSimClass(object):
                     show_mutations_with_x=True):
         """
         Plots the results of the simulation over time.
-        Mutations marked with X
+        Mutations marked with X unless show_mutations_with_x=False.
         The clones will appear as growing and shrinking sideways tear drops.
         Sub-clones emerge from their parent clones
         :param plot_file: File name to save the plot. If none, the plot will be displayed.
         If a file name, include the file type, e.g. "output_plot.pdf"
-        :param prepare_only: Bool. Does not display plot.
-        Runs some of the function to prepare data for plotting with the animation (although not implemented yet).
         :param plot_against_time: Bool. Use the time from the simulation instead of index of the sample for x-axis
         :param quick: Bool. Runs a faster version of the plotting which looks worse
-        :param min_size: 0<= Float <= 1. Show only clones which reach this proportion of the total population.
+        :param min_size: Show only clones which reach this number of cells.
          Showing less clones speeds up the plotting and can make the plot clearer.
         :param allow_y_extension: If the population is not constant, allows the y-axis to extend beyond the initial pop
+        :param plot_order: Manually list of the order of the clones to plot.
+        :param figsize: Figure size.
+        :param force_new_colours: Regenerate the colours of each clone.
+        :param ax: Axes to plot on.
         :param show_mutations_with_x: If True, will place Xs on the plot to mark the origins of clones
-        :return: None
+        :return: ax
         """
         if self.is_lil:
             self.change_sparse_to_csr()
@@ -1005,7 +1058,7 @@ class GeneralSimClass(object):
         new_pop_array = self.population_array.copy()
         parent_set = Counter(self.clones_array[:, self.parent_idx])
         for i in range(len(self.clones_array) - 1, -1, -1):  # Start from the youngest clones
-            if new_pop_array[i].max() < min_size:  # If smaller than minimum proportion
+            if new_pop_array[i].max() < min_size:  # If clone is always smaller than minimum size
                 if parent_set[i] == 0:  # If clone does not have any large descendants.
                     parent = int(self.clones_array[i, self.parent_idx])  # Find the parent of this small clone
                     new_pop_array[parent] += new_pop_array[i]  # Add the population of the small clone to the parent
@@ -1146,6 +1199,16 @@ class GeneralSimClass(object):
         return np.exp(-np.arange(1, max_n + 1) / (self.division_rate * t))
 
     def plot_dnds(self, plt_file=None, min_size=1, gene=None, clear_previous=True, legend_label=None, ax=None):
+        """
+        Plot dN/dS ratio over time.
+        :param plt_file: Output file if required. Include the output file type in the name, e.g. "out.pdf"
+        :param min_size: Minimum size of clones to include.
+        :param gene: Only include mutations in this gene.
+        :param clear_previous: Clear previous plot.
+        :param legend_label: Label for the line in the figure.
+        :param ax: ax to plot on.
+        :return: None
+        """
         if clear_previous and ax is None:
             plt.close('all')
             fig, ax = plt.subplots()
@@ -1171,6 +1234,12 @@ class GeneralSimClass(object):
         ax.set_xlabel("Time")
 
     def plot_average_fitness_over_time(self, legend_label=None, ax=None):
+        """
+        Plots the average fitness of the entire cell population.
+        :param legend_label:
+        :param ax:
+        :return:
+        """
         if ax is None:
             fig, ax = plt.subplots()
         avg_fit = [self.get_average_fitness(t) for t in self.times]
@@ -1184,8 +1253,41 @@ class GeneralSimClass(object):
                 fixed_label_kwargs=None, show_time_label=False, time_label_units=None,
                 time_label_decimal_places=0, time_label_loc=(0, 0), time_label_kwargs=None, equal_aspect=False):
         """
-        Output an animation of the simulation on a 2D grid
-        :param external_call: Only for 2D grids. Will run a version which is cruder and may run faster
+        Output an animation of the simulation on a 2D grid.
+
+        For the 2D simulations, will plot the grid from the simulations.
+        For the non-spatial simulations, will plot a 2D representation of the clone proportions. This is not very
+        meaningful, but may help to visualise the simulation results.
+
+        :param animation_file: Output file. Needs the file type included, e.g. 'out.mp4'
+        :param grid_size: For non-spatial simulations only, size of the grid to plot on.
+        :param generations_per_frame: For non-spatial simulations only.
+        :param starting_clones: For non-spatial simulations only. Can split initial clone cell populations into
+        separately placed clones.
+        :param figsize: Figure size.
+        :param figxsize: For 2D simulations only. If not using figsize, this gives the x-dimension of the video. The
+        y-dimension will be calculated based on the grid dimensions.
+        :param bitrate: Bitrate of the video.
+        :param min_prop: For non-spatial simulations only. Hides clones which occupy less than this proportion of the
+        total tissue. Helps to speed up animation.
+        :param external_call: For 2D simulations only. Will run a version which is cruder and may run faster
+        :param dpi: DPI of the video.
+        :param fps: Frames per second.
+        :param fitness: Boolean. For 2D simulations only. Colour cells by their fitness instead of their clone_id.
+        :param fitness_cmap: For 2D simulations only. Colourmap for the fitness.
+        :param fixed_label_text: For 2D simulations only. Text to add as a label over the video.
+        :param fixed_label_loc: Tuple. For 2D simulations only. The location for the fixed_label_text.
+        :param fixed_label_kwargs: Dictionary. For 2D simulations only. Any kwargs to pass to ax.text for the fixed_label_text.
+        :param show_time_label: For 2D simulations only. If True, will show the time of each frame overlaid on the video.
+        The time will be based on the times from the simulation (which may not be the frame number).
+        :param time_label_units: String, the units for the time label. For 2D simulations only.
+        Will not adjust the values, is just a string to follow the number. E.g. 'days', 'weeks', 'years'.
+        :param time_label_decimal_places: For 2D simulations only. Number of decimal places to show for the time label.
+        :param time_label_loc: Tuple. For 2D simulations only. Location of the time label.
+        :param time_label_kwargs: Dictionary. For 2D simulations only. Any kwargs to pass to ax.text for the time label.
+        :param equal_aspect: For 2D simulations only.  If True, will force the aspect ratio of the x and y axes to have the same scale.
+        However, this will not look equal aspect in terms of the number of cells per unit due to the tesselation of the hexagons.
+        :return:
         """
         if self.is_lil:
             self.change_sparse_to_csr()

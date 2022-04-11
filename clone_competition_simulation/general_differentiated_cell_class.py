@@ -1,3 +1,13 @@
+"""
+Classes to simulate differentiated cells along with proliferating cells in the basal layer.
+
+It is assumed that competition only occurs between the proliferating cells. The differentiated cells do not affect the
+behaviour of the proliferating cells and are not added to the grids in the 2D simulations.
+
+Uses Cython code (diff_cell_functions.pyx) to increase speed of the differentiated cell simulations.
+
+Not used or tested extensively, and not all functions will work well with these simulations.
+"""
 from clone_competition_simulation.general_sim_class import GeneralSimClass
 from clone_competition_simulation.moran import MoranSim
 from clone_competition_simulation.moran2D import Moran2D
@@ -10,18 +20,22 @@ import diff_cell_functions
 
 
 class GeneralSimDiffCells(GeneralSimClass):
-    # In the single progenitor model proposed in Clayton et al, there are differentiated cells that
-    # remain in the basal layer for a short period before differentiating
-    # It is assumed here that they do not affect clonal dynamics beyond adjusting clone sizes.
-    # i.e. they do not affect what any other cells do.
-    # They are therefore simulated in a non-spatial manner and it is assumed that the cells simulated
-    # normally are all progenitor cells.
+    """
+    In the single progenitor model proposed in Clayton et al 2007, there are differentiated cells that
+    remain in the basal layer for a short period before differentiating
+    It is assumed here that they do not affect clonal dynamics beyond adjusting clone sizes.
+    i.e. they do not affect what any other cells do.
+    They are therefore simulated in a non-spatial manner and it is assumed that the cells simulated
+    normally are all progenitor cells.
 
-    # This class replaces a few functions to allow for simulation of differentiated cells in the basal layer
+    This class replaces a few functions to allow for simulation of differentiated cells in the basal layer
+    """
 
     def __init__(self, parameters):
-        self.r = parameters.r
-        self.gamma = parameters.gamma
+
+        # r and gamma from the single progenitor model in Clayton et al
+        self.r = parameters.r  # The proportion of symmetric divisions
+        self.gamma = parameters.gamma   # The differentiation rate
         super().__init__(parameters)
 
         self.diff_cell_population = lil_matrix((self.total_clone_count,
@@ -38,7 +52,7 @@ class GeneralSimDiffCells(GeneralSimClass):
         self.diff_born_rate = self.total_pop * self.asym_div_rate
 
         # If strafication occurs on a timescale much faster than the time between sample points,
-        # then many of the differentiated cell wills be created and stratify before being sampled,
+        # then many of the differentiated cells will be created and stratify before being sampled,
         # and will have no effect on anything else (aside from using a little time)
         # To speed up simulations, option to simulate differentiated cells only for periods prior to sampling
         # points where the differentiated cells have a non-negligible chance to be sampled.
@@ -120,8 +134,6 @@ class GeneralSimDiffCells(GeneralSimClass):
     def _take_sample(self, current_population, non_zero_clones, current_diff_cell_population):
         """
         Record the results at the point the simulation is up to.
-        Report progress if required
-        :param i:
         :param current_population:
         :return:
         """
@@ -146,8 +158,6 @@ class GeneralSimDiffCells(GeneralSimClass):
         """
         Record the results at the point the simulation is up to.
         Report progress if required
-        :param i:
-        :param current_population:
         :return:
         """
         if i == self.sample_points[self.plot_idx]:  # Regularly take a sample for the plot
@@ -365,14 +375,12 @@ class GeneralSimDiffCells(GeneralSimClass):
 
 
 class MoranWithDiffCells(MoranSim, GeneralSimDiffCells):
-    # Based on MoranWithBCells5 from B cells attempts 1
     """
     The fixed population refers to the number of progenitor cells.
     The number of differentiated cells is allowed to vary and does not effect the dynamics of the progenitor
     population.
     Allows for values of rho and r other than 0.5 and 0.25
 
-    Version that assumes time steps between progenitor cell divisions are a constant size.
     Assume we always start without any differentiated cells.
     """
 
