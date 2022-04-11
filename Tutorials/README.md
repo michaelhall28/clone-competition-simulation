@@ -8,5 +8,8 @@ the simulations in this repository and view the results.
 #### Introduction.ipynb
 - A guide to the basics of running a simulation and viewing the results
 
+#### Algorithms.ipynb
+- A brief description of the various algorithms that can be run
+
 #### DefiningInitialClones.ipynb
-- A guide to the various methods of defining the initial clones in a simulation. 
+- A guide to the various methods of defining the initial clones in a simulation
