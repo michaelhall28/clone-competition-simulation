@@ -1,20 +1,44 @@
+"""
+A class to set up the hexagonal grids and general functions that apply to both the Moran2D and WF2D simulations.
+"""
 import numpy as np
 from clone_competition_simulation.animator import HexAnimator
 
 
 class GeneralHexagonalGridSim(object):
-    # Contains functions that can be used with any hexagonal grid.
+    """
+    Contains functions that can be used with any hexagonal grid.
+    Should be inherited along with the GeneralSimClass (or a subclass of it) to create a 2D simulation class.
+    """
 
     def make_base_array_edge_corrected(self):
+        """
+        This creates the map of neighbouring cells for the simulation.
+        Prevents the recalculation of neighbouring cells at every simulation step.
+        Because of the mapping of a hexagonal grid to a 1D-array, the even and odd columns need a different mapping.
+        The periodic boundary conditions are also accounted for.
+        :return: Array with a map of neighbours for every position in the grid.
+        """
         depth, width = self.grid_shape
         in_own_neighbourhood = [0] * self.cell_in_own_neighbourhood
-        even_col_base = list(np.array([-width - 1, -width, -width + 1, -1, 1, width])) + in_own_neighbourhood
-        odd_col_base = list(np.array([-width, -1, +1, width - 1, width, width + 1])) + in_own_neighbourhood
-        start_row_base = list(np.array([+width - 1, -width, -width + 1, -1, 1, width])) + in_own_neighbourhood
-        end_row_base = list(np.array([-width, -1, +1, width - 1, width, -width + 1])) + in_own_neighbourhood
+
+        # Define the positions of the neighbours relative to each cell. Will depend on the row and column of the cell.
+        even_col_base = [-width - 1, -width, -width + 1, -1, 1, width] + in_own_neighbourhood
+        odd_col_base = [-width, -1, +1, width - 1, width, width + 1] + in_own_neighbourhood
+        start_row_base = [+width - 1, -width, -width + 1, -1, 1, width] + in_own_neighbourhood
+        end_row_base = [-width, -1, +1, width - 1, width, -width + 1] + in_own_neighbourhood
+
+        # Combine into the positions for an entire row.
         full_row = [start_row_base] + [odd_col_base, even_col_base] * int((width - 2) / 2) + [end_row_base]
+
+        # Multiply by the number of rows
         base_array = full_row * int(depth)
+
+        # Add the index of the grid position to the base array of neighbours.
+        # This converts the relative positions to the absolute positions of the neighbours.
         res = np.array(base_array) + np.arange(width * depth).reshape((width * depth, 1))
+
+        # Run mod to create periodic boundary conditions.
         res = np.mod(res, (width * depth))
         return res
 
