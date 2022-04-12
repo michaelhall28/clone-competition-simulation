@@ -1,15 +1,27 @@
+"""
+A class to run Moran-style simulations.
+"""
+
 from clone_competition_simulation.general_sim_class import *
 from clone_competition_simulation.useful_functions import find_ge
 
 
 class MoranSim(GeneralSimClass):
-    """Runs a simulation of the clonal growth, mutation and competition"""
+    """
+    Runs a simulation of the clonal growth, mutation and competition.
+    It inherits most functions from GeneralSimClass
+    """
 
     def __init__(self, parameters):
 
         super().__init__(parameters)
 
     def _precalculate_mutations(self):
+        """
+        The timing of mutations that occur during the simulation can be calculated in advance.
+        This speeds up the simulation a little.
+        :return:
+        """
         total_divisions = self.sample_points[-1]  # Length of the simulation
         mms = []
         self.mutation_rates[:, 0] = self.mutation_rates[:, 0] * self.division_rate * self.total_pop

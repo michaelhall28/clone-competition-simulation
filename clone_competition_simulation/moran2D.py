@@ -1,9 +1,17 @@
+"""
+A class to run Moran-style simulations on a 2D hexagonal grid
+"""
+
 import numpy as np
 from clone_competition_simulation.moran import MoranSim
 from clone_competition_simulation.general_2D_class import GeneralHexagonalGridSim
 
 
 class Moran2D(GeneralHexagonalGridSim, MoranSim):
+    """
+    Runs a simulation of the clonal growth, mutation and competition.
+    It inherits most functions from GeneralSimClass and MoranSim
+    """
     def __init__(self, parameters):
 
         super().__init__(parameters)
@@ -16,6 +24,9 @@ class Moran2D(GeneralHexagonalGridSim, MoranSim):
         self.neighbour_map = self.make_base_array_edge_corrected()
         self.grid_results = [self.grid.copy()]
         self.grid_results = [self.grid.copy()]
+
+        # Cell death is not dependent on fitness in this version of the Moran algorithm.
+        # Can therefore calculate the positions of all the dying cells in advance to save time.
         self.death_coords = np.random.randint(0, self.total_pop, size=self.parameters.simulation_steps)
 
     def _sim_step(self, i, current_population, non_zero_clones):

@@ -10,7 +10,10 @@ import csv
 # Probability distributions for drawing the fitness of new mutations.
 # Set up so can be called like functions without argument, but can print the attributes
 class NormalDist(object):
-    """Will draw again if the value is below zero."""
+    """
+    A wrapper for numpy.random.normal
+    Will draw again if the value is below zero.
+    """
     def __init__(self, var, mean=1.):
         self.var = var
         self.mean = mean
@@ -30,6 +33,10 @@ class NormalDist(object):
 
 
 class FixedValue(object):
+    """
+    Just returns the fixed value given.
+    This is a wrapper for that number so that it functions like the random distributions.
+    """
     def __init__(self, value):
         self.mean = value
 
@@ -44,7 +51,20 @@ class FixedValue(object):
 
 
 class ExponentialDist(object):
+    """
+    An exponential distribution.
+    A wrapper for numpy.random.exponential
+
+    The parameters are mean and offset.
+    The mean defines the mean of the distribution after the offset has been applied,
+    i.e. the random number is
+    offset +  np.random.exponential(mean - offset)
+
+    mean must be greater than the offset.
+    """
     def __init__(self, mean, offset=1):
+        if mean <= offset:
+            raise ValueError('mean must be less than offset')
         self.mean = mean
         self.offset = offset  # Offset of 1 means the mutations will start from neutral.
 
@@ -60,6 +80,10 @@ class ExponentialDist(object):
 
 
 class UniformDist(object):
+    """
+    A uniform distribution between low and high
+    A wrapper for numpy.random.uniform
+    """
     def __init__(self, low, high):
         self.low = low
         self.high = high
@@ -78,7 +102,10 @@ class UniformDist(object):
 ##################
 # Classes for diminishing returns or other transformations of the raw fitness
 class UnboundedFitness:
-    # No bound or transformation on the fitness.
+    """
+    No bound or transformation on the fitness.
+    """
+
     def __str__(self):
         return 'UnboundedFitness'
 
@@ -134,6 +161,8 @@ class Gene(object):
         Parameters. The relative weights of the genes are used. E.g. if Gene1 has a weight of 3 and Gene2 has a
         weight of 7, then 30% of the mutations will be drawn from Gene1 and 70% from Gene2.
         """
+        if weight < 0:
+            raise ValueError('weight cannot be below zero')
         self.name = name
         self.mutation_distribution = mutation_distribution
         self.synonymous_proportion = synonymous_proportion
