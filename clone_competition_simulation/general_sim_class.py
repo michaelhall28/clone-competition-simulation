@@ -528,9 +528,10 @@ class GeneralSimClass(object):
         pass
 
     ############ Functions for post-processing simulations ############
-    def view_clone_info(self):
+    def view_clone_info(self, include_raw_fitness=False):
         """
         This converts the clone_array into a more readable pandas dataframe
+        :param include_raw_fitness: Add the raw_fitness_array data to the dataframe
         :return: pandas.DataFrame
         """
         df = pd.DataFrame({
@@ -543,6 +544,16 @@ class GeneralSimClass(object):
                 [self.mutation_generator.get_gene_name(int(g)) for g in self.clones_array[:, self.gene_mutated_idx]],
                 dtype=object),
         })
+
+        if include_raw_fitness:
+            cols = []
+            if self.mutation_generator.multi_gene_array:
+                cols += ['Initial clone fitness']
+            cols += [g.name for g in self.mutation_generator.genes]
+            if self.mutation_generator.epistatics is not None:
+                cols += [e[0] for e in self.mutation_generator.epistatics]
+            raw_df = pd.DataFrame(self.raw_fitness_array, columns=cols)
+            df = pd.concat([df, raw_df], axis=1)
 
         return df
 

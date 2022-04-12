@@ -30,3 +30,9 @@ the simulations in this repository and view the results.
 - How to extract mutant clone sizes from simulations
 - Muller plots
 - Incomplete moment plots
+
+#### Mutations3.ipynb
+- More complex methods to define clone fitness
+- How the fitness effects of multiple mutations are combined
+- Multiple genes and epistatic effects
+- Diminishing returns

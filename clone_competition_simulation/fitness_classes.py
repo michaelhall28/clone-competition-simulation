@@ -125,6 +125,8 @@ class BoundedLogisticFitness:
         """
         fitness = a/(1+c*b**(-x)) where x is the product of all mutation effects
         c is picked so that fitness(1) = 1
+        :param a: The maximum output fitness of a clone
+        :param b: Controls the slope of the transformation
         """
         assert (a > 1)
         assert (b > 1)
