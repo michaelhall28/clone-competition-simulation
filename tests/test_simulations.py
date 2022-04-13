@@ -55,7 +55,8 @@ cs_label = ColourScale(
                         KEY1(label=1): green,
                         KEY1(label=2): blue,
                         KEY1(label=3): red
-                 }
+                 },
+            use_fitness=True
         )
 
 INITIAL_CELLS = 12 ** 2
@@ -1169,7 +1170,8 @@ def _induction_of_label_and_mutant(axes, algorithm, overwrite_results=False):
         colourmaps={Key1(label=0): lambda x: (0, 0, 0, 1),
                     Key1(label=1): lambda x: (0.05, 0.75, 0.05, 1),
                     Key1(label=2): lambda x: (0.75, 0.05, 0.05, 1)
-                    }
+                    },
+        use_fitness=True
     )
 
     if algorithm in SPATIAL_ALGS:

@@ -16,7 +16,7 @@ class ColourScale(object):
     """ColourScale for plotting clones and mutations"""
     possible_fields = ('label', 'ns', 'initial', 'last_mutated_gene', 'genes_mutated')
 
-    def __init__(self, colourmaps, all_clones_noisy=False, name=None):
+    def __init__(self, colourmaps, all_clones_noisy=False, name=None, use_fitness=False):
         """
         This establishes the rules for the colours of clones in the Muller plots, grid plots and animations of the
         simulations.
@@ -30,6 +30,7 @@ class ColourScale(object):
         :param all_clones_noisy: Will add a small amount of noise to the fitness so that different clones with the same
         fitness can be distinguished.
         :param name: For labelling the object
+        :param use_fitness: The fitness will be passed to the colormap. Higher fitness will return higher value colours.
         """
         self.fields = None  # Will remain None if there is a single colourmap for all clones
         # Otherwise will be the order for fields of the dictionary keys
@@ -37,6 +38,7 @@ class ColourScale(object):
         self.colourmaps = colourmaps  # colourmap if only one for all clones, otherwise a dictionary
         self.check_colourmap_dict()
         self.all_noise = all_clones_noisy
+        self.use_fitness = use_fitness
         self.name = name
 
     def check_colourmap_dict(self):
@@ -79,11 +81,15 @@ class ColourScale(object):
         else:
             cs = self.colourmaps
 
-        if (not ns and not initial) or self.all_noise:  # Add a bit of randomness to see synonymous mutations
-            noise = np.random.uniform(-0.1, 0.1)
+        if not self.use_fitness:  # Just use a random number to vary the colours given
+            return cs(np.random.random())
         else:
-            noise = 0
-        return cs(fitness + noise)
+            # Otherwise use fitness, with or without some noise.
+            if self.all_noise:  # Add a bit of randomness to see synonymous mutations
+                noise = np.random.uniform(-0.1, 0.1)
+            else:
+                noise = 0
+            return cs(fitness + noise)
 
 
 def random_colour(rate):
@@ -95,25 +101,6 @@ def random_colour_alt(rate):
 
 
 ##### Some examples
-def get_colourscale_with_green_label_and_random_other(max_fitness):
-    """Any type 1 clones are in green. Any type 0 clones are random non-green colours, apart from the original,
-    which is beige.
-    """
-    Key = namedtuple('Key', ['clone_type', 'initial'])
-    diff_ = max_fitness - 1
-    cs = ColourScale(
-        all_clones_noisy=False,
-        colourmaps={
-            Key(clone_type=1, initial=True): cm.Greens,
-            Key(clone_type=1, initial=False): cm.ScalarMappable(norm=Normalize(vmin=1 - 5*diff_, vmax=max_fitness),
-                                                           cmap=cm.Greens).to_rgba,
-            Key(clone_type=0, initial=True): cm.ScalarMappable(norm=Normalize(vmin=0, vmax=3),
-                                      cmap=cm.YlOrBr).to_rgba,
-            Key(clone_type=0, initial=False): random_colour
-            }
-    )
-    return cs
-
 
 def get_CS_random_colours_from_colourmap(colourmap):
     """
