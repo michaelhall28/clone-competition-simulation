@@ -1260,7 +1260,7 @@ class GeneralSimClass(object):
 
     def animate(self, animation_file, grid_size=None, generations_per_frame=1, starting_clones=1,
                 figsize=None, figxsize=5, bitrate=500, min_prop=0, external_call=False, dpi=100, fps=5,
-                fitness=False, fitness_cmap=cm.Reds, fixed_label_text=None, fixed_label_loc=(0, 0),
+                fitness=False, fitness_cmap=cm.Reds, min_fitness=0, fixed_label_text=None, fixed_label_loc=(0, 0),
                 fixed_label_kwargs=None, show_time_label=False, time_label_units=None,
                 time_label_decimal_places=0, time_label_loc=(0, 0), time_label_kwargs=None, equal_aspect=False):
         """
@@ -1286,6 +1286,7 @@ class GeneralSimClass(object):
         :param fps: Frames per second.
         :param fitness: Boolean. For 2D simulations only. Colour cells by their fitness instead of their clone_id.
         :param fitness_cmap: For 2D simulations only. Colourmap for the fitness.
+        :param min_fitness: The lower limit for the colourbar in the fitness animation.
         :param fixed_label_text: For 2D simulations only. Text to add as a label over the video.
         :param fixed_label_loc: Tuple. For 2D simulations only. The location for the fixed_label_text.
         :param fixed_label_kwargs: Dictionary. For 2D simulations only. Any kwargs to pass to ax.text for the fixed_label_text.
@@ -1305,8 +1306,9 @@ class GeneralSimClass(object):
 
         if self.parameters.algorithm in self.parameters.spatial_algorithms:
             if fitness:
-                animator = HexFitnessAnimator(self, cmap=fitness_cmap, figxsize=figxsize, figsize=figsize, dpi=dpi,
-                                       bitrate=bitrate, fps=fps)
+                animator = HexFitnessAnimator(self, cmap=fitness_cmap, min_fitness=min_fitness,
+                                              figxsize=figxsize, figsize=figsize, dpi=dpi,
+                                              bitrate=bitrate, fps=fps)
             else:
                 animator = HexAnimator(self, figxsize=figxsize, figsize=figsize, dpi=dpi, bitrate=bitrate,
                                        fps=fps, external_call=external_call, fixed_label_text=fixed_label_text,
