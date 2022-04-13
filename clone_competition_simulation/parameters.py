@@ -116,7 +116,7 @@ class Parameters(object):
         populations to compare to lineage tracing experiments.
         :param initial_mutant_gene_array: List of int. For associating the initial clones with a particular mutation
         defined in the mutation_generator. Index of the gene in the mutation_generator genes list. Will add this to
-        the clones_array for these clones.
+        the clones_array for these clones. If no gene associated with subset of initial clones, use -1.
 
             Define the mutations to appear during the simulation.
         :param mutation_generator: fitness_classes.MutationGenerator. Defines the effects of mutations and how they
@@ -457,13 +457,6 @@ class Parameters(object):
         if self.grid_shape[0] % 2 != 0 or self.grid_shape[1] % 2 != 0:
             raise ParameterException('Must have even number of rows/columns in the hexagonal grid.')
 
-        # if self.direction_bias is not None:
-        #     raise ParameterException('Division direction bias not currently implemented')
-        #     if len(self.direction_bias) != 6:
-        #         raise ParameterException('position_weighting must be an array of length 6')
-        #     if isinstance(self.direction_bias, list):
-        #         raise ParameterException('position_weighting must be a numpy array, not a list')
-
     def _check_timing(self):
         """Checks that times, max_time, division_rate and simulation_steps are consistent and defines any missing values"""
         if self.times is not None:
@@ -492,7 +485,7 @@ class Parameters(object):
                     sim_steps = self._get_simulation_steps()
                     if sim_steps != self.simulation_steps:  # Raise error if not consistent
                         st = 'Simulation_steps does not match max_time and division_rate.\n' \
-                             'Provide only 2 of the three or ensure all are consistent.\n' \
+                             'Provide only two of the three or ensure all are consistent.\n' \
                              'simulation_steps={0}, steps calculated from time and division rate={1}'.format(
                             self.simulation_steps, sim_steps
                         )
