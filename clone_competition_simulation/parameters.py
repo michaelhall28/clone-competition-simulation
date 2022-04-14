@@ -202,7 +202,6 @@ class Parameters(object):
         self.initial_grid = initial_grid  # 2D simulations only
         self.simulation_steps = simulation_steps  # Alternative to supplying max_time and division_rate (for some algorithms)
         self.tmp_store = tmp_store
-        # self.direction_bias = direction_bias
         self.label_times = label_times
         self.label_frequencies = label_frequencies
         self.label_values = label_values
@@ -528,6 +527,7 @@ class Parameters(object):
         if self.times is None:
             # The time points at each sample.
             self.times = np.linspace(0, self.max_time, self.samples + 1)
+            self.warnings.append('\tTimes used: {}'.format(self.times))
 
         if self.algorithm not in ['Branching']:
             steps_per_unit_time = self.simulation_steps / self.max_time
