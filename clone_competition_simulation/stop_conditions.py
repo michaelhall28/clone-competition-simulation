@@ -14,12 +14,21 @@ class EndConditionError(Exception):
 
 
 class StopConditionClass:
-    # After every recorded time point, will check if the end condition is met.
-    # The end condition function passed to the class must raise an error that then stops the simulation
+    """
+    Class that is inherited to combine with the usual simulations.
+    After every recorded time point, will check if the stop condition is met.
+    The stop condition function passed to the class must raise an error that then stops the simulation
+    """
 
-    def __init__(self, parameters, end_condition_function):
-        self.end_condition = None
-        self.end_function = end_condition_function
+    def __init__(self, parameters, stop_condition_function):
+        """
+
+        :param parameters: Parameters class object.
+        :param stop_condition_function: An function that takes a simulation object as an argument and raises a
+        StopConditionError if the simulation should stop.
+        """
+        self.stop_condition_result = None   # Spare attribute to place any relevant result from the stopping
+        self.stop_function = stop_condition_function
         super().__init__(parameters)
 
     def run_sim(self, continue_sim=False):
@@ -34,11 +43,12 @@ class StopConditionClass:
         Report progress if required
         :param i:
         :param current_population:
+        :param non_zero_clones:
         :return:
         """
         if i == self.sample_points[self.plot_idx]:  # Regularly take a sample for the plot
             self._take_sample(current_population, non_zero_clones)
-            self.end_function(self)
+            self.stop_function(self)
 
         if self.progress:
             if i % self.progress == 0:
@@ -63,10 +73,16 @@ class Moran2DStop(StopConditionClass, Moran2D):
     pass
 
 
-def end_condition_first_occurrence(self):
-    # Stops at first instance of a clone type.
-    # Assume the mutant we care about is the last in the fitness array
-    # Records the time of the first instance
+def stop_condition_first_occurrence(self):
+    """
+    An example of a stop condition function.
+
+    Stops the simulation at the first instance of a clone type.
+    Assume the mutant we care about is the last in the fitness array
+    Records the time of the first instance
+    :param self:
+    :return:
+    """
     if np.any(~np.isnan(self.raw_fitness_array[:, -1])):
-        self.end_condition = self.times[self.plot_idx-1]   # Save the last time point to the end_condition attribute
+        self.stop_condition_result = self.times[self.plot_idx-1]  # Save the last time point to stop_condition_result
         raise EndConditionError()
