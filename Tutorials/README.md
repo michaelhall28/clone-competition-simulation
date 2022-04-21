@@ -66,4 +66,7 @@ These are roughly in order of simple to complicated, and useful to less useful.
 - These have no effect on the actions of proliferating cells and have no physical position in the Moran2D
 - How to get proliferative cell only and total basal clone sizes
 
+#### Treatments
+- Simulating changes to the competitive environment, e.g. the application of drugs
+- How to apply treatments affecting initial clones (e.g. for lineage tracing) or for acquired mutations.
 
