@@ -225,12 +225,10 @@ class GeneralSimDiffCells(GeneralSimClass):
         Create an array with the b cell clone sizes for each mutant across the entire simulation.
         The populations will usually add up to more than the total since many clones will have multiple mutations
         """
-        mutant_clones = self.track_mutations(selection='all')
-        for i in range(self.initial_clones):  # The initial clones are included to make indexing easier later
-            mutant_clones[i] = [i]
-        self.diff_cell_mutant_clone_array = np.array(
-            [np.atleast_1d(self.diff_cell_population[list(mutant_clones[mutant])].sum(axis=0))
-             for mutant in range(len(self.clones_array))])
+        mutant_clones = self.track_mutations(selection='non_zero')
+        self.diff_cell_mutant_clone_array = lil_matrix(self.diff_cell_population.shape)
+        for mutant in mutant_clones:
+            self.diff_cell_mutant_clone_array[mutant] = self.diff_cell_population[mutant_clones[mutant]].sum(axis=0)
 
     def _create_mutant_clone_array_basal_cells(self):
         """
@@ -245,7 +243,7 @@ class GeneralSimDiffCells(GeneralSimClass):
         self.basal_cell_mutant_clone_array = self.mutant_clone_array + self.diff_cell_mutant_clone_array
 
     def get_mutant_clone_sizes(self, t=None, selection='all', index_given=False, gene_mutated=None,
-                               include_diff_cells=False):
+                               include_diff_cells=False, non_zero_only=False):
         """
         Get an array of mutant clone sizes at a particular time
         WARNING: This may not work exactly as expected if there were multiple initial clones!
@@ -254,6 +252,8 @@ class GeneralSimDiffCells(GeneralSimClass):
         :param index_given: True if t is an index of the sample, False if t is a time.
         :param gene_mutated: Int. Only return clone sizes for a particular additional label.
         For example to only get mutations for a single gene.
+        :param include_diff_cells: Add the differentiated cell counts to the proliferative cell counts
+        :param non_zero_only: Only return mutants with a positive cell count.
         :return: np.array of ints
         """
         if t is None:
@@ -283,7 +283,13 @@ class GeneralSimDiffCells(GeneralSimClass):
             muts = list(muts.intersection(self.get_idx_of_gene_mutated(gene_mutated)))
         else:
             muts = list(muts)
-        return mut_array[muts][:, i].astype(int)
+
+        mutant_clones = mut_array[muts][:, i].toarray().astype(int).flatten()
+
+        if non_zero_only:
+            return mutant_clones[mutant_clones > 0]
+        else:
+            return mutant_clones
 
     def get_mutant_clone_size_distribution(self, t=None, selection='all', index_given=False, gene_mutated=None,
                                            include_diff_cells=False):
@@ -294,6 +300,7 @@ class GeneralSimDiffCells(GeneralSimClass):
         :param index_given: True if t is an index of the sample, False if t is a time.
         :param gene_mutated: Int. Only return clone sizes for a particular additional label.
         For example to only get mutations for a single gene.
+        :param include_diff_cells: Add the differentiated cell counts to the proliferative cell counts
         :return: np.array of ints.
         """
         if t is None:
@@ -318,16 +325,8 @@ class GeneralSimDiffCells(GeneralSimClass):
             print('No synonymous mutations')
             return None
 
-        if selection == 'all':
-            clones = np.concatenate((self.get_mutant_clone_sizes(i, selection='s', index_given=True,
-                                                                 gene_mutated=gene_mutated,
-                                                                 include_diff_cells=include_diff_cells),
-                                     self.get_mutant_clone_sizes(i, selection='ns', index_given=True,
-                                                                 gene_mutated=gene_mutated,
-                                                                 include_diff_cells=include_diff_cells)))
-        else:
-            clones = self.get_mutant_clone_sizes(i, selection=selection, index_given=True,
-                                                 gene_mutated=gene_mutated)
+        clones = self.get_mutant_clone_sizes(i, selection=selection, index_given=True,
+                                                 gene_mutated=gene_mutated, include_diff_cells=include_diff_cells)
 
         counts = np.bincount(clones)
         return counts
@@ -348,7 +347,7 @@ class GeneralSimDiffCells(GeneralSimClass):
 
     def plot_mean_clone_size_graph_for_non_mutation(self, times=None, label=None, show_spm_fit=True, spm_fit_rate=None,
                                                     legend_label=None, legend_label_fit=None, include_diff_cells=False,
-                                                    ax=None):
+                                                    plot_kwargs=None, ax=None):
         """
         Follows the mean clone sizes of each row in the clone array. This is a clone defined by a unique set of
         mutations, not be a particular mutation.
@@ -371,7 +370,9 @@ class GeneralSimDiffCells(GeneralSimClass):
             ax.plot(times, mean_clone_size_fit(times, spm_fit_rate), 'r--', label=legend_label_fit)
         ax.set_xlabel('Time')
         ax.set_ylabel('Mean clone size of surviving clones')
-        ax.scatter(times, means, label=legend_label)
+        if plot_kwargs is None:
+            plot_kwargs = {}
+        ax.scatter(times, means, label=legend_label, **plot_kwargs)
 
 
 class MoranWithDiffCells(MoranSim, GeneralSimDiffCells):

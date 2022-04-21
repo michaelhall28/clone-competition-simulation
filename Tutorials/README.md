@@ -57,6 +57,13 @@ These are roughly in order of simple to complicated, and useful to less useful.
 #### StoringAndLoadingSimulations
 - How to save and load simulation objects using pickle
 
+#### EarlyStoppingConditions
+- Ending a simulation once a certain condition has been reached instead of running until the max_time
+- A few examples showing how to define the end conditions
 
+#### DifferentiatedCells
+- Simulating differentiated cells for the Branching, Moran and Moran2D algorithms
+- These have no effect on the actions of proliferating cells and have no physical position in the Moran2D
+- How to get proliferative cell only and total basal clone sizes
 
 
