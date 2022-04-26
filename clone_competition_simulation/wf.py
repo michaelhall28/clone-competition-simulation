@@ -1,3 +1,7 @@
+"""
+A class to run non-spatial Wright-Fisher-style simulations
+"""
+
 from clone_competition_simulation.general_sim_class import GeneralSimClass
 import numpy as np
 
@@ -12,32 +16,45 @@ class WrightFisherSim(GeneralSimClass):
         super().__init__(parameters)
 
     def _adjust_raw_times(self, array):
-        # Takes an array of time points and converts to number of simulation steps
+        """Takes an array of time points and converts to number of simulation steps"""
         if array is not None:
             array = np.array(array) * self.division_rate
 
         return array
 
     def _sim_step(self, i, current_population, non_zero_clones):
-        # Each step, we add mutations and then draw the new generation.
-        # Mutations are introduced at a certain rate.
-        # The number of mutations per step is drawn from a Poisson distribution
-        # The mutations are then assigned at random to any cells.
+        """
+        A single step of the Wright-Fisher process.
+        At each step, we add mutations and then draw the new generation.
+        Mutations are introduced at a certain rate.
+        The number of mutations per step is drawn from a Poisson distribution
+        The mutations are then assigned at random to any cells.
+        The number of mutations at each generation is calculated prior to the main simulation starting.
 
-        # The next generation is drawn from the previous in proportion to the population size and the fitnesses
-        # We draw from a multinomial distribution. Selection of N from a list of probabilities
-        # The probability of each clone is the clone population * clone fitness / sum(c' pop * c' fitness)
-        # where the sum is over all clones
+        The next generation is drawn from the previous in proportion to the population size and the cell fitnesses
+        We draw from a multinomial distribution. Selection of N from a list of probabilities
+        The probability of each clone is the clone population * clone fitness / sum(c' pop * c' fitness)
+        where the sum is over all clones
+        :param i: Int. The simulation step number.
+        :param current_population: Array of clone sizes. Only for the clones with at least 1 cell.
+        :param non_zero_clones: Array of the clone numbers of the current clones that have at least 1 cell.
+        :return:
+        """
+        # Get the number of mutations to add during this generation.
         total_mutations = self.mutations_to_add[i]
+        # Update the cell population with these new mutations.
         current_population, non_zero_clones = self._assign_mutations(total_mutations,
                                                                      current_population,
                                                                      non_zero_clones)
 
+        # Draw the new generation of cells from the old generation.
+        # First, calculate the relative weight of each clone (population size multiplied by the fitness)
         weights = current_population * self.clones_array[non_zero_clones, self.fitness_idx]
         relative_weights = weights / weights.sum()
+        # Then draw the new population.
         current_population = np.random.multinomial(self.total_pop, relative_weights)
         gr_z = np.nonzero(current_population > 0)[0]  # The indices of clones alive at this point in the current pop
-        non_zero_clones = non_zero_clones[gr_z]  # Convert to the original clone numbers
+        non_zero_clones = non_zero_clones[gr_z]  # Convert those indices to the original clone numbers
         current_population = current_population[gr_z]  # Only keep the currently alive clones in current pop
         return current_population, non_zero_clones
 
@@ -47,6 +64,7 @@ class WrightFisherSim(GeneralSimClass):
         generations = self.sample_points[-1]  # Length of the simulation
         self.mutations_to_add = []
         self.new_mutation_count = 0
+        # Convert the time in the mutation_rates array to a simulation step
         self.mutation_rates[:, 0] = self.mutation_rates[:, 0] * self.division_rate
         mut_rate_idx = 0
         mutation_rate = self.mutation_rates[mut_rate_idx][1]
@@ -55,7 +73,9 @@ class WrightFisherSim(GeneralSimClass):
         else:
             next_rate_change_time = np.inf
 
+        # Loop through the simulation steps (one step=one generation of cells) and assign a mutation count to each
         for i in range(generations):
+            # Update the mutation rate if needed.
             if i >= next_rate_change_time:
                 mut_rate_idx += 1
                 mutation_rate = self.mutation_rates[mut_rate_idx][1]
@@ -64,16 +84,26 @@ class WrightFisherSim(GeneralSimClass):
                 else:
                     next_rate_change_time = np.inf
 
+            # Randomly draw the number of mutations for this simulation step
             total_mutations = self._calc_num_mutations(mutation_rate)
+            # Track the total amount of new mutations in the whole simulation (used to make the results arrays)
             self.new_mutation_count += total_mutations
+            # And store the number of mutations for this sim step.
             self.mutations_to_add.append(total_mutations)
 
     def _calc_num_mutations(self, mutation_rate):
+        """
+        Draws the number of mutations from a poisson distribution
+        :param mutation_rate: Mutation rate per cell per generation
+        :return: Int.
+        """
         total_mutations = np.random.poisson(mutation_rate * self.total_pop)
         return total_mutations
 
     def _assign_mutations(self, total_mutations, current_population, non_zero_clones):
         """
+        Adds new mutations to cells.
+
         Note: it is possible for a more than one mutation to be added to the same cell in the same generation.
         This would result in a clone added to the results with a zero population for the entire simulation, since
         as soon as it is added, the only cell of the clone is mutated again and moved to a new clone.
