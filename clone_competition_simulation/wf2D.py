@@ -42,8 +42,8 @@ class WrightFisher2D(GeneralHexagonalGridSim, WrightFisherSim):
         current_population = np.bincount(self.grid_array, minlength=len(self.clones_array))
 
         if i == self.sample_points[self.plot_idx] - 1:  # Must compare to -1 since increment is after this function
-            grid = np.reshape(self.grid_array, (self.grid_shape))
-            self.grid_results.append(grid.copy())
+            self.grid = np.reshape(self.grid_array, (self.grid_shape))
+            self.grid_results.append(self.grid.copy())
 
         return current_population, non_zero_clones
 

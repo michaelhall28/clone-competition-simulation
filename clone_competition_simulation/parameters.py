@@ -141,7 +141,7 @@ class Parameters(object):
 
             Define any treatment (changes to clone fitness during the simulations.) Either defines fitness changes for
             any initial clones (with no further mutations), or defines fitness changes per gene (can have mutations if
-            using multi_gene_array=True in the mutation_generator.
+            using multi_gene_array=True in the mutation_generator).
         :param treatment_timings: List of floats. Time to start each treatment.
         :param treatment_effects: List of lists or 2D np.array of floats . For each treatment, list/array of values to
         multiply or replace the fitness of that clone/gene. Must in same order as initial_size_array or
@@ -167,7 +167,7 @@ class Parameters(object):
         before being sampled. Setting this value to less than 1 will only simulate differentiated cells for times where
         the chance of them surviving to the next sample point is greater than the stratification_sim_percentile.
 
-            Conditions to end simulations early. Useful for ABC or to find first occurence of mutant combinations.
+            Conditions to stop simulations early. Useful for ABC or to find first occurrence of mutant combinations.
         :param population_limit: Int. For Branching process only. Stops simulating clones if the population limit is reached.
         THIS IS NOT A CARRYING CAPACITY.
         :param end_condition_function: Function that takes a simulation object as the only argument and
