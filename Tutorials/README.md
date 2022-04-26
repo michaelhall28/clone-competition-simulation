@@ -70,3 +70,8 @@ These are roughly in order of simple to complicated, and useful to less useful.
 - Simulating changes to the competitive environment, e.g. the application of drugs
 - How to apply treatments affecting initial clones (e.g. for lineage tracing) or for acquired mutations.
 
+#### Simulating Biopsies
+- Counting clone sizes in biopsies taken from 2D simulations
+- Simulating sequencing with a lower limit of detection and fixed or random read depth
+- Merging mutations found in multiple biopsies
+- dN/dS calculation on the "sequencing" results

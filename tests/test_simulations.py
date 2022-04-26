@@ -14,7 +14,7 @@ from clone_competition_simulation.general_differentiated_cell_class import set_g
 from matplotlib.ticker import NullFormatter
 from clone_competition_simulation.colourscales import ColourScale
 from clone_competition_simulation.animator import HexAnimator
-from clone_competition_simulation.sim_sampling import get_vafs_for_all_biopsies
+from clone_competition_simulation.sim_sampling import get_vafs_for_all_biopsies, biopsy_sample
 from clone_competition_simulation.useful_functions import incomplete_moment_vaf_fixed_intervals
 import pickle
 from collections import defaultdict, namedtuple
@@ -136,7 +136,7 @@ def compare_single_res(old, new):
     # Some cases can be compared directly
     # Others cannot
     try:
-        if isinstance(old, (dict, set, int, float)):
+        if isinstance(old, (dict, set, int, float, np.integer)):
             # This assumes the contents of the dict can be simply compared
             return old == new
         elif isinstance(old, (np.ndarray,)):
@@ -884,20 +884,25 @@ def test_random_sampling(axes, algorithm, overwrite_results=False):
                        mutation_rates=0.05, mutation_generator=mut_gen)
         sim = p.get_simulator()
         sim.run_sim()
-        vafs = get_vafs_for_all_biopsies(sim, biopsies, coverage, detection_limit,
+
+        raw_vafs = biopsy_sample(sim.grid_results[-1], sim, biopsies[0])
+        compare_to_old_results(algorithm, raw_vafs, test_name='biopsy_sample', result_type='object',
+                               overwrite_results=overwrite_results)
+
+        vafs = get_vafs_for_all_biopsies(sim, biopsies, coverage=coverage, detection_limit=detection_limit,
                                          merge_clones=False,
                                          binom=False, binom_params=(None, None))
 
         compare_to_old_results(algorithm, vafs, test_name='random_sampling', result_type='object',
                                overwrite_results=overwrite_results)
 
-        vafs_merge = get_vafs_for_all_biopsies(sim, biopsies, coverage, detection_limit,
+        vafs_merge = get_vafs_for_all_biopsies(sim, biopsies, coverage=coverage, detection_limit=detection_limit,
                                                merge_clones=True,
                                                binom=True, binom_params=(33, 0.1))
         compare_to_old_results(algorithm, vafs_merge, test_name='random_sampling_merge', result_type='object',
                                overwrite_results=overwrite_results)
 
-        vafs_full = get_vafs_for_all_biopsies(sim, biopsies, 10000, 0,
+        vafs_full = get_vafs_for_all_biopsies(sim, biopsies, coverage=10000, detection_limit=0,
                                               merge_clones=True,
                                               binom=False, binom_params=(None, None))
 
