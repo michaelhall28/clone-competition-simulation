@@ -41,6 +41,8 @@ s.run_sim()
 s.muller_plot()
 ```
 
+There are Jupyter Notebooks containing guides to the various features of the code in the Tutorials directory.
+
 ## Algorithms
 There are 5 algorithms that can be run.
 
