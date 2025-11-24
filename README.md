@@ -2,16 +2,15 @@
 Python3 simulations of clone competition during ongoing mutagenesis.
 
 ## Installation
-To install, clone the git repository  
+Install [UV](https://docs.astral.sh/uv/), [GNU Scientific Library](https://www.gnu.org/software/gsl/) 
+([homebrew](https://formulae.brew.sh/formula/gsl)) and [FFMPEG](https://ffmpeg.org/)
+([homebrew](https://formulae.brew.sh/formula/ffmpeg)).  
+
+Clone the git repository  
 `git clone https://github.com/michaelhall28/clone-competition-simulation.git`
 
-Dependencies can be installed using conda (https://docs.conda.io). If installing dependencies using another method, be aware that this code may not work with old versions of Scipy because of changes to scipy.sparse (tested for scipy 1.5.2).  
-`cd clone-competition-simulation`  
-`conda env create -f environment.yml`  
-`conda activate competition`
-
 and install the code in this repository  
-`pip install -e .`
+`uv pip install -e .`
 
 ## Running simulations
 

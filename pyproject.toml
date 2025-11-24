@@ -3,7 +3,7 @@ name = "clone-competition-simulation"
 version = "0.1.0"
 description = "Python simulations of clone competition during ongoing mutagenesis."
 authors = [
-    "Michael Hall <mh28@sanger.ac.uk>",
+    {name="Michael Hall", email="mh28@sanger.ac.uk"}
 ]
 readme = "README.md"
 requires-python = ">=3.10"
