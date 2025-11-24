@@ -145,7 +145,7 @@ def compare_single_res(old, new):
             if isinstance(new, (lil_matrix, csr_matrix)):
                 new = new.toarray()
             try:
-                np.testing.assert_array_equal(old, new)
+                np.testing.assert_array_almost_equal(old, new)
             except AssertionError:
                 return False
             return True

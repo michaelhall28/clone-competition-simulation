@@ -102,6 +102,8 @@ class HexAnimator:
         else:
             self.time_label_kwargs = time_label_kwargs
 
+        self.col: collections.PolyCollection | None = None
+
     def animate(self, animation_file):
         """
         Create a video from the grid_results of a simulation.
@@ -162,7 +164,6 @@ class HexAnimator:
         """
         Makes all of the hexagons in the grid. The animation then works by changing the colours of the hexagons.
         Based on the matplotlib code for the hexbin plots.
-        This will need updating because the "offset_position" argmument of PolyCollection is being deprecated.
         :return:
         """
 
@@ -214,8 +215,7 @@ class HexAnimator:
             [polygon],
             linewidths=[0],
             offsets=offsets,
-            transOffset=transforms.IdentityTransform(),
-            offset_position="data"
+            transOffset=transforms.AffineDeltaTransform(self.ax.transData)
         )
 
         # Adjust the corners
@@ -225,8 +225,8 @@ class HexAnimator:
         ymax = ymax / 2
         corners = ((xmin, ymin), (xmax, ymax))
         self.ax.update_datalim(corners)
-        self.col.sticky_edges.x[:] = [xmin, xmax]
-        self.col.sticky_edges.y[:] = [ymin, ymax]
+        self.ax._request_autoscale_view(tight=True)
+        self.ax.set_aspect('equal')
 
         plt.margins(0, 0)
         self.ax.autoscale_view(tight=True)
@@ -527,6 +527,7 @@ class NonSpatialToGridAnimator:
         else:
             self.clones_array = self.sim.clones_array
             self.proportional_populations = self.sim.population_array / self.sim.population_array.sum(axis=0)
+        self.proportional_populations = self.proportional_populations.tocsr()  # Convert to CSR to access values
         self.grid_size = grid_size
         self.generations_per_frame = generations_per_frame
         self.starting_clones = starting_clones
