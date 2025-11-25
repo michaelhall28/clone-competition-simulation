@@ -1,11 +1,7 @@
-from clone_competition_simulation.general_sim_class import GeneralSimClass
-from clone_competition_simulation.general_2D_class import GeneralHexagonalGridSim
-from clone_competition_simulation.moran import MoranSim
-from clone_competition_simulation.moran2D import Moran2D
-from clone_competition_simulation.wf import WrightFisherSim
-from clone_competition_simulation.wf2D import WrightFisher2D
-from clone_competition_simulation.branching_process import SimpleBranchingProcess
-from clone_competition_simulation.general_differentiated_cell_class import BranchingWithDiffCells, MoranWithDiffCells, Moran2DWithDiffcells
+from simulation_algorithms.moran import MoranSim
+from simulation_algorithms.moran2D import Moran2D
+from simulation_algorithms.wf import WrightFisherSim
+from simulation_algorithms.wf2D import WrightFisher2D
 import numpy as np
 
 

@@ -2,8 +2,8 @@
 A class to run Moran-style simulations.
 """
 
-from clone_competition_simulation.general_sim_class import *
-from clone_competition_simulation.useful_functions import find_ge
+from simulation_algorithms.general_sim_class import *
+from utils import find_ge
 
 
 class MoranSim(GeneralSimClass):

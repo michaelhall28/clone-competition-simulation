@@ -15,10 +15,10 @@ import bisect
 from collections import Counter
 import pickle
 import copy
-from clone_competition_simulation.useful_functions import mean_clone_size, mean_clone_size_fit, surviving_clones_fit, \
+from analysis.analysis import mean_clone_size, mean_clone_size_fit, surviving_clones_fit, \
     incomplete_moment, add_incom_to_plot
-from clone_competition_simulation.animator import NonSpatialToGridAnimator, HexAnimator, HexFitnessAnimator
-from clone_competition_simulation.colourscales import get_default_random_colourscale
+from plotting.animator import NonSpatialToGridAnimator, HexAnimator, HexFitnessAnimator
+from plotting.colourscales import get_default_random_colourscale
 import warnings
 from scipy.sparse import lil_matrix, SparseEfficiencyWarning
 import gzip

@@ -8,14 +8,15 @@ Uses Cython code (diff_cell_functions.pyx) to increase speed of the differentiat
 
 Not used or tested extensively, and not all functions will work well with these simulations.
 """
-from clone_competition_simulation.general_sim_class import GeneralSimClass
-from clone_competition_simulation.moran import MoranSim
-from clone_competition_simulation.moran2D import Moran2D
-from clone_competition_simulation.branching_process import SimpleBranchingProcess
+from simulation_algorithms.general_sim_class import GeneralSimClass
+from simulation_algorithms.moran import MoranSim
+from simulation_algorithms.moran2D import Moran2D
+from simulation_algorithms.branching_process import SimpleBranchingProcess
 from scipy.sparse import lil_matrix
 import numpy as np
 import matplotlib.pyplot as plt
-from clone_competition_simulation.useful_functions import mean_clone_size, mean_clone_size_fit, find_ge
+from analysis.analysis import mean_clone_size, mean_clone_size_fit
+from utils import find_ge
 import diff_cell_functions
 
 

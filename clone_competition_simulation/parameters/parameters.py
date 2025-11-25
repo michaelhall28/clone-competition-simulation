@@ -1,12 +1,12 @@
-from clone_competition_simulation.fitness_classes import MutationGenerator, NormalDist, UnboundedFitness, Gene
-from clone_competition_simulation.colourscales import get_default_random_colourscale
-from clone_competition_simulation.wf import WrightFisherSim
-from clone_competition_simulation.moran import MoranSim
-from clone_competition_simulation.moran2D import Moran2D
-from clone_competition_simulation.branching_process import SimpleBranchingProcess
-from clone_competition_simulation.wf2D import WrightFisher2D
-from clone_competition_simulation.general_differentiated_cell_class import Moran2DWithDiffcells, MoranWithDiffCells, BranchingWithDiffCells
-from clone_competition_simulation.stop_conditions import WFStop, WF2DStop, MoranStop, Moran2DStop
+from fitness.fitness_classes import MutationGenerator, NormalDist, UnboundedFitness, Gene
+from plotting.colourscales import get_default_random_colourscale
+from simulation_algorithms.wf import WrightFisherSim
+from simulation_algorithms.moran import MoranSim
+from simulation_algorithms.moran2D import Moran2D
+from simulation_algorithms.branching_process import SimpleBranchingProcess
+from simulation_algorithms.wf2D import WrightFisher2D
+from simulation_algorithms.general_differentiated_cell_class import Moran2DWithDiffcells, MoranWithDiffCells, BranchingWithDiffCells
+from simulation_algorithms.stop_conditions import WFStop, WF2DStop, MoranStop, Moran2DStop
 import sys
 import numpy as np
 from scipy.stats import expon

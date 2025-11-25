@@ -1,219 +1,39 @@
 import pytest
-import sys
-import os
-import types
-TEST_DIR = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(os.path.dirname(TEST_DIR))
 import numpy as np
-from clone_competition_simulation.parameters import Parameters
+from clone_competition_simulation.parameters.parameters import Parameters
 import pandas as pd
 import matplotlib.pyplot as plt
-from clone_competition_simulation.fitness_classes import FixedValue, NormalDist, ExponentialDist, UniformDist, Gene, MutationGenerator, \
+from fitness.fitness_classes import FixedValue, NormalDist, ExponentialDist, UniformDist, Gene, MutationGenerator, \
     BoundedLogisticFitness
-from clone_competition_simulation.general_differentiated_cell_class import set_gsl_random_seed
+from simulation_algorithms.general_differentiated_cell_class import set_gsl_random_seed
 from matplotlib.ticker import NullFormatter
-from clone_competition_simulation.colourscales import ColourScale
-from clone_competition_simulation.animator import HexAnimator
-from clone_competition_simulation.sim_sampling import get_vafs_for_all_biopsies, biopsy_sample
-from clone_competition_simulation.useful_functions import incomplete_moment_vaf_fixed_intervals
-import pickle
-from collections import defaultdict, namedtuple
+from plotting.colourscales import ColourScale
+from plotting.animator import HexAnimator
+from tissue_sampling.sim_sampling import get_vafs_for_all_biopsies, biopsy_sample
+from analysis.analysis import incomplete_moment_vaf_fixed_intervals
+from collections import namedtuple
 import os
 import random
 import seaborn as sns
 import warnings
-from scipy.sparse import lil_matrix, csr_matrix, SparseEfficiencyWarning
+from scipy.sparse import SparseEfficiencyWarning
 warnings.simplefilter('ignore',SparseEfficiencyWarning)
-import gzip
+from utilities import (
+    compare_to_old_results,
+    next_ax,
+    INITIAL_CELLS,
+    MAX_TIME,
+    DIVISION_RATE,
+    PLOT_DIR,
+    SPATIAL_ALGS,
+    WF_ALGS,
+    get_plots
+)
 
-# Must define the namedtuples globally for the pickling to work
-KEY1 = namedtuple('KEY1', ['label'])
-
-
-# matplotlib colourmaps do not seem to work the same the first time they are called.
-# Use deterministic functions
-def init_colour(rate):
-    return "#FEEBAD"
-
-
-def green(rate):
-    return "#158710"
-
-
-def blue(rate):
-    return "#1A1EA2"
-
-
-def red(rate):
-    return "#C62619"
-
-
-cs_label = ColourScale(
-            name='4 labels',
-            all_clones_noisy=False,
-            colourmaps={KEY1(label=0): init_colour,
-                        KEY1(label=1): green,
-                        KEY1(label=2): blue,
-                        KEY1(label=3): red
-                 },
-            use_fitness=True
-        )
-
-INITIAL_CELLS = 12 ** 2
-MAX_TIME = 5
-DIVISION_RATE = 1.3
-PLOT_DIR = TEST_DIR
-FIGSIZE = (17, 15)
-RESULTS_STORE=os.path.join(TEST_DIR, "stored_results")
-FIGURE_DIMENSIONS = (7, 8)  # Number of rows and columns in output fig
-SPATIAL_ALGS = {'Moran2D', 'WF2D'}
-WF_ALGS ={'WF', 'WF2D'}
-
-
-def get_plots():
-    axes_dict = dict()
-    for algorithm in Parameters.algorithm_options:
-        fig, axs = plt.subplots(*FIGURE_DIMENSIONS, figsize=FIGSIZE, squeeze=False)
-        axes_dict[algorithm] = (fig, axs)
-    return axes_dict
 
 @pytest.fixture(scope='session')
 def axes():
     return get_plots()
-
-
-ax_count_dict = defaultdict(int)
-def get_ax_count(algorithm):
-    global ax_count_dict
-    ax_count_dict[algorithm] += 1
-    return ax_count_dict[algorithm] - 1  # So returns 0 the first time
-
-
-def next_ax(axes, algorithm):
-    ax_count = get_ax_count(algorithm)
-    ax = axes[algorithm][1][ax_count // FIGURE_DIMENSIONS[1]][ax_count % FIGURE_DIMENSIONS[1]]
-    return ax
-
-
-def convert_sim_to_standard_form(sim, algorithm):
-    # Don't want to store the hash of the pickled sim itself, as any change means it won't match.
-    # Take the outputs population array, clones array, ns_clones, s_clones, clone tree
-    standard_results = dict()
-    standard_results['pop'] = sim.population_array
-    standard_results['clones'] = sim.clones_array
-    standard_results['muts'] = sim.mutant_clone_array
-    standard_results['ns_muts'] = sim.ns_muts
-    standard_results['s_muts'] = sim.s_muts
-    standard_results['label_muts'] = sim.label_muts
-    standard_results['raw_fitness_array'] = sim.raw_fitness_array
-    standard_results['clone_tree'] = sim.tree.to_dict()
-    standard_results['times'] = sim.times
-    standard_results['sample_points'] = sim.sample_points
-    if algorithm in SPATIAL_ALGS:
-        standard_results['grid_results'] = sim.grid_results
-
-    if hasattr(sim, "diff_cell_population"):
-        standard_results['diff_cell_population'] = sim.diff_cell_population
-    else:
-        standard_results['diff_cell_population'] = None
-
-    return standard_results
-
-
-def store_new_results(algorithm, name, results):
-    # Overwrite the old stored results
-    with gzip.open(os.path.join(RESULTS_STORE, algorithm, name + '.pickle.gz'), 'wb') as f:
-        pickle.dump(results, f, protocol=4)
-
-
-def get_stored_results(algorithm, name):
-    with gzip.open(os.path.join(RESULTS_STORE, algorithm, name + '.pickle.gz'), 'rb') as f:
-        old_results = pickle.load(f)
-    return old_results
-
-
-def compare_single_res(old, new):
-    # Some cases can be compared directly
-    # Others cannot
-    try:
-        if isinstance(old, (dict, set, int, float, np.integer)):
-            # This assumes the contents of the dict can be simply compared
-            return old == new
-        elif isinstance(old, (np.ndarray,)):
-            # Need to use the np.testing function as the normal np.array_equal says nan != nan
-            # It raises an assertion error rather than returning True/False
-            if isinstance(new, (lil_matrix, csr_matrix)):
-                new = new.toarray()
-            try:
-                np.testing.assert_array_almost_equal(old, new)
-            except AssertionError:
-                return False
-            return True
-        elif isinstance(old, (lil_matrix, csr_matrix)):
-            if isinstance((old != new), bool):
-                return (old != new)
-            else:
-                return (old != new).nnz == 0
-
-        elif old is None:
-            return new is None
-        elif isinstance(old, (list, tuple)):
-            if len(old) != len(new):
-                return False
-            res = [compare_single_res(old[i], new[i]) for i in range(len(old))]
-            return all(res)
-        elif isinstance(old, pd.DataFrame):
-            return old.equals(new)
-        else:
-            print('Cannot compare', type(old))
-            print(old)
-            print(new)
-            return False
-    except Exception as e:
-        print('FAILED COMPARISON')
-        print(old)
-        print(new)
-        print(type(old))
-        print(type(new))
-        raise e
-
-
-def compare_to_old_results(algorithm, new_results, test_name, result_type='sim', overwrite_results=False):
-    if result_type == 'sim':
-        new_results = convert_sim_to_standard_form(new_results, algorithm)
-    if overwrite_results:
-        store_new_results(algorithm, test_name, new_results)
-    old_results = get_stored_results(algorithm, test_name)
-
-    mismatching_results = []
-    last_error = None
-    if not isinstance(new_results, dict):
-        assert compare_single_res(old_results, new_results)
-    else:
-        for attr_key, attr_result in new_results.items():
-            # print('attr', attr_key)
-            try:
-                assert compare_single_res(attr_result, old_results[attr_key])
-            except KeyError as e:
-                print('Missing {} for test {}:{}'.format(attr_key, algorithm, test_name))
-                raise e
-            except AssertionError as e:
-                mismatching_results.append(attr_key)
-                last_error = e
-            except Exception as e:
-                print('Failed to compare {} for test {}:{}'.format(attr_key, algorithm, test_name))
-                # print(attr_result.toarray())
-                # print(old_results[attr_key].toarray())
-                raise e
-
-        old_keys = set(old_results.keys())
-        new_keys = new_results.keys()
-        if old_keys.difference(new_keys):
-            assert False, "Missing keys: {}".format(old_keys.difference(new_keys))
-
-    if len(mismatching_results) > 0:
-        print('Mismatching keys:', mismatching_results)
-        raise last_error  # Just pick one to raise
 
 
 def test_simple(axes, algorithm, overwrite_results=False):
@@ -708,7 +528,7 @@ def test_treatment_replace_with_multiple_genes(axes, algorithm, overwrite_result
     ax.set_title('Treatment replace: genes+muts')
 
 
-def test_labels(axes, algorithm, overwrite_results=False):
+def test_labels(cs_label, axes, algorithm, overwrite_results=False):
     mut_gen = MutationGenerator(multi_gene_array=True,
                                 genes=[
                                     Gene('neutral', mutation_distribution=FixedValue(1), synonymous_proportion=0.5),
@@ -1232,7 +1052,7 @@ def _induction_of_label_and_mutant(axes, algorithm, overwrite_results=False):
     sim.muller_plot(quick=True, allow_y_extension=True, ax=ax)
 
 
-def test_seven_cell_neighbourhood(axes, algorithm, overwrite_results=False):
+def test_seven_cell_neighbourhood(cs_label, axes, algorithm, overwrite_results=False):
     ax = next_ax(axes, algorithm)
     if algorithm in SPATIAL_ALGS:
         np.random.seed(0)
@@ -1291,35 +1111,3 @@ def test_animation(algorithm):
     sim.animate(os.path.join(PLOT_DIR, 'test_ani_{}.mp4'.format(algorithm)), grid_size=grid_size)
 
 
-if __name__ == "__main__":
-    import argparse
-    parser = argparse.ArgumentParser(description="Overwrite results with new versions. ")
-    parser.add_argument('--overwrite', action='store_true', help="Must use this to run. To prevent accidental use. ")
-    parser.add_argument('-a', '--algorithm', nargs='*',
-                        help='Algorithms to overwrite. Will run all if none given')
-    parser.add_argument('-t', '--test', nargs='*',
-                        help='Name of tests to overwrite. Use `-t all` to run all for requested algorithms')
-    args = parser.parse_args()
-
-    tests_without_results = ['test_animation', 'test_plots', 'test_neighbours']
-
-    if args.overwrite:
-        if args.algorithm is None:
-            algorithms = Parameters.algorithm_options
-        else:
-            algorithms = args.algorithm
-
-        if args.test == ['all']:
-            tests = [t for name, t in locals().items() if name.startswith('test_') and
-                     isinstance(t, types.FunctionType) and name not in tests_without_results]
-        else:
-            local_objects = locals()
-            tests = [local_objects[t] for t in args.test if t not in tests_without_results]
-
-        axes_ = get_plots()
-
-        for alg in algorithms:
-            for t in tests:
-                t(axes_, alg, overwrite_results=True)
-    else:
-        parser.print_help()

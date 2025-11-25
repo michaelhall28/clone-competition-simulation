@@ -2,7 +2,7 @@
 A class to set up the hexagonal grids and general functions that apply to both the Moran2D and WF2D simulations.
 """
 import numpy as np
-from clone_competition_simulation.animator import HexAnimator
+from plotting.animator import HexAnimator
 
 
 class GeneralHexagonalGridSim(object):
