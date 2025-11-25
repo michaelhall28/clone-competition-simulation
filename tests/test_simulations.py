@@ -17,8 +17,7 @@ import random
 import seaborn as sns
 import warnings
 from scipy.sparse import SparseEfficiencyWarning
-warnings.simplefilter('ignore',SparseEfficiencyWarning)
-from utilities import (
+from .utilities import (
     compare_to_old_results,
     next_ax,
     INITIAL_CELLS,
@@ -29,6 +28,7 @@ from utilities import (
     WF_ALGS,
     get_plots
 )
+warnings.simplefilter('ignore',SparseEfficiencyWarning)
 
 
 @pytest.fixture(scope='session')
