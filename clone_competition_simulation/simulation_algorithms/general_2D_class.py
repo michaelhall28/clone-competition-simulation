@@ -5,42 +5,11 @@ import numpy as np
 from plotting.animator import HexAnimator
 
 
-class GeneralHexagonalGridSim(object):
+class GeneralHexagonalGridSim:
     """
     Contains functions that can be used with any hexagonal grid.
     Should be inherited along with the GeneralSimClass (or a subclass of it) to create a 2D simulation class.
     """
-
-    def make_base_array_edge_corrected(self):
-        """
-        This creates the map of neighbouring cells for the simulation.
-        Prevents the recalculation of neighbouring cells at every simulation step.
-        Because of the mapping of a hexagonal grid to a 1D-array, the even and odd columns need a different mapping.
-        The periodic boundary conditions are also accounted for.
-        :return: Array with a map of neighbours for every position in the grid.
-        """
-        depth, width = self.grid_shape
-        in_own_neighbourhood = [0] * self.cell_in_own_neighbourhood
-
-        # Define the positions of the neighbours relative to each cell. Will depend on the row and column of the cell.
-        even_col_base = [-width - 1, -width, -width + 1, -1, 1, width] + in_own_neighbourhood
-        odd_col_base = [-width, -1, +1, width - 1, width, width + 1] + in_own_neighbourhood
-        start_row_base = [+width - 1, -width, -width + 1, -1, 1, width] + in_own_neighbourhood
-        end_row_base = [-width, -1, +1, width - 1, width, -width + 1] + in_own_neighbourhood
-
-        # Combine into the positions for an entire row.
-        full_row = [start_row_base] + [odd_col_base, even_col_base] * int((width - 2) / 2) + [end_row_base]
-
-        # Multiply by the number of rows
-        base_array = full_row * int(depth)
-
-        # Add the index of the grid position to the base array of neighbours.
-        # This converts the relative positions to the absolute positions of the neighbours.
-        res = np.array(base_array) + np.arange(width * depth).reshape((width * depth, 1))
-
-        # Run mod to create periodic boundary conditions.
-        res = np.mod(res, (width * depth))
-        return res
 
     def _add_label(self, current_population, non_zero_clones, label_frequency, label, label_fitness, label_gene):
         """
@@ -73,56 +42,6 @@ class GeneralHexagonalGridSim(object):
 
         return current_population, non_zero_clones
 
-    def get_1D_coord(self, row, col):
-        """
-        Convert a 2D grid coordinate into the index for the same cell in the 1D array
-        return int
-        """
-        return row * self.grid_shape[0] + col
-
-    def get_2D_coord(self, idx):
-        """
-        Convert an index from the 1D array to a location on the 2D grid.
-        return tuple: (row, column)
-        """
-        return idx // self.grid_shape[0], idx % self.grid_shape[0]
-
-    def get_neighbour_coords_2D(self, idx, col=None):
-        """
-        Get the neighbouring coordinates in the 2D grid from either the index in the 1D array or the coordinates in the
-        2D grid.
-        return array of ints
-        """
-        if col is not None:
-            # Given the 2D coordinates
-            idx = self.get_1D_coord(idx, col)
-
-        neighbours = self.neighbour_map[idx]
-        return np.array([self.get_2D_coord(n) for n in neighbours])
-
-    def get_neighbour_coords_1D(self, idx, col=None):
-        """
-        Get the neighbouring indices in the 1D array from either the index in the 1D array or the coordinates in the
-        2D grid.
-        return array of ints
-        """
-        if col is not None:
-            # Given the 2D coordinates
-            idx = self.get_1D_coord(idx, col)
-
-        return self.neighbour_map[idx]
-
-    def get_neighbours(self, idx, col=None):
-        """
-        Returns the clone ids of the neighbouring cells.
-        :param idx: The index of the cell in the 1D array, or the row of the cell in the 2D grid if using with col
-        :param col: The column of the cell in the 2D grid. If None, will use idx alone to get the cell from the 1D array
-        :return:
-        """
-        if col is not None:
-            # Given the 2D coordinates
-            idx = self.get_1D_coord(idx, col)
-        return self.grid_array[self.neighbour_map[idx]]
 
     def plot_grid(self, t=None, index_given=False, grid=None, figsize=None, figxsize=5, bitrate=500, dpi=100,
                   equal_aspect=False, ax=None):
@@ -148,3 +67,74 @@ class GeneralHexagonalGridSim(object):
         animator = HexAnimator(self, figxsize=figxsize, figsize=figsize, dpi=dpi, bitrate=bitrate,
                                equal_aspect=equal_aspect)
         animator.plot_grid(grid, ax)
+
+
+def get_neighbour_map(grid_shape: tuple[int, int], cell_in_own_neighbourhood: bool) -> \
+        np.ndarray[tuple[int, int], np.dtype[np.int64]]:
+    """
+    This creates the map of neighbouring cells for the simulation.
+    Prevents the recalculation of neighbouring cells at every simulation step.
+    Because of the mapping of a hexagonal grid to a 1D-array, the even and odd columns need a different mapping.
+    The periodic boundary conditions are also accounted for.
+
+    Args:
+        grid_shape:
+        cell_in_own_neighbourhood:
+
+    Returns:
+        Array with a map of neighbours for every position in the grid.
+
+    """
+    depth, width = grid_shape
+    in_own_neighbourhood = [0] * cell_in_own_neighbourhood
+
+    # Define the positions of the neighbours relative to each cell. Will depend on the row and column of the cell.
+    even_col_base = [-width - 1, -width, -width + 1, -1, 1, width] + in_own_neighbourhood
+    odd_col_base = [-width, -1, +1, width - 1, width, width + 1] + in_own_neighbourhood
+    start_row_base = [+width - 1, -width, -width + 1, -1, 1, width] + in_own_neighbourhood
+    end_row_base = [-width, -1, +1, width - 1, width, -width + 1] + in_own_neighbourhood
+
+    # Combine into the positions for an entire row.
+    full_row = [start_row_base] + [odd_col_base, even_col_base] * int((width - 2) / 2) + [end_row_base]
+
+    # Multiply by the number of rows
+    base_array = full_row * int(depth)
+
+    # Add the index of the grid position to the base array of neighbours.
+    # This converts the relative positions to the absolute positions of the neighbours.
+    res = np.array(base_array) + np.arange(width * depth).reshape((width * depth, 1))
+
+    # Run mod to create periodic boundary conditions.
+    res = np.mod(res, (width * depth))
+    return res
+
+
+def get_1D_coord(row: int, col: int, grid_shape: tuple[int, int]) -> int:
+    """
+    Convert a 2D grid coordinate into the index for the same cell in the 1D array
+    return int
+    """
+    return row * grid_shape[0] + col
+
+
+def get_2D_coord(idx: int, grid_shape: tuple[int, int]) -> tuple[int, int]:
+    """
+    Convert an index from the 1D array to a location on the 2D grid.
+    return tuple: (row, column)
+    """
+    return idx // grid_shape[0], idx % grid_shape[0]
+
+
+def get_neighbour_coords_2D(sim: GeneralHexagonalGridSim, idx: int, col: int | None = None) -> \
+        np.ndarray[tuple[int, int], np.dtype[np.int64]]:
+    """
+    Get the neighbouring coordinates in the 2D grid from either the index in the 1D array or the coordinates in the
+    2D grid.
+    return array of ints
+    """
+    if col is not None:
+        # Given the 2D coordinates
+        idx = get_1D_coord(idx, col, grid_shape=sim.grid_shape)
+
+    neighbours = sim.neighbour_map[idx]
+    return np.array([get_2D_coord(n, sim.grid_shape) for n in neighbours])

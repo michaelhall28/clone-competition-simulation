@@ -4,7 +4,7 @@ A class to run Moran-style simulations on a 2D hexagonal grid
 
 import numpy as np
 from simulation_algorithms.moran import MoranSim
-from simulation_algorithms.general_2D_class import GeneralHexagonalGridSim
+from simulation_algorithms.general_2D_class import GeneralHexagonalGridSim, get_neighbour_map
 
 
 class Moran2D(GeneralHexagonalGridSim, MoranSim):
@@ -15,13 +15,15 @@ class Moran2D(GeneralHexagonalGridSim, MoranSim):
     def __init__(self, parameters):
 
         super().__init__(parameters)
-        self.cell_in_own_neighbourhood = parameters.cell_in_own_neighbourhood
         self.grid = parameters.initial_grid.copy()  # The 2D grid for the simulation.
                                                     # Copy in case same grid used for other simulations.
         self.grid_shape = parameters.grid_shape
         self.grid_array = np.ravel(self.grid)
         self.grid_shape = parameters.grid_shape
-        self.neighbour_map = self.make_base_array_edge_corrected()
+        self.neighbour_map = get_neighbour_map(
+            grid_shape=self.grid_shape,
+            cell_in_own_neighbourhood=parameters.cell_in_own_neighbourhood
+        )
         self.grid_results = [self.grid.copy()]
         self.grid_results = [self.grid.copy()]
 

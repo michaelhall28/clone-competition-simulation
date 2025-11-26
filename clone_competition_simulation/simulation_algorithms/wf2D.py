@@ -3,7 +3,7 @@ A class to run Moran-style simulations on a 2D hexagonal grid
 """
 
 from simulation_algorithms.wf import WrightFisherSim
-from simulation_algorithms.general_2D_class import GeneralHexagonalGridSim
+from simulation_algorithms.general_2D_class import GeneralHexagonalGridSim, get_neighbour_map
 import numpy as np
 
 
@@ -19,11 +19,13 @@ class WrightFisher2D(GeneralHexagonalGridSim, WrightFisherSim):
         :param parameters: a Parameters object containing the settings for the simulation
         """
         super().__init__(parameters)
-        self.cell_in_own_neighbourhood = parameters.cell_in_own_neighbourhood
         self.grid = parameters.initial_grid.copy()
         self.grid_array = np.ravel(self.grid)
         self.grid_shape = parameters.grid_shape
-        self.neighbour_map = self.make_base_array_edge_corrected()
+        self.neighbour_map = get_neighbour_map(
+            grid_shape=self.grid_shape,
+            cell_in_own_neighbourhood=parameters.cell_in_own_neighbourhood
+        )
 
         self.grid_results = [self.grid.copy()]
 
