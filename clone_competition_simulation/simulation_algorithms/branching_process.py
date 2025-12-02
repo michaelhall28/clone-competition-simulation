@@ -47,7 +47,7 @@ class SimpleBranchingProcess(GeneralSimClass):
         # It will not necessarily stop at the simulated time the population limit is reached since clones
         # are simulated one at a time from start to end of the simulation.
         # If at any point the population_limit is reached, the simulation stops.
-        self.population_limit = parameters.population_limit
+        self.population_limit = parameters.population.population_limit
 
         # Set the mutation rate at the start of the simulation.
         self.current_mutation_rate = self.mutation_rates[0][1]
@@ -95,7 +95,7 @@ class SimpleBranchingProcess(GeneralSimClass):
         # Set the correct treatment (will affect the fitness).
         self.current_fitness_multiplier = 1  # The effect of the current treatment
         self.treatment_count = -1
-        if self.parameters.treatment_timings is None:
+        if self.parameters.treatment.treatment_timings is None:
             self.treatment_timings = [0, np.inf]
             self.treatment_effects = [1, 1]  # Always neutral
             self.next_treatment_time = np.inf

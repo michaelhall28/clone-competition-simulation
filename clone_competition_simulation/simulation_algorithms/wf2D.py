@@ -19,12 +19,12 @@ class WrightFisher2D(GeneralHexagonalGridSim, WrightFisherSim):
         :param parameters: a Parameters object containing the settings for the simulation
         """
         super().__init__(parameters)
-        self.grid = parameters.initial_grid.copy()
+        self.grid = parameters.population.initial_grid.copy()
         self.grid_array = np.ravel(self.grid)
-        self.grid_shape = parameters.grid_shape
+        self.grid_shape = parameters.population.grid_shape
         self.neighbour_map = get_neighbour_map(
             grid_shape=self.grid_shape,
-            cell_in_own_neighbourhood=parameters.cell_in_own_neighbourhood
+            cell_in_own_neighbourhood=parameters.population.cell_in_own_neighbourhood
         )
 
         self.grid_results = [self.grid.copy()]

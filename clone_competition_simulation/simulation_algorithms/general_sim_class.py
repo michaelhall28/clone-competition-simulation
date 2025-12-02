@@ -4,7 +4,8 @@ It contains the common function to setup, run and plot results from simulations.
 
 The subclasses have to define the sim_step and any other functions required for the specific algorithm
 """
-
+from typing import TYPE_CHECKING
+from functools import lru_cache
 import numpy as np
 import math
 import pandas as pd
@@ -23,6 +24,9 @@ import warnings
 from scipy.sparse import lil_matrix, SparseEfficiencyWarning
 import gzip
 from treelib import Tree
+from clone_competition_simulation.parameters.algorithm_validation import ALGORITHMS
+if TYPE_CHECKING:
+    from clone_competition_simulation.parameters.parameter_validation import SimulationRunSettings
 warnings.simplefilter('ignore',SparseEfficiencyWarning)
 
 
@@ -31,20 +35,20 @@ class GeneralSimClass(object):
     Common functions for all simulation algorithms.
     Functions for setting up simulations and for plotting results
     """
-    def __init__(self, parameters):
+    def __init__(self, parameters: "SimulationRunSettings"):
         """
 
         :param parameters: A Parameters object.
         """
         # Get attributes from the parameters
-        self.total_pop = parameters.initial_cells
-        self.initial_size_array = parameters.initial_size_array
+        self.total_pop = parameters.population.initial_cells
+        self.initial_size_array = parameters.population.initial_size_array
         self.initial_clones = len(self.initial_size_array)
-        self.mutation_rates = parameters.mutation_rates
-        self.mutation_generator = parameters.mutation_generator
-        self.division_rate = parameters.division_rate
-        self.max_time = parameters.max_time
-        self.times = parameters.times
+        self.mutation_rates = parameters.fitness.mutation_rates
+        self.mutation_generator = parameters.fitness.mutation_generator
+        self.division_rate = parameters.times.division_rate
+        self.max_time = parameters.times.max_time
+        self.times = parameters.times.times
         # To make sure the floating point errors do not lead to incorrect times when searching adjust by small value.
         # Generally not used - finds the closest time instead.
         if len(self.times) > 1:
@@ -52,13 +56,13 @@ class GeneralSimClass(object):
         else:
             min_diff = self.times[0]
         self._search_times = self.times - min_diff/100
-        self.sample_points = parameters.sample_points
+        self.sample_points = parameters.times.sample_points
         self.non_zero_calc = parameters.non_zero_calc
-        self.label_times = parameters.label_times
-        self.label_frequencies = parameters.label_frequencies
-        self.label_values = parameters.label_values
-        self.label_fitness = parameters.label_fitness
-        self.label_genes = parameters.label_genes
+        self.label_times = parameters.labels.label_times
+        self.label_frequencies = parameters.labels.label_frequencies
+        self.label_values = parameters.labels.label_values
+        self.label_fitness = parameters.labels.label_fitness
+        self.label_genes = parameters.labels.label_genes
 
         self.label_times = self._adjust_raw_times(self.label_times)
         if self.label_times is not None:
@@ -69,24 +73,24 @@ class GeneralSimClass(object):
 
         self.current_fitness_multiplier = None  # The effect of the current treatment
         self.treatment_count = -1
-        if parameters.treatment_timings is None:
+        if parameters.treatment.treatment_timings is None:
             # No treatment applied. But this set up means the initial fitness is set correctly then not changed.
             self.treatment_timings = [0, np.inf]
             self.treatment_effects = [1, 1]  # Always neutral
             self.next_treatment_time = 0
             self.treatment_replace_fitness = False
         else:
-            self.treatment_timings = self._adjust_raw_times(parameters.treatment_timings)
+            self.treatment_timings = self._adjust_raw_times(parameters.treatment.treatment_timings)
             self.treatment_timings = list(self.treatment_timings) + [np.inf]
-            self.treatment_effects = parameters.treatment_effects
+            self.treatment_effects = parameters.treatment.treatment_effects
             self.next_treatment_time = self.treatment_timings[0]  # First value will always be zero
-            self.treatment_replace_fitness = parameters.treatment_replace_fitness
+            self.treatment_replace_fitness = parameters.treatment.treatment_replace_fitness
 
         self.parameters = parameters
 
         self.sim_length = len(self.times)
 
-        self.raw_fitness_array = parameters.fitness_array
+        self.raw_fitness_array = parameters.fitness.fitness_array
         self.clones_array = None  # Will store the information about the clones. One row per clone.
         # A clone here will contain exactly the same combination of mutations.
         self.population_array = None  # Will store the clone sizes. One row per clone. One column per sample.
@@ -119,13 +123,13 @@ class GeneralSimClass(object):
         self.tree = Tree()
         self.tree.create_node(str(-1), -1)  # Make a root node that isn't a clone.
         self.trimmed_tree = None  # Used for mutant clone arrays.
-        self._init_arrays(parameters.label_array, parameters.gene_label_array)
+        self._init_arrays(parameters.labels.label_array, parameters.fitness.gene_label_array)
         self.next_mutation_index = self.initial_clones  # Keeping track of how many mutations added
 
         # Details for plotting
-        self.figsize = parameters.figsize
+        self.figsize = parameters.plotting.figsize
         self.descendant_counts = {}
-        self.colourscales = parameters.colourscales
+        self.colourscales = parameters.plotting.colourscales
         self.progress = parameters.progress  # Prints update every n samples
         self.i = 0
         self.colours = None
@@ -181,7 +185,7 @@ class GeneralSimClass(object):
 
         # For each clone, need an raw fitness array as long as the number of genes
         # Needs to be dtype=float, which is the default of np.zeros
-        if self.mutation_generator.multi_gene_array:
+        if self.mutation_generator and self.mutation_generator.multi_gene_array:
             num_cols_genes = len(self.mutation_generator.genes)+1
             if self.mutation_generator.epistatics is not None:
                 num_cols = num_cols_genes + len(self.mutation_generator.epistatics)
@@ -189,12 +193,12 @@ class GeneralSimClass(object):
                 num_cols = num_cols_genes
             blank_fitness_array = np.full((self.total_clone_count, num_cols),
                                           np.nan, dtype=float)
-            blank_fitness_array[:, 0] = self.parameters.default_fitness
+            blank_fitness_array[:, 0] = self.parameters.fitness._wt_fitness
             blank_fitness_array[:self.initial_clones, :num_cols_genes] = self.raw_fitness_array
             self.raw_fitness_array = blank_fitness_array
             # self.clones_array[:, self.fitness_idx] = self._apply_treatment(fitness_arrays=self.raw_fitness_array)
         else:
-            blank_fitness_array = np.full((self.total_clone_count, 1), self.parameters.default_fitness, dtype=float)
+            blank_fitness_array = np.full((self.total_clone_count, 1), self.parameters.fitness._wt_fitness, dtype=float)
             blank_fitness_array[:self.initial_clones, 0] = self.raw_fitness_array
             self.raw_fitness_array = blank_fitness_array
             # self.clones_array[:, self.fitness_idx] = self._apply_treatment(fitness_values=self.raw_fitness_array)
@@ -373,12 +377,12 @@ class GeneralSimClass(object):
         self.current_fitness_multiplier = self.treatment_effects[self.treatment_count]
         self.next_treatment_time = self.treatment_timings[self.treatment_count+1]
         if initial:
-            if self.mutation_generator.multi_gene_array:
+            if self.mutation_generator and self.mutation_generator.multi_gene_array:
                 self.clones_array[:self.initial_clones, self.fitness_idx] = self._apply_treatment(fitness_arrays=self.raw_fitness_array[:self.initial_clones])
             else:
                 self.clones_array[:self.initial_clones, self.fitness_idx] = self._apply_treatment(fitness_values=self.raw_fitness_array[:self.initial_clones])
         else:
-            if self.mutation_generator.multi_gene_array:
+            if self.mutation_generator and self.mutation_generator.multi_gene_array:
                 self.clones_array[:, self.fitness_idx] = self._apply_treatment(fitness_arrays=self.raw_fitness_array)
             else:
                 self.clones_array[:, self.fitness_idx] = self._apply_treatment(fitness_values=self.raw_fitness_array)
@@ -387,7 +391,7 @@ class GeneralSimClass(object):
         # Apply the treatment affects to an array of fitnesses
         # fitness_values is 1D array of overall fitness for each clone
         # fitness_arrays is a 2D array with one row per clone and one column per gene plus a column for wild type
-        if self.mutation_generator.multi_gene_array:
+        if self.mutation_generator and self.mutation_generator.multi_gene_array:
             # Apply the treatment to the genes, then calculate the overall fitness.
             if not self.treatment_replace_fitness:  # Multiply the fitness by the treatment effect
                 adjusted_fitness_array = fitness_arrays * self.current_fitness_multiplier
@@ -699,33 +703,32 @@ class GeneralSimClass(object):
         """
         return list(self.tree.subtree(clone_idx).nodes.keys())  # Might be better way to do this
 
-    def _trim_tree(self):
+    @lru_cache()
+    def _trim_tree(self) -> tuple[Tree, list[int]]:
         # Some clones may have appeared and died between sampling points.
         # These won't affect the results but can slow down the processing
         # Make new tree just from sampled clones.
+        non_zero_sampled_clones = np.unique((self.population_array.nonzero()[0]))
+        sampled_clones_set = set()
+        for clone in non_zero_sampled_clones[::-1]:
+            if clone not in sampled_clones_set:
+                ancestors = self.get_clone_ancestors(clone)
+                sampled_clones_set.update(ancestors)
 
-        if self.trimmed_tree is None:
+        sampled_clones_set.remove(-1)
+        trimmed_tree = Tree()
+        trimmed_tree.create_node("-1", -1)
+        sampled_clones = sorted(sampled_clones_set)
+        for n in sorted(sampled_clones):  # For every clone that is alive at a sampling time
+            for n2 in self.tree.rsearch(n):  # Find the first ancestor that was sampled. This is the new parent.
+                if n != n2 and (n2 == -1 or n2 in sampled_clones_set):
+                    trimmed_tree.create_node(str(n), n, parent=n2)
+                    break
+        return trimmed_tree, sampled_clones
 
-            non_zero_sampled_clones = np.unique((self.population_array.nonzero()[0]))
-            sampled_clones_set = set()
-            for clone in non_zero_sampled_clones[::-1]:
-                if clone not in sampled_clones_set:
-                    ancestors = self.get_clone_ancestors(clone)
-                    sampled_clones_set.update(ancestors)
-
-            sampled_clones_set.remove(-1)
-            self.trimmed_tree = Tree()
-            self.trimmed_tree.create_node("-1", -1)
-            self.sampled_clones = sorted(sampled_clones_set)
-            for n in sorted(self.sampled_clones):  # For every clone that is alive at a sampling time
-                for n2 in self.tree.rsearch(n):  # Find the first ancestor that was sampled. This is the new parent.
-                    if n != n2 and (n2 == -1 or n2 in sampled_clones_set):
-                        self.trimmed_tree.create_node(str(n), n, parent=n2)
-                        break
-
-    def _get_clone_descendants_trimmed(self, clone_idx):
+    def _get_clone_descendants_trimmed(self, trimmed_tree: Tree, clone_idx: int):
         """Must run trim tree first"""
-        return list(self.trimmed_tree.subtree(clone_idx).nodes.keys())
+        return list(trimmed_tree.subtree(str(clone_idx)).nodes.keys())
 
     def track_mutations(self, selection='all'):
         """
@@ -745,8 +748,8 @@ class GeneralSimClass(object):
         elif selection == 'mutations':
             mutant_clones = {k: self.get_clone_descendants(k) for k in self.ns_muts.union(self.s_muts)}
         elif selection == 'non_zero':
-            self._trim_tree()
-            mutant_clones = {k: self._get_clone_descendants_trimmed(k) for k in self.sampled_clones}
+            trimmed_tree, sampled_clones = self._trim_tree()
+            mutant_clones = {k: self._get_clone_descendants_trimmed(trimmed_tree, k) for k in sampled_clones}
         else:
             print("Please select from 'all', 's', 'ns', 'label', 'mutations' or 'non_zero'")
             raise ValueError("Please select from 'all', 's', 'ns', 'label', 'mutations' or 'non_zero'")
@@ -1335,7 +1338,7 @@ class GeneralSimClass(object):
         if self.is_lil:
             self.change_sparse_to_csr()
 
-        if self.parameters.algorithm in self.parameters.spatial_algorithms:
+        if ALGORITHMS[self.parameters.algorithm].two_dimensional:
             if fitness:
                 animator = HexFitnessAnimator(self, cmap=fitness_cmap, min_fitness=min_fitness,
                                               figxsize=figxsize, figsize=figsize, dpi=dpi,

@@ -15,21 +15,19 @@ class Moran2D(GeneralHexagonalGridSim, MoranSim):
     def __init__(self, parameters):
 
         super().__init__(parameters)
-        self.grid = parameters.initial_grid.copy()  # The 2D grid for the simulation.
+        self.grid = parameters.population.initial_grid.copy()  # The 2D grid for the simulation.
                                                     # Copy in case same grid used for other simulations.
-        self.grid_shape = parameters.grid_shape
+        self.grid_shape = parameters.population.grid_shape
         self.grid_array = np.ravel(self.grid)
-        self.grid_shape = parameters.grid_shape
         self.neighbour_map = get_neighbour_map(
             grid_shape=self.grid_shape,
-            cell_in_own_neighbourhood=parameters.cell_in_own_neighbourhood
+            cell_in_own_neighbourhood=parameters.population.cell_in_own_neighbourhood
         )
-        self.grid_results = [self.grid.copy()]
         self.grid_results = [self.grid.copy()]
 
         # Cell death is not dependent on fitness in this version of the Moran algorithm.
         # Can therefore calculate the positions of all the dying cells in advance to save time.
-        self.death_coords = np.random.randint(0, self.total_pop, size=self.parameters.simulation_steps)
+        self.death_coords = np.random.randint(0, self.total_pop, size=self.parameters.times.simulation_steps)
 
     def _sim_step(self, i, current_population, non_zero_clones):
 

@@ -52,9 +52,9 @@ class GeneralSimDiffCells(GeneralSimClass):
         self.asym_div_rate = self.division_rate / self.r * (1 - 2 * self.r)
         self.diff_born_rate = self.total_pop * self.asym_div_rate
 
-        # If strafication occurs on a timescale much faster than the time between sample points,
+        # If stratification occurs on a timescale much faster than the time between sample points,
         # then many of the differentiated cells will be created and stratify before being sampled,
-        # and will have no effect on anything else (aside from using a little time)
+        # and will have no effect on anything else (aside from using a little computation)
         # To speed up simulations, option to simulate differentiated cells only for periods prior to sampling
         # points where the differentiated cells have a non-negligible chance to be sampled.
         self.diff_cell_sim_switches = parameters.diff_cell_sim_switches
