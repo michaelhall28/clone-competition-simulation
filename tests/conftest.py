@@ -1,22 +1,23 @@
 from collections import namedtuple
 import pytest
-from clone_competition_simulation.parameters.parameters import Parameters
-from plotting.colourscales import ColourScale
+from clone_competition_simulation.parameters.algorithm_validation import ALGORITHMS
+from clone_competition_simulation.plotting.colourscales import ColourScale
+from clone_competition_simulation.fitness import MutationGenerator, Gene, UnboundedFitness, NormalDist
 
 
 def pytest_addoption(parser):
-    all_algorithms = Parameters.algorithm_options
+    all_algorithms = ALGORITHMS.keys()
     for alg in all_algorithms:
-        parser.addoption("--{}".format(alg), action="store_true", help="include {} in tests".format(alg))
+        parser.addoption(f"--{alg.name}", action="store_true", help=f"include {alg.name} in tests")
 
 
 def pytest_generate_tests(metafunc):
     if "algorithm" in metafunc.fixturenames:
         algorithms = []
-        all_algorithms = Parameters.algorithm_options
+        all_algorithms = ALGORITHMS.keys()
         for alg in all_algorithms:
-            if metafunc.config.getoption(alg):
-                algorithms.append(alg)
+            if metafunc.config.getoption(alg.name):
+                algorithms.append(alg.name)
         if len(algorithms) == 0:
             # None in particular requested. Run all
             algorithms = all_algorithms
@@ -55,3 +56,10 @@ def cs_label():
             use_fitness=True
         )
     return cs_label
+
+
+@pytest.fixture()
+def mutation_generator():
+    return MutationGenerator(combine_mutations='multiply', multi_gene_array=False,
+                      genes=(Gene('all', NormalDist(0.1), synonymous_proportion=0.5, weight=1),),
+                      mutation_combination_class=UnboundedFitness())

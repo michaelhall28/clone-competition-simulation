@@ -6,7 +6,7 @@ from pydantic import (
     Tag, BeforeValidator
 )
 from .algorithm_validation import AlgorithmClass
-from .validation_utils import assign_config_settings, ValidationBase
+from .validation_utils import assign_config_settings, ValidationBase, FloatParameter, IntParameter, ArrayParameter
 from .population_validation import PopulationValidator
 from loguru import logger
 
@@ -14,15 +14,16 @@ from loguru import logger
 class TimeParameters(BaseModel):
     tag: Literal['Base'] = 'Base'
     model_config = ConfigDict(arbitrary_types_allowed=True)
-    times: np.ndarray | None = None
-    max_time: float | None = None
-    simulation_steps: int | None = None
-    division_rate: float | None = None
-    samples: int | None = None
-    sample_times: np.ndarray | None = None
+    times: ArrayParameter = None
+    max_time: FloatParameter = None
+    simulation_steps: IntParameter = None
+    division_rate: FloatParameter = None
+    samples: IntParameter = None
+    sample_times: ArrayParameter = None
 
 
 class TimeValidator(TimeParameters, ValidationBase):
+    _default_num_samples = 100
     tag: Literal['Full']
     population: PopulationValidator
     config_file_settings: TimeParameters | None = None
@@ -128,7 +129,7 @@ class TimeValidator(TimeParameters, ValidationBase):
             if self.samples is None:
                 self.samples = self.config_file_settings.samples
                 if self.samples is None:
-                    raise ValueError("Number of samples not defined. Define or set other time-related settings")
+                    self.samples = self._default_num_samples
         else:
             self.samples = len(self.times)
 

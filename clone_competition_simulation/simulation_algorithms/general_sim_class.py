@@ -477,6 +477,7 @@ class GeneralSimClass(object):
             new_fitness_array[label_gene] = label_fitness
             new_fitness, self.raw_fitness_array[self.next_mutation_index] \
                 = self.mutation_generator.combine_vectors(np.atleast_2d(new_fitness_array))
+            new_fitness = new_fitness[0]  # We are only adding one clone at a time.
         else:
             new_fitness = old_fitness
 
@@ -728,7 +729,7 @@ class GeneralSimClass(object):
 
     def _get_clone_descendants_trimmed(self, trimmed_tree: Tree, clone_idx: int):
         """Must run trim tree first"""
-        return list(trimmed_tree.subtree(str(clone_idx)).nodes.keys())
+        return list(trimmed_tree.subtree(clone_idx).nodes.keys())
 
     def track_mutations(self, selection='all'):
         """

@@ -53,7 +53,7 @@ class FitnessValidator(FitnessParameters, ValidationBase):
             self.gene_label_array = np.full_like(initial_size_array, self.gene_label_array)
         elif len(self.gene_label_array) != len(initial_size_array):
             raise ValueError('Inconsistent initial_size_array and additional_label_array. Ensure same length.')
-        else:
+        elif not isinstance(initial_size_array, np.ndarray):
             raise TypeError("Unexpected type for gene_label_array. Should be integer or array like")
 
         if self.mutation_generator is not None and self.mutation_generator.multi_gene_array:
@@ -112,6 +112,8 @@ class FitnessValidator(FitnessParameters, ValidationBase):
         if np.any(self.mutation_rates[:, 0] > self.times.max_time):
             raise ValueError('Mutation rates change at point beyond end of simulation.')
 
+        if np.any(self.mutation_rates[:, 1] > 0) and self.mutation_generator is None:
+            raise ValueError('Cannot generate mutations without a mutation generator set.')
 
 
 fitness_validation_type = Annotated[

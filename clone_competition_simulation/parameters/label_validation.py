@@ -6,7 +6,7 @@ from pydantic import (
     Tag,
     BeforeValidator
 )
-from .validation_utils import assign_config_settings, ValidationBase
+from .validation_utils import assign_config_settings, ValidationBase, IntOrArrayParameter, ArrayParameter, FloatOrArrayParameter
 from .population_validation import PopulationValidator
 from .fitness_validation import FitnessValidator
 
@@ -14,12 +14,12 @@ from .fitness_validation import FitnessValidator
 class LabelParameters(BaseModel):
     tag: Literal['Base'] = 'Base'
     model_config = ConfigDict(arbitrary_types_allowed=True)
-    label_array: np.ndarray | int | None = None
-    label_times: np.ndarray | None = None
-    label_frequencies: np.ndarray | None = None
-    label_values: np.ndarray | None = None
-    label_fitness: np.ndarray | None = None
-    label_genes: np.ndarray | None = None
+    label_array: IntOrArrayParameter = None
+    label_times: FloatOrArrayParameter = None
+    label_frequencies: FloatOrArrayParameter= None
+    label_values: FloatOrArrayParameter = None
+    label_fitness: FloatOrArrayParameter = None
+    label_genes: ArrayParameter = None
 
 
 class LabelValidator(LabelParameters, ValidationBase):
@@ -67,7 +67,7 @@ class LabelValidator(LabelParameters, ValidationBase):
                     self.label_genes = [self.label_genes]
                 if any(g > -1 for g in self.label_genes):  # Means applying a mutant to a particular gene
                     # Requires multi-gene setup
-                    if self.fitness.mutation_generator and self.fitness.mutation_generator.multi_gene_array:
+                    if self.fitness.mutation_generator and not self.fitness.mutation_generator.multi_gene_array:
                         raise ValueError('Applying labels with mutations to particular genes requires a '
                                                  'mutation generator with multi_gene_array=True')
 

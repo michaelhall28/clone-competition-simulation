@@ -6,7 +6,7 @@ from pydantic import (
     Tag,
     BeforeValidator
 )
-from .validation_utils import assign_config_settings, ValidationBase
+from .validation_utils import assign_config_settings, ValidationBase, FloatOrArrayParameter
 from .population_validation import PopulationValidator
 from .fitness_validation import FitnessValidator
 from clone_competition_simulation.fitness.fitness_classes import UnboundedFitness
@@ -16,9 +16,9 @@ from loguru import logger
 class TreatmentParameters(BaseModel):
     tag: Literal['Base'] = 'Base'
     model_config = ConfigDict(arbitrary_types_allowed=True)
-    treatment_timings: np.ndarray | None = None
-    treatment_effects: np.ndarray | None = None
-    treatment_replace_fitness: np.ndarray | None = None
+    treatment_timings: FloatOrArrayParameter = None
+    treatment_effects: FloatOrArrayParameter = None
+    treatment_replace_fitness: bool | None = None
 
 
 class TreatmentValidator(TreatmentParameters, ValidationBase):
@@ -30,6 +30,7 @@ class TreatmentValidator(TreatmentParameters, ValidationBase):
     def _validate_model(self):
         self.treatment_timings = self.get_value_from_config("treatment_timings")
         self.treatment_effects = self.get_value_from_config("treatment_effects")
+        self.treatment_replace_fitness = self.get_value_from_config("treatment_replace_fitness")
         if self.treatment_timings is None and self.treatment_effects is None:
             self.treatment_effects = 1
             self.treatment_timings = None
@@ -53,13 +54,13 @@ class TreatmentValidator(TreatmentParameters, ValidationBase):
                 # Insert a neutral treatment at start if initial treatment is not defined.
                 if self.treatment_timings[0] != 0:
                     if self.treatment_replace_fitness:
-                        self.treatment_effects = [np.full(len(self.mutation_generator.genes) + 1, np.nan)] + list(
+                        self.treatment_effects = [np.full(len(mutation_generator.genes) + 1, np.nan)] + list(
                             self.treatment_effects)
                     else:
-                        self.treatment_effects = [np.ones(len(self.mutation_generator.genes)+1)] + list(self.treatment_effects)
-                    self.treatment_timings = [0] + self.treatment_timings
+                        self.treatment_effects = [np.ones(len(mutation_generator.genes)+1)] + list(self.treatment_effects)
+                    self.treatment_timings = np.concatenate(([0], self.treatment_timings))
 
-                if any([len(t) != len(self.mutation_generator.genes)+1 for t in self.treatment_effects]):
+                if any([len(t) != len(mutation_generator.genes)+1 for t in self.treatment_effects]):
                     raise ValueError(
                         'Each treatment effect must have the same length as the number of genes plus 1.')
             else:
@@ -78,7 +79,7 @@ class TreatmentValidator(TreatmentParameters, ValidationBase):
                     else:
                         self.treatment_effects = [np.ones(len(self.population.initial_size_array))] + list(
                             self.treatment_effects)
-                    self.treatment_timings = [0] + self.treatment_timings
+                    self.treatment_timings = np.concatenate(([0], self.treatment_timings))
 
                 if any([len(t) != len(self.population.initial_size_array) for t in self.treatment_effects]):
                     raise ValueError(

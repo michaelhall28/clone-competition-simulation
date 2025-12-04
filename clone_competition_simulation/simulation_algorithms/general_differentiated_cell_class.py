@@ -12,6 +12,7 @@ from simulation_algorithms.general_sim_class import GeneralSimClass
 from simulation_algorithms.moran import MoranSim
 from simulation_algorithms.moran2D import Moran2D
 from simulation_algorithms.branching_process import SimpleBranchingProcess
+from clone_competition_simulation.parameters.algorithm_validation import ALGORITHMS, AlgorithmClass
 from scipy.sparse import lil_matrix
 import numpy as np
 import matplotlib.pyplot as plt
@@ -35,8 +36,8 @@ class GeneralSimDiffCells(GeneralSimClass):
     def __init__(self, parameters):
 
         # r and gamma from the single progenitor model in Clayton et al
-        self.r = parameters.r  # The proportion of symmetric divisions
-        self.gamma = parameters.gamma   # The differentiation rate
+        self.r = parameters.differentiated_cells.r  # The proportion of symmetric divisions
+        self.gamma = parameters.differentiated_cells.gamma   # The differentiation rate
         super().__init__(parameters)
 
         self.diff_cell_population = lil_matrix((self.total_clone_count,
@@ -45,10 +46,10 @@ class GeneralSimDiffCells(GeneralSimClass):
         self.diff_cell_mutant_clone_array = None
         self.basal_cell_mutant_clone_array = None
 
-        if parameters.algorithm in {'Moran', 'Moran2D'}:
+        if ALGORITHMS[parameters.algorithm].algorithm_class == AlgorithmClass.MORAN:
             # This might be marginally wrong if number of simulation steps does not end exactly at desired time point
             # Will be negligible for almost all cases.
-            self.time_step = self.times[-1] / parameters.simulation_steps  # Only used for the Moran style simulations
+            self.time_step = self.times[-1] / parameters.times.simulation_steps  # Only used for the Moran style simulations
         self.asym_div_rate = self.division_rate / self.r * (1 - 2 * self.r)
         self.diff_born_rate = self.total_pop * self.asym_div_rate
 
@@ -57,7 +58,7 @@ class GeneralSimDiffCells(GeneralSimClass):
         # and will have no effect on anything else (aside from using a little computation)
         # To speed up simulations, option to simulate differentiated cells only for periods prior to sampling
         # points where the differentiated cells have a non-negligible chance to be sampled.
-        self.diff_cell_sim_switches = parameters.diff_cell_sim_switches
+        self.diff_cell_sim_switches = parameters.differentiated_cells.diff_cell_sim_switches
         if self.diff_cell_sim_switches[0] == 0:
             # B cells simulated from start
             self.sim_diff_cells = True
