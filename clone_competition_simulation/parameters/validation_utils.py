@@ -1,11 +1,10 @@
-from typing import Annotated, Any, Self
+from typing import Annotated, Self
 
-from pandas.core.computation.ops import isnumeric
-from pydantic import BaseModel, AfterValidator, Field, model_validator, BeforeValidator
+from pydantic import BaseModel, Field, model_validator, BeforeValidator
 import numpy as np
 from numpy.typing import NDArray
 
-from clone_competition_simulation.parameters.algorithm_validation import ALGORITHMS, ValidationCategories
+from .algorithm_validation import Algorithm
 
 
 def assign_config_settings(value, info):
@@ -18,14 +17,13 @@ def assign_config_settings(value, info):
         value.update(info.data)  # Include any already-validated parameters as they might be needed
         config_settings = info.data.get("config_file_settings")
         value['config_file_settings'] = getattr(config_settings, info.field_name, {})
-        value['validation_category'] = ALGORITHMS.get(info.data.get('algorithm'))
         value['tag'] = "Full"
     return value
 
 
 class ValidationBase(BaseModel):
+    algorithm: Algorithm
     validated: bool = False
-    validation_category: ValidationCategories | None = None
 
     @model_validator(mode="after")
     def validate_model(self) -> Self:

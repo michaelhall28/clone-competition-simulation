@@ -1,26 +1,24 @@
 from collections import namedtuple
 import pytest
-from clone_competition_simulation.parameters.algorithm_validation import ALGORITHMS
+from clone_competition_simulation.parameters.algorithm_validation import Algorithm
 from clone_competition_simulation.plotting.colourscales import ColourScale
 from clone_competition_simulation.fitness import MutationGenerator, Gene, UnboundedFitness, NormalDist
 
 
 def pytest_addoption(parser):
-    all_algorithms = ALGORITHMS.keys()
-    for alg in all_algorithms:
+    for alg in Algorithm:
         parser.addoption(f"--{alg.name}", action="store_true", help=f"include {alg.name} in tests")
 
 
 def pytest_generate_tests(metafunc):
     if "algorithm" in metafunc.fixturenames:
         algorithms = []
-        all_algorithms = ALGORITHMS.keys()
-        for alg in all_algorithms:
+        for alg in Algorithm:
             if metafunc.config.getoption(alg.name):
-                algorithms.append(alg.name)
+                algorithms.append(alg)
         if len(algorithms) == 0:
             # None in particular requested. Run all
-            algorithms = all_algorithms
+            algorithms = [a for a in Algorithm]
         metafunc.parametrize("algorithm", algorithms)
 
 

@@ -42,7 +42,7 @@ class PopulationValidator(PopulationParameters, ValidationBase):
         if num_defined == 0:
             raise ValueError('Must provide one of:\n\tinitial_cells\n\tinitial_size_array\n\t'
                              'grid_shape (Moran2D/WF2D only)\n\tinitial_grid (Moran2D/WF2D only)')
-        if self.validation_category.two_dimensional:
+        if self.algorithm.two_dimensional:
             self._setup_2D_initial_population()
         else:
             if self.initial_cells is None and self.initial_size_array is None:

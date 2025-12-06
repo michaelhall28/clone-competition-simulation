@@ -38,10 +38,10 @@ class DifferentiatedCellsValidator(DifferentiatedCellsParameters, ValidationBase
         self.stratification_sim_percentile = self.get_value_from_config("stratification_sim_percentile")
 
         if self.r is not None or self.gamma is not None:
-            if self.validation_category.algorithm_class not in (AlgorithmClass.MORAN, AlgorithmClass.BRANCHING):
+            if self.algorithm.algorithm_class not in (AlgorithmClass.MORAN, AlgorithmClass.BRANCHING):
                 raise ValueError(
                     'Cannot run {} algorithms with B cells. Change algorithm or do not supply r or gamma arguments'.format(
-                        self.validation_category.algorithm_class))
+                        self.algorithm.algorithm_class))
             if self.r is None:
                 raise ValueError(
                     'Must provide both r and gamma to run with B cells. Please provide r')
@@ -71,7 +71,7 @@ class DifferentiatedCellsValidator(DifferentiatedCellsParameters, ValidationBase
         """
         if self.stratification_sim_percentile < 1:
             min_diff_sim_time = expon.ppf(self.stratification_sim_percentile, scale=1 / self.gamma)
-            if self.validation_category.algorithm_class == AlgorithmClass.BRANCHING:
+            if self.algorithm.algorithm_class == AlgorithmClass.BRANCHING:
                 diff_sim_starts = self.times.times - min_diff_sim_time
                 diff_sim_starts[diff_sim_starts < 0] = 0
                 self.diff_cell_sim_switches = self._merge_time_intervals(diff_sim_starts, self.times.times) + [np.inf]

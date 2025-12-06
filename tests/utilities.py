@@ -5,7 +5,7 @@ import types
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(TEST_DIR))
 import numpy as np
-from clone_competition_simulation.parameters.algorithm_validation import ALGORITHMS
+from clone_competition_simulation.parameters.algorithm_validation import Algorithm
 import pandas as pd
 import matplotlib.pyplot as plt
 from fitness.fitness_classes import FixedValue, NormalDist, ExponentialDist, UniformDist, Gene, MutationGenerator, \
@@ -40,7 +40,7 @@ FIGURE_DIMENSIONS = (7, 8)  # Number of rows and columns in output fig
 
 def get_plots():
     axes_dict = dict()
-    for algorithm in ALGORITHMS:
+    for algorithm in Algorithm:
         fig, axs = plt.subplots(*FIGURE_DIMENSIONS, figsize=FIGSIZE, squeeze=False)
         axes_dict[algorithm] = (fig, axs)
     return axes_dict
@@ -72,7 +72,7 @@ def convert_sim_to_standard_form(sim, algorithm):
     standard_results['clone_tree'] = sim.tree.to_dict()
     standard_results['times'] = sim.times
     standard_results['sample_points'] = sim.sample_points
-    if ALGORITHMS[algorithm].two_dimensional:
+    if algorithm.two_dimensional:
         standard_results['grid_results'] = sim.grid_results
 
     if hasattr(sim, "diff_cell_population"):
@@ -85,12 +85,12 @@ def convert_sim_to_standard_form(sim, algorithm):
 
 def store_new_results(algorithm, name, results):
     # Overwrite the old stored results
-    with gzip.open(os.path.join(RESULTS_STORE, algorithm.name, name + '.pickle.gz'), 'wb') as f:
+    with gzip.open(os.path.join(RESULTS_STORE, algorithm.value, name + '.pickle.gz'), 'wb') as f:
         pickle.dump(results, f, protocol=4)
 
 
 def get_stored_results(algorithm, name):
-    with gzip.open(os.path.join(RESULTS_STORE, algorithm.name, name + '.pickle.gz'), 'rb') as f:
+    with gzip.open(os.path.join(RESULTS_STORE, algorithm.value, name + '.pickle.gz'), 'rb') as f:
         old_results = pickle.load(f)
     return old_results
 

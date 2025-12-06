@@ -8,8 +8,7 @@ from clone_competition_simulation.parameters import (
     DifferentiatedCellsParameters,
     PlottingParameters,
     LabelParameters,
-    ALGORITHMS,
-    Algorithm,
+    Algorithm
 )
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -63,7 +62,7 @@ def test_simple(axes, algorithm, overwrite_results=False):
 
 
 def test_multiple_clones(axes, algorithm, overwrite_results=False):
-    if ALGORITHMS[algorithm].two_dimensional:
+    if algorithm.two_dimensional:
         initial_size_array = None
         initial_grid = np.tile([0, 1, 2], 60 * 20).reshape(60, 60)
     else:
@@ -351,7 +350,7 @@ def test_mutations(axes, algorithm, overwrite_results=False):
 
 
 def test_neutral_hallmarks(axes, algorithm, overwrite_results=False):
-    if ALGORITHMS[algorithm].two_dimensional:
+    if algorithm.two_dimensional:
         initial_size_array = None
         initial_grid = np.arange(100 ** 2, dtype=int).reshape(100, 100)
     else:
@@ -388,7 +387,7 @@ def test_neutral_hallmarks(axes, algorithm, overwrite_results=False):
 
 def test_imbalance(axes, algorithm, overwrite_results=False):
     # Want large population so almost deterministic
-    if ALGORITHMS[algorithm].two_dimensional:
+    if algorithm.two_dimensional:
         initial_size_array = None
         initial_grid = np.zeros((250, 250), dtype=int)
         initial_grid[range(250), range(250)] = 1
@@ -422,8 +421,8 @@ def test_imbalance(axes, algorithm, overwrite_results=False):
 
 def test_b_cells(axes, algorithm, mutation_generator, overwrite_results=False):
     ax = next_ax(axes, algorithm)
-    if not ALGORITHMS[algorithm].algorithm_class == AlgorithmClass.WF:
-        if ALGORITHMS[algorithm].two_dimensional:
+    if not algorithm.algorithm_class == AlgorithmClass.WF:
+        if algorithm.two_dimensional:
             initial_size_array = None
             initial_grid = np.arange(30 ** 2).reshape((30, 30))
         else:
@@ -469,7 +468,7 @@ def test_treatment_with_fixed_clones(axes, algorithm, overwrite_results=False):
     timings = [3, 7]
     treatment_arrays = [[1, 0.5, 1.3], [0.4, 1.5, 0.7]]
 
-    if ALGORITHMS[algorithm].two_dimensional:
+    if algorithm.two_dimensional:
         initial_size_array = None
         initial_grid = np.tile([0, 1, 2], 60 * 20).reshape(60, 60)
     else:
@@ -498,7 +497,7 @@ def test_treatment_replace_with_fixed_clones(axes, algorithm, overwrite_results=
     timings = [3, 7]
     treatment_arrays = [[1, 1, 1], [0.4, 1.5, 0.7]]
 
-    if ALGORITHMS[algorithm].two_dimensional:
+    if algorithm.two_dimensional:
         initial_size_array = None
         initial_grid = np.tile([0, 1, 2], 60 * 20).reshape(60, 60)
     else:
@@ -528,7 +527,7 @@ def test_treatment_with_multiple_genes(axes, algorithm, overwrite_results=False)
     timings = [3, 7]
     treatment_arrays = [[1, 0.5, 1.3], [0.4, 1.25, 0.7]]
 
-    if ALGORITHMS[algorithm].two_dimensional:
+    if algorithm.two_dimensional:
         initial_size_array = None
         initial_grid = np.tile([0, 1], 50 * 25).reshape(50, 50)
     else:
@@ -581,7 +580,7 @@ def test_treatment_replace_with_multiple_genes(axes, algorithm, overwrite_result
     timings = [3, 7]
     treatment_arrays = [[1, 1, 1], [0.4, 1.25, 0.7]]
 
-    if ALGORITHMS[algorithm].two_dimensional:
+    if algorithm.two_dimensional:
         initial_size_array = None
         initial_grid = np.tile([0, 1], 50 * 25).reshape(50, 50)
     else:
@@ -639,7 +638,7 @@ def test_labels(cs_label, axes, algorithm, overwrite_results=False):
                                          synonymous_proportion=0.5)],
                                 )
 
-    if ALGORITHMS[algorithm].two_dimensional:
+    if algorithm.two_dimensional:
         initial_size_array = None
         initial_grid = np.tile([0, 1, 2, 3], 40 * 10).reshape(40, 40)
     else:
@@ -744,7 +743,7 @@ def test_incomplete_moments(axes, algorithm, overwrite_results=False):
 def test_random_sampling(axes, algorithm, overwrite_results=False):
     # Biopsies and sequencing for the 2D algorithms
     ax = next_ax(axes, algorithm)
-    if ALGORITHMS[algorithm].two_dimensional:
+    if algorithm.two_dimensional:
         non_neut_genes = [Gene('driver1', mutation_distribution=NormalDist(mean=1.3, var=0.1),
                                synonymous_proportion=0.8),
                           Gene('driver2', mutation_distribution=NormalDist(mean=2, var=0.1),
@@ -831,7 +830,7 @@ def test_post_processing(axes, algorithm, overwrite_results=False):
     mut_gen = MutationGenerator(multi_gene_array=True, genes=non_neut_genes, combine_array='max',
                                 combine_mutations='max')
 
-    if ALGORITHMS[algorithm].two_dimensional:
+    if algorithm.two_dimensional:
         initial_size_array = None
         initial_grid = np.tile([0, 1, 1, 2, 2, 2, 3, 3, 3, 3], 100).reshape(20, 50)
     else:
@@ -897,7 +896,7 @@ def test_post_processing_non_mutation(axes, algorithm, overwrite_results=False):
     # Generate as many of the post processing results as possible, like the mutant clone array etc.
     # Run all plotting functions
 
-    if ALGORITHMS[algorithm].two_dimensional:
+    if algorithm.two_dimensional:
         initial_size_array = None
         initial_grid = np.tile([0, 1, 1, 2, 2, 2, 3, 3, 3, 3], 100).reshape(20, 50)
     else:
@@ -946,7 +945,7 @@ def test_post_processing_non_mutation(axes, algorithm, overwrite_results=False):
 
 
 def test_irregular_sampling(axes, algorithm, overwrite_results=False):
-    if ALGORITHMS[algorithm].two_dimensional:
+    if algorithm.two_dimensional:
         initial_size_array = None
         initial_grid = np.arange(100 ** 2, dtype=int).reshape(100, 100)
     else:
@@ -969,8 +968,8 @@ def test_irregular_sampling(axes, algorithm, overwrite_results=False):
 
 def test_partially_simulating_B_cells(axes, algorithm, overwrite_results=False):
     ax = next_ax(axes, algorithm)
-    if ALGORITHMS[algorithm].algorithm_class != AlgorithmClass.WF:
-        if ALGORITHMS[algorithm].two_dimensional:
+    if algorithm.algorithm_class != AlgorithmClass.WF:
+        if algorithm.two_dimensional:
             initial_size_array = None
             initial_grid = np.arange(30 ** 2).reshape((30, 30))
         else:
@@ -1026,14 +1025,14 @@ def test_too_many_sample_points(axes, algorithm, overwrite_results=False):
     # Need to reduce number of points.
     ax = next_ax(axes, algorithm)
     ax.set_title('Reduce samples')
-    if ALGORITHMS[algorithm].algorithm_class == AlgorithmClass.WF:
+    if algorithm.algorithm_class == AlgorithmClass.WF:
         div_rate = 0.1
     else:
         div_rate = 0.001
 
     TIMES = [1.5, 3.0, 6.0, 12.0, 24.0, 52.0, 78.0]
     grid_edge = 20
-    if ALGORITHMS[algorithm].two_dimensional:
+    if algorithm.two_dimensional:
         initial_size_array = None
         initial_grid = np.arange(grid_edge ** 2).reshape((grid_edge, grid_edge))
     else:
@@ -1088,7 +1087,7 @@ def test_induction_of_label_and_mutant(axes, algorithm, overwrite_results=False)
         use_fitness=True
     )
 
-    if ALGORITHMS[algorithm].two_dimensional:
+    if algorithm.two_dimensional:
         initial_size_array = None
         initial_grid = np.arange(30 ** 2).reshape((30, 30))
     else:
@@ -1152,7 +1151,7 @@ def test_induction_of_label_and_mutant(axes, algorithm, overwrite_results=False)
 
 def test_seven_cell_neighbourhood(cs_label, axes, algorithm, overwrite_results=False):
     ax = next_ax(axes, algorithm)
-    if ALGORITHMS[algorithm].two_dimensional:
+    if algorithm.two_dimensional:
         np.random.seed(0)
         initial_grid = np.arange(30 ** 2).reshape((30, 30))
         p = SimulationRunSettings(
@@ -1192,7 +1191,7 @@ def test_animation(algorithm):
                            synonymous_proportion=0.85)]
     mut_gen = MutationGenerator(multi_gene_array=False, genes=non_neut_genes, combine_mutations='add')
 
-    if ALGORITHMS[algorithm].two_dimensional:
+    if algorithm.two_dimensional:
         initial_size_array = None
         initial_grid = np.tile([0, 1, 2, 3], 10).reshape(4, 10)
         grid_size = None

@@ -1,5 +1,5 @@
 from .parameter_validation import SimulationRunSettings
-from .algorithm_validation import ALGORITHMS, Algorithm
+from .algorithm_validation import Algorithm
 from .differentiated_cells_validation import DifferentiatedCellsParameters
 from .fitness_validation import FitnessParameters
 from .label_validation import LabelParameters

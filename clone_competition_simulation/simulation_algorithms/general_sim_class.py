@@ -24,7 +24,6 @@ import warnings
 from scipy.sparse import lil_matrix, SparseEfficiencyWarning
 import gzip
 from treelib import Tree
-from clone_competition_simulation.parameters.algorithm_validation import ALGORITHMS
 if TYPE_CHECKING:
     from clone_competition_simulation.parameters.parameter_validation import SimulationRunSettings
 warnings.simplefilter('ignore',SparseEfficiencyWarning)
@@ -1339,7 +1338,7 @@ class GeneralSimClass(object):
         if self.is_lil:
             self.change_sparse_to_csr()
 
-        if ALGORITHMS[self.parameters.algorithm].two_dimensional:
+        if self.parameters.algorithm.two_dimensional:
             if fitness:
                 animator = HexFitnessAnimator(self, cmap=fitness_cmap, min_fitness=min_fitness,
                                               figxsize=figxsize, figsize=figsize, dpi=dpi,

@@ -1,14 +1,4 @@
 from enum import Enum, auto
-from pydantic import ValidationError, BaseModel
-
-
-class Algorithm(str, Enum):
-    WF = auto()
-    WF2D = auto()
-    MORAN = auto()
-    MORAN2D = auto()
-    BRANCHING = auto()
-
 
 class AlgorithmClass(str, Enum):
     WF = auto()
@@ -16,15 +6,20 @@ class AlgorithmClass(str, Enum):
     BRANCHING = auto()
 
 
-class ValidationCategories(BaseModel):
-    two_dimensional: bool
-    algorithm_class: AlgorithmClass
+class Algorithm(Enum):
+    WF = "WF", False, AlgorithmClass.WF
+    WF2D = "WF2D", True, AlgorithmClass.WF
+    MORAN = "Moran", False, AlgorithmClass.MORAN
+    MORAN2D = "Moran2D", True, AlgorithmClass.MORAN
+    BRANCHING = "Branching", False, AlgorithmClass.BRANCHING
+
+    def __new__(cls, value, two_dimensional: bool, algorithm_class: AlgorithmClass):
+        obj = object.__new__(cls)
+        obj._value_ = value
+        obj.two_dimensional = two_dimensional
+        obj.algorithm_class = algorithm_class
+        return obj
 
 
-ALGORITHMS = {
-    Algorithm.WF: ValidationCategories(two_dimensional=False, algorithm_class=AlgorithmClass.WF),
-    Algorithm.WF2D: ValidationCategories(two_dimensional=True, algorithm_class=AlgorithmClass.WF),
-    Algorithm.MORAN: ValidationCategories(two_dimensional=False, algorithm_class=AlgorithmClass.MORAN),
-    Algorithm.MORAN2D: ValidationCategories(two_dimensional=True, algorithm_class=AlgorithmClass.MORAN),
-    Algorithm.BRANCHING: ValidationCategories(two_dimensional=False, algorithm_class=AlgorithmClass.BRANCHING)
-}
+if __name__ == '__main__':
+    print(Algorithm.MORAN.value)

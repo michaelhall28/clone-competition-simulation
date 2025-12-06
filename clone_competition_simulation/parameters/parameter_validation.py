@@ -24,7 +24,7 @@ from clone_competition_simulation.parameters.label_validation import label_valid
 from clone_competition_simulation.parameters.treatment_validation import treatment_validation_type
 from clone_competition_simulation.parameters.differentiated_cells_validation import differentiated_cells_validation_type
 from clone_competition_simulation.parameters.plotting_validation import plotting_validation_type
-from clone_competition_simulation.parameters.algorithm_validation import Algorithm, ALGORITHMS
+from clone_competition_simulation.parameters.algorithm_validation import Algorithm
 from clone_competition_simulation.parameters.validation_utils import ValidationModelField, AlwaysValidateNoneField
 
 
@@ -82,7 +82,7 @@ class SimulationRunSettings(RunSettingsBase, ConfigFileSettings):
         Returns:
 
         """
-        return not ALGORITHMS[self.algorithm].two_dimensional
+        return not self.algorithm.two_dimensional
 
     def _select_simulator_class(self):
         sim_class = None

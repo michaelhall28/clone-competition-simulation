@@ -43,7 +43,7 @@ class TimeValidator(TimeParameters, ValidationBase):
                 self.max_time = self.times[-1]
 
         if self.simulation_steps is not None:
-            if self.validation_category.algorithm_class == AlgorithmClass.BRANCHING:
+            if self.algorithm.algorithm_class == AlgorithmClass.BRANCHING:
                 raise ValueError(
                     'Cannot specify number of simulations steps for the branching process algorithm.\n'
                     'Please provide a max_time and division_rate instead')
@@ -88,7 +88,7 @@ class TimeValidator(TimeParameters, ValidationBase):
         self._get_sample_times()
 
     def _calculate_simulation_steps(self):
-        alg_class = self.validation_category.algorithm_class
+        alg_class = self.algorithm.algorithm_class
         if alg_class == AlgorithmClass.MORAN:
             sim_steps = round(self.max_time * self.division_rate * self.population.initial_cells)
         elif alg_class == AlgorithmClass.WF:
@@ -102,7 +102,7 @@ class TimeValidator(TimeParameters, ValidationBase):
         return sim_steps
 
     def _get_max_time(self):
-        alg_class = self.validation_category.algorithm_class
+        alg_class = self.algorithm.algorithm_class
         if alg_class == AlgorithmClass.MORAN:
             max_time = self.simulation_steps/self.division_rate/self.population.initial_cells
         elif alg_class == AlgorithmClass.WF:
@@ -114,7 +114,7 @@ class TimeValidator(TimeParameters, ValidationBase):
         return max_time
 
     def _get_division_rate(self):
-        alg_class = self.validation_category.algorithm_class
+        alg_class = self.algorithm.algorithm_class
         if alg_class == AlgorithmClass.MORAN:
             div_rate = self.simulation_steps/self.max_time/self.population.initial_cells
         elif alg_class == AlgorithmClass.WF:
@@ -144,14 +144,14 @@ class TimeValidator(TimeParameters, ValidationBase):
             # The time points at each sample.
             self.times = np.linspace(0, self.max_time, self.samples + 1)
 
-        if self.validation_category.algorithm_class != AlgorithmClass.BRANCHING:
+        if self.algorithm.algorithm_class != AlgorithmClass.BRANCHING:
             steps_per_unit_time = self.simulation_steps / self.max_time
             # Which points to take a sample
             sample_points_float = self.times * steps_per_unit_time
             self.sample_points = np.around(sample_points_float).astype(int)
             # Can sometimes have duplicates for close time points and slow division rate
             self.sample_points = np.unique(self.sample_points)
-            if self.validation_category.algorithm_class == AlgorithmClass.MORAN:
+            if self.algorithm.algorithm_class == AlgorithmClass.MORAN:
                 rounded_times = self.sample_points / self.division_rate / self.population.initial_cells
             else:
                 rounded_times = self.sample_points / self.division_rate

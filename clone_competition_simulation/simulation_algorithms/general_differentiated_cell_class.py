@@ -12,7 +12,7 @@ from simulation_algorithms.general_sim_class import GeneralSimClass
 from simulation_algorithms.moran import MoranSim
 from simulation_algorithms.moran2D import Moran2D
 from simulation_algorithms.branching_process import SimpleBranchingProcess
-from clone_competition_simulation.parameters.algorithm_validation import ALGORITHMS, AlgorithmClass
+from clone_competition_simulation.parameters.algorithm_validation import AlgorithmClass
 from scipy.sparse import lil_matrix
 import numpy as np
 import matplotlib.pyplot as plt
@@ -46,7 +46,7 @@ class GeneralSimDiffCells(GeneralSimClass):
         self.diff_cell_mutant_clone_array = None
         self.basal_cell_mutant_clone_array = None
 
-        if ALGORITHMS[parameters.algorithm].algorithm_class == AlgorithmClass.MORAN:
+        if parameters.algorithm.algorithm_class == AlgorithmClass.MORAN:
             # This might be marginally wrong if number of simulation steps does not end exactly at desired time point
             # Will be negligible for almost all cases.
             self.time_step = self.times[-1] / parameters.times.simulation_steps  # Only used for the Moran style simulations
