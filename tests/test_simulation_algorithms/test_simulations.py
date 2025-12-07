@@ -101,13 +101,13 @@ def test_mutations(axes, algorithm, overwrite_results=False):
         norm_mean = 1.1
     else:
         norm_mean = 4.5
-    genes = [Gene('neutral', mutation_distribution=FixedValue(1), synonymous_proportion=0.5),
-             Gene('mild_driver', mutation_distribution=FixedValue(1.1), synonymous_proportion=0.5),
-             Gene('random_driver', mutation_distribution=NormalDist(mean=norm_mean, var=0.05),
+    genes = [Gene(name='neutral', mutation_distribution=FixedValue(1), synonymous_proportion=0.5),
+             Gene(name='mild_driver', mutation_distribution=FixedValue(1.1), synonymous_proportion=0.5),
+             Gene(name='random_driver', mutation_distribution=NormalDist(mean=norm_mean, var=0.05),
                   synonymous_proportion=0.8),
-             Gene('uniform_driver', mutation_distribution=UniformDist(low=0.7, high=1.2),
+             Gene(name='uniform_driver', mutation_distribution=UniformDist(low=0.7, high=1.2),
                   synonymous_proportion=0.2),
-             Gene('exp_driver', mutation_distribution=ExponentialDist(mean=1.3, offset=0.8),
+             Gene(name='exp_driver', mutation_distribution=ExponentialDist(mean=1.3, offset=0.8),
                   synonymous_proportion=0.2)]
     mut_gen1 = MutationGenerator(multi_gene_array=False, genes=genes, combine_mutations='add')
 
@@ -310,8 +310,8 @@ def test_mutations(axes, algorithm, overwrite_results=False):
         h = 1.5
     else:
         h = 5
-    genes = [Gene('neutral', mutation_distribution=FixedValue(1), synonymous_proportion=0.5),
-             Gene('uniform_driver', mutation_distribution=UniformDist(low=0.95, high=h),
+    genes = [Gene(name='neutral', mutation_distribution=FixedValue(1), synonymous_proportion=0.5),
+             Gene(name='uniform_driver', mutation_distribution=UniformDist(low=0.95, high=h),
                   synonymous_proportion=0.2)]
 
     mut_gen = MutationGenerator(multi_gene_array=False, genes=genes, combine_array='multiply',
@@ -536,8 +536,8 @@ def test_treatment_with_multiple_genes(axes, algorithm, overwrite_results=False)
 
     mut_gen = MutationGenerator(multi_gene_array=True,
                                 genes=[
-                                    Gene('neutral', mutation_distribution=FixedValue(1), synonymous_proportion=0.5),
-                                    Gene('driver', mutation_distribution=FixedValue(1.1),
+                                    Gene(name='neutral', mutation_distribution=FixedValue(1), synonymous_proportion=0.5),
+                                    Gene(name='driver', mutation_distribution=FixedValue(1.1),
                                          synonymous_proportion=0.5)],
                                 )
 
@@ -589,8 +589,8 @@ def test_treatment_replace_with_multiple_genes(axes, algorithm, overwrite_result
 
     mut_gen = MutationGenerator(multi_gene_array=True,
                                 genes=[
-                                    Gene('neutral', mutation_distribution=FixedValue(1), synonymous_proportion=0.5),
-                                    Gene('driver', mutation_distribution=FixedValue(1.1),
+                                    Gene(name='neutral', mutation_distribution=FixedValue(1), synonymous_proportion=0.5),
+                                    Gene(name='driver', mutation_distribution=FixedValue(1.1),
                                          synonymous_proportion=0.5)],
                                 )
 
@@ -633,8 +633,8 @@ def test_treatment_replace_with_multiple_genes(axes, algorithm, overwrite_result
 def test_labels(cs_label, axes, algorithm, overwrite_results=False):
     mut_gen = MutationGenerator(multi_gene_array=True,
                                 genes=[
-                                    Gene('neutral', mutation_distribution=FixedValue(1), synonymous_proportion=0.5),
-                                    Gene('driver', mutation_distribution=FixedValue(1.1),
+                                    Gene(name='neutral', mutation_distribution=FixedValue(1), synonymous_proportion=0.5),
+                                    Gene(name='driver', mutation_distribution=FixedValue(1.1),
                                          synonymous_proportion=0.5)],
                                 )
 
@@ -688,10 +688,10 @@ def test_incomplete_moments(axes, algorithm, overwrite_results=False):
     initial_cells = 10000
     max_time = 10
 
-    neut_genes = [Gene('neutral', mutation_distribution=FixedValue(1), synonymous_proportion=0.5)]
+    neut_genes = [Gene(name='neutral', mutation_distribution=FixedValue(1), synonymous_proportion=0.5)]
     non_neut_genes = [
-        Gene('neutral', mutation_distribution=FixedValue(1), synonymous_proportion=0.5),
-        Gene('mild_driver', mutation_distribution=NormalDist(mean=1.2, var=0.02),
+        Gene(name='neutral', mutation_distribution=FixedValue(1), synonymous_proportion=0.5),
+        Gene(name='mild_driver', mutation_distribution=NormalDist(mean=1.2, var=0.02),
              synonymous_proportion=0.6)]
     mut_gen_neut = MutationGenerator(multi_gene_array=False, genes=neut_genes, combine_mutations='add')
     mut_gen_non_neut = MutationGenerator(multi_gene_array=False, genes=non_neut_genes, combine_mutations='add')
@@ -744,9 +744,9 @@ def test_random_sampling(axes, algorithm, overwrite_results=False):
     # Biopsies and sequencing for the 2D algorithms
     ax = next_ax(axes, algorithm)
     if algorithm.two_dimensional:
-        non_neut_genes = [Gene('driver1', mutation_distribution=NormalDist(mean=1.3, var=0.1),
+        non_neut_genes = [Gene(name='driver1', mutation_distribution=NormalDist(mean=1.3, var=0.1),
                                synonymous_proportion=0.8),
-                          Gene('driver2', mutation_distribution=NormalDist(mean=2, var=0.1),
+                          Gene(name='driver2', mutation_distribution=NormalDist(mean=2, var=0.1),
                                synonymous_proportion=0.8)]
         mut_gen = MutationGenerator(multi_gene_array=False, genes=non_neut_genes,
                                     combine_mutations='max')
@@ -823,9 +823,9 @@ def test_post_processing(axes, algorithm, overwrite_results=False):
     # Generate as many of the post processing results as possible, like the mutant clone array etc.
     # Run all plotting functions
     # Not big enough simulation to compare results visually. Just checks things can run.
-    non_neut_genes = [Gene('driver1', mutation_distribution=FixedValue(1.3),
+    non_neut_genes = [Gene(name='driver1', mutation_distribution=FixedValue(1.3),
                            synonymous_proportion=0.8),
-                      Gene('driver2', mutation_distribution=FixedValue(1.1),
+                      Gene(name='driver2', mutation_distribution=FixedValue(1.1),
                            synonymous_proportion=0.8)]
     mut_gen = MutationGenerator(multi_gene_array=True, genes=non_neut_genes, combine_array='max',
                                 combine_mutations='max')
@@ -1073,8 +1073,8 @@ def test_too_many_sample_points(axes, algorithm, overwrite_results=False):
 
 
 def test_induction_of_label_and_mutant(axes, algorithm, overwrite_results=False):
-    genes = [Gene('Neutral', mutation_distribution=FixedValue(1), synonymous_proportion=0.5),
-             Gene('Notch1', mutation_distribution=FixedValue(4), synonymous_proportion=0)]
+    genes = [Gene(name='Neutral', mutation_distribution=FixedValue(1), synonymous_proportion=0.5),
+             Gene(name='Notch1', mutation_distribution=FixedValue(4), synonymous_proportion=0)]
     mutation_generator = MutationGenerator(genes=genes, combine_mutations='replace', multi_gene_array=True)
     Key1 = namedtuple('Key1', ['label'])
     green_clones = ColourScale(
@@ -1187,7 +1187,7 @@ def test_animation(algorithm):
     # Make animation
     #  just checking it runs. Can be compared visually or using the output files
     # Have to do after all other plots as this will reset the figures
-    non_neut_genes = [Gene('mild_driver', mutation_distribution=NormalDist(mean=1.1, var=0.1),
+    non_neut_genes = [Gene(name='mild_driver', mutation_distribution=NormalDist(mean=1.1, var=0.1),
                            synonymous_proportion=0.85)]
     mut_gen = MutationGenerator(multi_gene_array=False, genes=non_neut_genes, combine_mutations='add')
 

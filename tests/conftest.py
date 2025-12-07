@@ -77,6 +77,10 @@ def cs_label():
 
 @pytest.fixture()
 def mutation_generator():
-    return MutationGenerator(combine_mutations='multiply', multi_gene_array=False,
-                      genes=(Gene('all', NormalDist(0.1), synonymous_proportion=0.5, weight=1),),
-                      mutation_combination_class=UnboundedFitness())
+    return MutationGenerator(
+        combine_mutations='multiply',
+        multi_gene_array=False,
+        genes=(Gene(name='all', mutation_distribution=NormalDist(0.1),
+                    synonymous_proportion=0.5, weight=1),),
+        mutation_combination_class=UnboundedFitness()
+    )
