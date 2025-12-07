@@ -1,8 +1,27 @@
 from collections import namedtuple
+
 import pytest
+from numpy.random import RandomState
+
+from clone_competition_simulation.fitness import MutationGenerator, Gene, UnboundedFitness, NormalDist
 from clone_competition_simulation.parameters.algorithm_validation import Algorithm
 from clone_competition_simulation.plotting.colourscales import ColourScale
-from clone_competition_simulation.fitness import MutationGenerator, Gene, UnboundedFitness, NormalDist
+
+
+@pytest.fixture(autouse=True)
+def mock_random(monkeypatch: pytest.MonkeyPatch):
+    """
+    np.random.RandomState should be consistent across numpy versions,
+    whereas the normal np.random functions might not be.
+
+    Args:
+        monkeypatch:
+
+    Returns:
+
+    """
+    rng = RandomState()
+    monkeypatch.setattr('numpy.random', rng)
 
 
 def pytest_addoption(parser):
