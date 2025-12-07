@@ -2,55 +2,70 @@
 Functions/classes to randomly draw and/or calculate the fitness of clones
 """
 import math
-import numpy as np
+from enum import Enum
+from typing import Protocol, TypeVar, runtime_checkable, Callable, Self
+
 import matplotlib.pyplot as plt
-import csv
+import numpy as np
+from loguru import logger
+from numpy.typing import NDArray
+from pydantic import BaseModel, field_validator, ConfigDict, Field, model_validator
 
 
 # Probability distributions for drawing the fitness of new mutations.
 # Set up so can be called like functions without argument, but can print the attributes
-class NormalDist(object):
+
+@runtime_checkable  # So it can be used in Pydantic fields
+class DistributionProtocol(Protocol):
+
+    def __call__(self) -> float:
+        ...
+
+    def get_mean(self) -> float:
+        ...
+
+
+class NormalDist:
     """
     A wrapper for numpy.random.normal
     Will draw again if the value is below zero.
     """
-    def __init__(self, var, mean=1.):
+    def __init__(self, var: float, mean: float=1.):
         self.var = var
         self.mean = mean
 
     def __str__(self):
         return 'Normal distribution(mean {0}, variance {1})'.format(self.mean, self.var)
 
-    def __call__(self):
+    def __call__(self) -> float:
         g = np.random.normal(self.mean, self.var)
         if g < 0:
-            # print('growth rate below zero! Redrawing a new rate')
             return self()
         return g
 
-    def get_mean(self):
+    def get_mean(self) -> float:
         return self.mean
 
 
-class FixedValue(object):
+class FixedValue:
     """
     Just returns the fixed value given.
     This is a wrapper for that number so that it functions like the random distributions.
     """
-    def __init__(self, value):
+    def __init__(self, value: float):
         self.mean = value
 
     def __str__(self):
         return 'Fixed value {0}'.format(self.mean)
 
-    def __call__(self):
+    def __call__(self) -> float:
         return self.mean
 
-    def get_mean(self):
+    def get_mean(self) -> float:
         return self.mean
 
 
-class ExponentialDist(object):
+class ExponentialDist:
     """
     An exponential distribution.
     A wrapper for numpy.random.exponential
@@ -62,45 +77,58 @@ class ExponentialDist(object):
 
     mean must be greater than the offset.
     """
-    def __init__(self, mean, offset=1):
+    def __init__(self, mean: float, offset: float=1):
         if mean <= offset:
-            raise ValueError('mean must be less than offset')
+            raise ValueError('mean must be greater than offset')
         self.mean = mean
         self.offset = offset  # Offset of 1 means the mutations will start from neutral.
 
     def __str__(self):
         return 'Exponential distribution(mean {0}, offset {1})'.format(self.mean, self.offset)
 
-    def __call__(self):
+    def __call__(self) -> float:
         g = self.offset + np.random.exponential(self.mean - self.offset)
         return g
 
-    def get_mean(self):
+    def get_mean(self) -> float:
         return self.mean
 
 
-class UniformDist(object):
+class UniformDist:
     """
     A uniform distribution between low and high
     A wrapper for numpy.random.uniform
     """
-    def __init__(self, low, high):
+    def __init__(self, low: float, high: float):
+        if low >= high:
+            raise ValueError('high bound must be higher than the low bound')
         self.low = low
         self.high = high
 
     def __str__(self):
         return 'Uniform distribution(low {0}, high {1})'.format(self.low, self.high)
 
-    def __call__(self):
+    def __call__(self) -> float:
         g = np.random.uniform(self.low, self.high)
         return g
 
-    def get_mean(self):
+    def get_mean(self) -> float:
         return (self.high + self.low)/2
 
 
 ##################
 # Classes for diminishing returns or other transformations of the raw fitness
+T = TypeVar('T', bound=float | NDArray[float])
+
+@runtime_checkable  # So it can be used in Pydantic fields
+class FitnessTransform(Protocol):
+    def fitness(self, x: T) -> T:
+        ...
+
+    def inverse(self, y: T) -> T:
+        ...
+
+
 class UnboundedFitness:
     """
     No bound or transformation on the fitness.
@@ -109,11 +137,11 @@ class UnboundedFitness:
     def __str__(self):
         return 'UnboundedFitness'
 
-    def fitness(self, x):
+    def fitness(self, x: T) -> T:
         return x
 
-    def inverse(self, x):
-        return x
+    def inverse(self, y: T) -> T:
+        return y
 
 
 class BoundedLogisticFitness:
@@ -121,7 +149,7 @@ class BoundedLogisticFitness:
     The effect of new (beneficial) mutations tails off as the clone gets stronger.
     There is a maximum fitness.
     """
-    def __init__(self, a, b=math.exp(1)):
+    def __init__(self, a: float, b: float=math.exp(1)):
         """
         fitness = a/(1+c*b**(-x)) where x is the product of all mutation effects
         c is picked so that fitness(1) = 1
@@ -137,20 +165,18 @@ class BoundedLogisticFitness:
     def __str__(self):
         return 'Bounded Logistic: a {0}, b {1}, c {2}'.format(self.a, self.b, self.c)
 
-    def fitness(self, x):
+    def fitness(self, x: T) -> T:
         return self.a / (1 + self.c * (self.b ** (-x)))
 
-    def inverse(self, y):
-        return math.log(self.c / (self.a / y - 1), self.b)
+    def inverse(self, y: T) -> T:
+        return np.emath.logn(self.b, (self.c / (self.a / y - 1)))
 
 
 ################
 # Class for storing information about a gene
-class Gene(object):
-    """Determines the mutations which are created for a gene"""
-
-    def __init__(self, name, mutation_distribution, synonymous_proportion, weight=1.):
-        """
+class Gene(BaseModel):
+    """
+    Determines the mutations which are created for a gene
 
         :param name: The name for the gene.
         :param mutation_distribution: A class from clone_competition_simulation.fitness_classes,
@@ -162,13 +188,27 @@ class Gene(object):
         total mutation rate of all genes passed to the MutationGenerator will equal the mutation_rates defined in
         Parameters. The relative weights of the genes are used. E.g. if Gene1 has a weight of 3 and Gene2 has a
         weight of 7, then 30% of the mutations will be drawn from Gene1 and 70% from Gene2.
-        """
-        if weight < 0:
-            raise ValueError('weight cannot be below zero')
-        self.name = name
-        self.mutation_distribution = mutation_distribution
-        self.synonymous_proportion = synonymous_proportion
-        self.weight = weight
+
+    """
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    name: str
+    mutation_distribution: DistributionProtocol
+    synonymous_proportion: float
+    weight: float = 1
+
+    @field_validator("synonymous_proportion", mode="after")
+    @classmethod
+    def validate_proportion(cls, v):
+        if v < 0 or v > 1:
+            raise ValueError('synonymous_proportion must be between 0 and 1')
+        return v
+
+    @field_validator("weight", mode="after")
+    @classmethod
+    def validate_weight(cls, v):
+        if v < 0:
+            raise ValueError('weight must be greater than 0')
+        return v
 
     def __str__(self):
         return "Gene. Name: {0}, MutDist: {1}, SynProp: {2}, Weight: {3}".format(self.name,
@@ -178,9 +218,71 @@ class Gene(object):
 
 
 ##################
+# Functions for defining how to combine mutations in the same or different genes
+
+def add_fitness(old_fitnesses: NDArray[np.float64], new_mutation_fitnesses: NDArray[np.float64]) -> NDArray[np.float64]:
+    combined_fitness = old_fitnesses + new_mutation_fitnesses - 1
+    combined_fitness[combined_fitness < 0] = 0
+    return combined_fitness
+
+
+class MutationCombination(Enum):
+    MULTIPLY = "multiply", lambda old, new: old * new
+    ADD = "add", add_fitness
+    REPLACE = "replace", lambda old, new: new
+    MAX = "max", lambda old, new: np.maximum(old, new)
+    MIN = "min", lambda old, new: np.minimum(old, new)
+
+    def __new__(cls, value, func):
+        obj = object.__new__(cls)
+        obj._value_ = value
+        obj.function = func
+        return obj
+
+
+def add_array_fitness(fitness_arrays: NDArray[np.float64]) -> NDArray[np.float64]:
+    combined_fitness = np.nansum(fitness_arrays, axis=1) - np.count_nonzero(~np.isnan(fitness_arrays),
+                                                                            axis=1) + 1
+    combined_fitness[combined_fitness < 0] = 0
+    return combined_fitness
+
+
+def priority_array_fitness(fitness_arrays: NDArray[np.float64]) -> NDArray[np.float64]:
+    # Find the right-most non-nan value. Useful for epistatic interactions that are superseded by another
+    # To find the last non-nan columns, reverse the column order and find the first non-zero entry.
+    fitness_arrays = fitness_arrays[:, ::-1]
+    c = np.isnan(fitness_arrays)
+    d = np.argmin(c, axis=1)
+    combined_fitness = fitness_arrays[range(len(fitness_arrays)), d]
+    return combined_fitness
+
+
+class ArrayCombination(Enum):
+    MULTIPLY = "multiply", lambda fitness_arrays: np.nanprod(fitness_arrays, axis=1)
+    ADD = "add", add_array_fitness
+    MAX = "max", lambda fitness_arrays: np.nanmax(fitness_arrays, axis=1)
+    MIN = "min", lambda fitness_arrays: np.nanmin(fitness_arrays, axis=1)
+    PRIORITY = "priority", priority_array_fitness
+
+    def __new__(cls, value, func):
+        obj = object.__new__(cls)
+        obj._value_ = value
+        obj.function = func
+        return obj
+
+
+class EpistaticEffect(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    name: str
+    gene_names: list[str]
+    fitness_distribution: DistributionProtocol
+
+
+
+##################
 # Class to put it all together
 
-class MutationGenerator(object):
+class MutationGenerator(BaseModel):
     """
     This class determines the effects of mutations and how they are combined to define the fitness of a clone.
 
@@ -220,61 +322,67 @@ class MutationGenerator(object):
     combining as intended, especially if defining epistatic effects.
     Can use MutationGenerator.plot_fitness_combinations to check the fitness combinations are as intended.
     """
-    # Options for combining mutations in the same gene or when multi_gene_array=False
-    combine_options = ('multiply', 'add', 'replace', 'max', 'min')
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    # Options for combining mutations in different genes or epistatic effects.
-    combine_array_options = ('multiply', 'add', 'max', 'min', 'priority')
+    genes: list[Gene]
+    combine_mutations: MutationCombination=MutationCombination.MULTIPLY
+    multi_gene_array: bool = False
+    combine_array: ArrayCombination = ArrayCombination.MULTIPLY
+    mutation_combination_class: FitnessTransform = Field(default_factory=UnboundedFitness)
+    epistatics: list[EpistaticEffect] | None = None
 
-    def __init__(self, combine_mutations='multiply', multi_gene_array=False, combine_array='multiply',
-                 genes=(Gene('all', NormalDist(1.1), synonymous_proportion=0.5, weight=1),),
-                 mutation_combination_class=UnboundedFitness(), epistatics=None):
-        if combine_mutations not in self.combine_options:
-            raise ValueError(
-                "'{0}' is not a valid option for 'combine_mutations'. Pick from {1}".format(combine_mutations,
-                                                                                           self.combine_options))
-        if combine_array not in self.combine_array_options:
-            raise ValueError("'{0}' is not a valid option for 'combine_array'. Pick from {1}".format(combine_array,
-                                                                                            self.combine_array_options))
+    # attributes used internally
+    num_genes: int | None = None
+    gene_indices: dict[str, int] | None = None
+    mutation_distributions: list[DistributionProtocol] | None = None
+    synonymous_proportion: NDArray[np.float64] | None = None
+    overall_synonymous_proportion: float | None = None
+    relative_weights_cumsum: NDArray[np.float64] | None = None
+    epistatics_dict: dict[tuple[int, ...], EpistaticEffect] | None = None
+    epistatic_cols: NDArray[np.int64] | None = None
+    combine_fitness_function: Callable[[NDArray[np.float64], NDArray[np.float64]], NDArray[np.float64]] = Field(
+        None, validate_default=True)
+    combine_array_function: Callable[[NDArray[np.float64]], NDArray[np.float64]] = Field(
+        None, validate_default=True)
 
-        self.combine_mutations = combine_mutations
-        self.multi_gene_array = multi_gene_array
-        self.combine_array = combine_array
-        self.genes = genes
+    @field_validator("combine_fitness_function", mode="before")
+    @classmethod
+    def value_combine_fitness_function(cls, v, info):
+        # TODO allow any functions with a valid form, not just from the enum
+        return info.data['combine_mutations'].function
+
+    @field_validator("combine_array_function", mode="before")
+    @classmethod
+    def value_combine_array_function(cls, v, info):
+        # TODO allow any functions with a valid form, not just from the enum
+        return info.data['combine_array'].function
+
+    @model_validator(mode="after")
+    def validate_mutation_generator(self) -> Self:
         self.num_genes = len(self.genes)
-        self.gene_indices = {g.name: i for i, g in enumerate(genes)}
-        self.mutation_distributions = [g.mutation_distribution for g in genes]
-        self.gene_weights = [g.weight for g in genes]
-        self.synonymous_proportion = np.array([g.synonymous_proportion for g in genes])
+        self.gene_indices = {g.name: i for i, g in enumerate(self.genes)}
+        self.mutation_distributions = [g.mutation_distribution for g in self.genes]
+        gene_weights = np.array([g.weight for g in self.genes])
+        self.synonymous_proportion = np.array([g.synonymous_proportion for g in self.genes])
         self.overall_synonymous_proportion = np.array(
-            [g.synonymous_proportion * g.weight for g in genes]).sum() / np.array(self.gene_weights).sum()
+            [g.synonymous_proportion * g.weight for g in self.genes]).sum() / gene_weights.sum()
 
-        self.relative_weights = np.array(self.gene_weights) / sum(self.gene_weights)
-        self.relative_weights_cumsum = self.relative_weights.cumsum()
-        self.mutation_combination_class = mutation_combination_class  # E.g. BoundedLogisticFitness above
-        if epistatics is not None:
-            if not multi_gene_array:
-                print('Using multi_gene_array because there are epistatic relationships')
+        relative_weights = gene_weights / gene_weights.sum()
+        self.relative_weights_cumsum = relative_weights.cumsum()
+        if self.epistatics is not None:
+            if not self.multi_gene_array:
+                logger.debug('Using multi_gene_array because there are epistatic relationships')
                 self.multi_gene_array = True
-            # List of epistatic relationships
-            # Each item in the list is (name, gene_name1, gene_name2, ..., epistatic fitness distribution)
             # Add the names to the gene list
-            self.gene_indices.update({e[0]: j+self.num_genes for j, e in enumerate(epistatics)})
+            self.gene_indices.update({e.name: j+self.num_genes for j, e in enumerate(self.epistatics)})
             # Convert to the gene indices
-            self.epistatics = [tuple([self.get_gene_number(ee) for ee in e[1:-1]] + [e[-1]]) for e in epistatics]
-            self.epistatic_cols = range(len(genes) + 1, len(genes) + len(self.epistatics) + 1)
-        else:
-            self.epistatics = None
-        self.params = {
-            'combine_mutations': combine_mutations,
-            'genes': [g.__str__() for g in self.genes],
-            'fitness_class': mutation_combination_class.__str__(),
-        }
+            self.epistatics_dict = {tuple([self.get_gene_number(ee) for ee in e.gene_names]): e for e in self.epistatics}
+            self.epistatic_cols = np.arange(len(self.genes) + 1, len(self.genes) + len(self.epistatics) + 1)
+
+        return self
 
     def __str__(self):
-        s = "<MutGen: comb_muts={0}, genes={1}, fitness_class={2}>".format(self.params['combine_mutations'],
-                                                                           self.params['genes'],
-                                                                           self.params['fitness_class'])
+        s = f"<MutGen: comb_muts={self.combine_mutations}, genes={self.genes}, fitness_class={self.mutation_combination_class}>"
         return s
 
     def get_new_fitnesses(self, old_fitnesses, old_mutation_arrays):
@@ -298,7 +406,7 @@ class MutationGenerator(object):
 
         return new_fitnesses, new_mutation_arrays, syns, genes_mutated
 
-    def _are_synonymous(self, mut_types):
+    def _are_synonymous(self, mut_types: NDArray[np.int64]) -> NDArray:
         """
         Determines whether the new mutations are synonymous
         :param mut_types:
@@ -306,7 +414,7 @@ class MutationGenerator(object):
         """
         return np.random.binomial(1, self.synonymous_proportion[mut_types])
 
-    def _get_genes(self, num):
+    def _get_genes(self, num: int) -> NDArray[np.int64]:
         """
         Determines which genes are mutated
         :param num:
@@ -316,7 +424,9 @@ class MutationGenerator(object):
         k = (self.relative_weights_cumsum < r).sum(axis=1)
         return k
 
-    def _update_fitness_arrays(self, old_mutation_arrays, genes_mutated, syns):
+    def _update_fitness_arrays(self, old_mutation_arrays: NDArray[np.float64],
+                               genes_mutated:  NDArray[np.int64],
+                               syns: NDArray[np.int64]) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
         # Only have to update the cells in which non-synonymous mutations occur
         non_syns = np.where(1 - syns)
         new_mutation_fitnesses_non_syn = [self.mutation_distributions[g]() for g in
@@ -340,7 +450,8 @@ class MutationGenerator(object):
 
         return new_fitnesses, new_mutation_arrays
 
-    def _combine_fitnesses(self, old_fitnesses, new_mutation_fitnesses):
+    def _combine_fitnesses(self, old_fitnesses: NDArray[np.float64], new_mutation_fitnesses: NDArray[np.float64]) \
+            -> NDArray[np.float64]:
         """
         Applies the selected rules to combine the new mutations with those already in the cell.
         If using multi_gene_array=True, this will just combine the fitness of mutations within the same gene.
@@ -353,22 +464,10 @@ class MutationGenerator(object):
         """
 
         old_fitnesses[np.where(np.isnan(old_fitnesses))] = 1
-        if self.combine_mutations == 'multiply':
-            combined_fitness = old_fitnesses * new_mutation_fitnesses
-        elif self.combine_mutations == 'add':
-            combined_fitness = old_fitnesses + new_mutation_fitnesses - 1
-            combined_fitness[combined_fitness < 0] = 0
-        elif self.combine_mutations == 'replace':
-            combined_fitness = new_mutation_fitnesses
-        elif self.combine_mutations == 'max':
-            combined_fitness = np.maximum(new_mutation_fitnesses, old_fitnesses)
-        elif self.combine_mutations == 'min':
-            combined_fitness = np.minimum(new_mutation_fitnesses, old_fitnesses)
-        else:
-            raise NotImplementedError("Have tried to use {}".format(self.combine_mutations))
-        return combined_fitness
+        return self.combine_fitness_function(old_fitnesses, new_mutation_fitnesses)
 
-    def _epistatic_combinations(self, fitness_arrays):
+    def _epistatic_combinations(self, fitness_arrays: NDArray[np.float64]) \
+            -> tuple[NDArray[np.float64], NDArray[np.float64]]:
         """
         Take the mutated (non-nan) genes and check whether they complete an epistatic set.
         The effects of genes in an epistatic set are replaced by the epistatic effect.
@@ -386,11 +485,10 @@ class MutationGenerator(object):
         not_already_epi_rows = np.isnan(epi_rows)
         row_positions_to_blank = []
         col_positions_to_blank = []
-        for i, epi in enumerate(self.epistatics):
-            epi_genes, dfe = epi[:-1], epi[-1]
+        for i, (epi_genes, epi) in enumerate(self.epistatics_dict.items()):
             matching_rows = np.all(non_nan[:, tuple([g+1 for g in epi_genes])], axis=1)  # +1 because of the WT column
             new_matching_rows = matching_rows * not_already_epi_rows[:, i]
-            new_draws = [dfe() for j in new_matching_rows if j]
+            new_draws = [epi.fitness_distribution() for j in new_matching_rows if j]
             epi_rows[new_matching_rows, i] = new_draws
             for g in epi_genes:
                 row_positions_to_blank.extend(np.where(matching_rows)[0])
@@ -401,7 +499,7 @@ class MutationGenerator(object):
         epistatic_fitness_array[row_positions_to_blank, col_positions_to_blank] = np.nan
         return fitness_array, epistatic_fitness_array
 
-    def combine_vectors(self, fitness_arrays):
+    def combine_vectors(self, fitness_arrays: NDArray[np.float64]) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
         """
 
         :param fitness_arrays:
@@ -416,40 +514,24 @@ class MutationGenerator(object):
         else:
             full_fitness_arrays = fitness_arrays
 
-        if not self.multi_gene_array:  # Don't have to combine genes, just reduce to 1D array
+        if self.multi_gene_array:
+            combined_fitness = self.combine_array_function(fitness_arrays)
+        else: # Don't have to combine genes, just reduce to 1D array
             combined_fitness = fitness_arrays[:, 0]
-        elif self.combine_array == 'multiply':
-            combined_fitness = np.nanprod(fitness_arrays, axis=1)
-        elif self.combine_array == 'add':
-            combined_fitness = np.nansum(fitness_arrays, axis=1) - np.count_nonzero(~np.isnan(fitness_arrays),
-                                                                                    axis=1) + 1
-            combined_fitness[combined_fitness < 0] = 0
-        elif self.combine_array == 'max':
-            combined_fitness = np.nanmax(fitness_arrays, axis=1)
-        elif self.combine_array == 'min':
-            combined_fitness = np.nanmin(fitness_arrays, axis=1)
-        elif self.combine_array == 'priority':
-            # Find the right-most non-nan value. Useful for epistatic interactions that are superseded by another
-            # To find the last non-nan columns, reverse the column order and find the first non-zero entry.
-            fitness_arrays = fitness_arrays[:, ::-1]
-            c = np.isnan(fitness_arrays)
-            d = np.argmin(c, axis=1)
-            combined_fitness = fitness_arrays[range(len(fitness_arrays)), d]
-        else:
-            raise NotImplementedError("Have tried to use {}".format(self.combine_array))
+
         return self.mutation_combination_class.fitness(combined_fitness), full_fitness_arrays
 
-    def get_gene_number(self, gene_name):
+    def get_gene_number(self, gene_name: str) -> int:
         if gene_name is None:
             return None
         return self.gene_indices[gene_name]
 
-    def get_gene_name(self, gene_number):
+    def get_gene_name(self, gene_number: int) -> str:
         if gene_number is None or gene_number == -1:
             return None
         return self.genes[gene_number].name
 
-    def get_synonymous_proportion(self, gene_num):
+    def get_synonymous_proportion(self, gene_num: int) -> float:
         if gene_num is None:
             return self.overall_synonymous_proportion
         else:
@@ -462,11 +544,11 @@ class MutationGenerator(object):
         it is as intended.
         Assumes that the background fitness (first column of the fitness array) is 1.
         """
-        if not self.multi_gene_array and self.combine_mutations == 'replace':
+        if not self.multi_gene_array and self.combine_mutations == MutationCombination.REPLACE:
             # No combinations here. Just need to plot individual genes
-            print('No combinations defined. Only most recent non-silent mutation defines fitness')
+            logger.info('No combinations defined. Only most recent non-silent mutation defines fitness')
             xticklabels = ['Background']
-            fitness_values = [1]
+            fitness_values = [1.]
             for i, gene in enumerate(self.genes):
                 xticklabels.append(gene.name)
                 fitness_values.append(gene.mutation_distribution.get_mean())
@@ -501,16 +583,7 @@ class MutationGenerator(object):
             if self.multi_gene_array:
                 new_fitnesses, new_mutation_arrays = self.combine_vectors(fitness_array)
             else:
-                # Temporarily change the combine_mutations attribute so same combination functions can be used
-                if self.combine_mutations in ('add', 'multiply'):
-                    print('This allows multiple mutations per gene to have an effect. ' \
-                          'Just showing combinations of up to one (mean fitness) mutation from each gene.')
-                ca = self.combine_array
-                self.combine_array = self.combine_mutations
-                self.multi_gene_array = True
-                new_fitnesses, new_mutation_arrays = self.combine_vectors(fitness_array)
-                self.combine_array = ca
-                self.multi_gene_array = False
+                raise NotImplementedError("Plotting of non-multi-gene-array fitness not implemented")
 
             plt.bar(range(fitness_array.shape[0]), new_fitnesses)
             plt.ylabel('Fitness')

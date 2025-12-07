@@ -6,5 +6,8 @@ from .fitness_classes import (
     FixedValue,
     UniformDist,
     NormalDist,
-    ExponentialDist
+    ExponentialDist,
+    EpistaticEffect,
+    MutationCombination,
+    ArrayCombination
 )
