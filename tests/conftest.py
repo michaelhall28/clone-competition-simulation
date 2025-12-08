@@ -8,21 +8,6 @@ from clone_competition_simulation.parameters.algorithm_validation import Algorit
 from clone_competition_simulation.plotting.colourscales import ColourScale
 
 
-@pytest.fixture(autouse=True)
-def mock_random(monkeypatch: pytest.MonkeyPatch):
-    """
-    np.random.RandomState should be consistent across numpy versions,
-    whereas the normal np.random functions might not be.
-
-    Args:
-        monkeypatch:
-
-    Returns:
-
-    """
-    rng = RandomState()
-    monkeypatch.setattr('numpy.random', rng)
-
 
 def pytest_addoption(parser):
     for alg in Algorithm:

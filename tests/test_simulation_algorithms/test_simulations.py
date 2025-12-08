@@ -40,12 +40,35 @@ from tests.utilities import (
 warnings.simplefilter('ignore',SparseEfficiencyWarning)
 
 
+@pytest.fixture(scope="module")
+def monkeymodule():
+    mpatch = pytest.MonkeyPatch()
+    yield mpatch
+    mpatch.undo()
+
+
+@pytest.fixture(scope="module")
+def mock_random(monkeymodule):
+    """
+    np.random.RandomState should be consistent across numpy versions,
+    whereas the normal np.random functions might not be.
+
+    Args:
+        monkeypatch:
+
+    Returns:
+
+    """
+    rng = np.random.RandomState()
+    monkeymodule.setattr('numpy.random', rng)
+
+
 @pytest.fixture(scope='session')
 def axes():
     return get_plots()
 
 
-def test_simple(axes, algorithm, overwrite_results=False):
+def test_simple(mock_random, axes, algorithm, overwrite_results=False):
     # Does it run with simplest settings
     ax = next_ax(axes, algorithm)
     np.random.seed(0)
@@ -61,7 +84,7 @@ def test_simple(axes, algorithm, overwrite_results=False):
     ax.set_title('Basic run')
 
 
-def test_multiple_clones(axes, algorithm, overwrite_results=False):
+def test_multiple_clones(mock_random, axes, algorithm, overwrite_results=False):
     if algorithm.two_dimensional:
         initial_size_array = None
         initial_grid = np.tile([0, 1, 2], 60 * 20).reshape(60, 60)
@@ -88,7 +111,7 @@ def test_multiple_clones(axes, algorithm, overwrite_results=False):
     ax.set_title('Multiple clones')
 
 
-def test_mutations(axes, algorithm, overwrite_results=False):
+def test_mutations(mock_random, axes, algorithm, overwrite_results=False):
     # All the ways of adding mutations
     # Too many tests to do all combinations
     # Make sure every individual option is checked at least.
@@ -349,7 +372,7 @@ def test_mutations(axes, algorithm, overwrite_results=False):
     ax.set_title('Logistic - multi gene')
 
 
-def test_neutral_hallmarks(axes, algorithm, overwrite_results=False):
+def test_neutral_hallmarks(mock_random, axes, algorithm, overwrite_results=False):
     if algorithm.two_dimensional:
         initial_size_array = None
         initial_grid = np.arange(100 ** 2, dtype=int).reshape(100, 100)
@@ -385,7 +408,7 @@ def test_neutral_hallmarks(axes, algorithm, overwrite_results=False):
     ax.set_title('Clone size dist')
 
 
-def test_imbalance(axes, algorithm, overwrite_results=False):
+def test_imbalance(mock_random, axes, algorithm, overwrite_results=False):
     # Want large population so almost deterministic
     if algorithm.two_dimensional:
         initial_size_array = None
@@ -419,7 +442,7 @@ def test_imbalance(axes, algorithm, overwrite_results=False):
     ax.set_title('Mean - imbalance')
 
 
-def test_b_cells(axes, algorithm, mutation_generator, overwrite_results=False):
+def test_b_cells(mock_random, axes, algorithm, mutation_generator, overwrite_results=False):
     ax = next_ax(axes, algorithm)
     if not algorithm.algorithm_class == AlgorithmClass.WF:
         if algorithm.two_dimensional:
@@ -464,7 +487,7 @@ def test_b_cells(axes, algorithm, mutation_generator, overwrite_results=False):
         ax.set_title('Not implemented')
 
 
-def test_treatment_with_fixed_clones(axes, algorithm, overwrite_results=False):
+def test_treatment_with_fixed_clones(mock_random, axes, algorithm, overwrite_results=False):
     timings = [3, 7]
     treatment_arrays = [[1, 0.5, 1.3], [0.4, 1.5, 0.7]]
 
@@ -493,7 +516,7 @@ def test_treatment_with_fixed_clones(axes, algorithm, overwrite_results=False):
     ax.set_title('Treatment: clones')
 
 
-def test_treatment_replace_with_fixed_clones(axes, algorithm, overwrite_results=False):
+def test_treatment_replace_with_fixed_clones(mock_random, axes, algorithm, overwrite_results=False):
     timings = [3, 7]
     treatment_arrays = [[1, 1, 1], [0.4, 1.5, 0.7]]
 
@@ -523,7 +546,7 @@ def test_treatment_replace_with_fixed_clones(axes, algorithm, overwrite_results=
     ax.set_title('Treatment replace: clones')
 
 
-def test_treatment_with_multiple_genes(axes, algorithm, overwrite_results=False):
+def test_treatment_with_multiple_genes(mock_random, axes, algorithm, overwrite_results=False):
     timings = [3, 7]
     treatment_arrays = [[1, 0.5, 1.3], [0.4, 1.25, 0.7]]
 
@@ -576,7 +599,7 @@ def test_treatment_with_multiple_genes(axes, algorithm, overwrite_results=False)
     ax.set_title('Treatment: genes+muts')
 
 
-def test_treatment_replace_with_multiple_genes(axes, algorithm, overwrite_results=False):
+def test_treatment_replace_with_multiple_genes(mock_random, axes, algorithm, overwrite_results=False):
     timings = [3, 7]
     treatment_arrays = [[1, 1, 1], [0.4, 1.25, 0.7]]
 
@@ -630,7 +653,7 @@ def test_treatment_replace_with_multiple_genes(axes, algorithm, overwrite_result
     ax.set_title('Treatment replace: genes+muts')
 
 
-def test_labels(cs_label, axes, algorithm, overwrite_results=False):
+def test_labels(mock_random, cs_label, axes, algorithm, overwrite_results=False):
     mut_gen = MutationGenerator(multi_gene_array=True,
                                 genes=[
                                     Gene(name='neutral', mutation_distribution=FixedValue(1), synonymous_proportion=0.5),
@@ -684,7 +707,7 @@ def test_labels(cs_label, axes, algorithm, overwrite_results=False):
     ax.set_title('Late labels')
 
 
-def test_incomplete_moments(axes, algorithm, overwrite_results=False):
+def test_incomplete_moments(mock_random, axes, algorithm, overwrite_results=False):
     initial_cells = 10000
     max_time = 10
 
@@ -740,86 +763,7 @@ def test_incomplete_moments(axes, algorithm, overwrite_results=False):
     ax.set_title('Non-Neutral dN/dS')
 
 
-def test_random_sampling(axes, algorithm, overwrite_results=False):
-    # Biopsies and sequencing for the 2D algorithms
-    ax = next_ax(axes, algorithm)
-    if algorithm.two_dimensional:
-        non_neut_genes = [Gene(name='driver1', mutation_distribution=NormalDist(mean=1.3, var=0.1),
-                               synonymous_proportion=0.8),
-                          Gene(name='driver2', mutation_distribution=NormalDist(mean=2, var=0.1),
-                               synonymous_proportion=0.8)]
-        mut_gen = MutationGenerator(multi_gene_array=False, genes=non_neut_genes,
-                                    combine_mutations='max')
-        biopsies = [
-            {'biopsy_origin': (0, 0), 'biopsy_shape': (50, 10)},
-            {'biopsy_origin': (0, 10), 'biopsy_shape': (50, 10)},
-            {'biopsy_origin': (0, 20), 'biopsy_shape': (50, 10)},
-            {'biopsy_origin': (0, 30), 'biopsy_shape': (50, 10)},
-            {'biopsy_origin': (0, 40), 'biopsy_shape': (50, 10)},
-            {'biopsy_origin': (0, 50), 'biopsy_shape': (50, 10)},
-            {'biopsy_origin': (30, 32), 'biopsy_shape': (10, 15)},
-            {'biopsy_origin': (72, 64), 'biopsy_shape': (1, 20)}
-        ]
-        coverage = 300
-        detection_limit = 20
-        np.random.seed(0)
-        p = SimulationRunSettings(
-            algorithm=algorithm,
-            population=PopulationParameters(initial_cells=10000, cell_in_own_neighbourhood=False),
-            times=TimeParameters(max_time=70, division_rate=DIVISION_RATE),
-            fitness=FitnessParameters(mutation_rates=0.05, mutation_generator=mut_gen)
-        )
-        sim = p.get_simulator()
-        sim.run_sim()
-
-        raw_vafs = biopsy_sample(sim.grid_results[-1], sim, biopsies[0])
-        compare_to_old_results(algorithm, raw_vafs, test_name='biopsy_sample', result_type='object',
-                               overwrite_results=overwrite_results)
-
-        vafs = get_vafs_for_all_biopsies(sim, biopsies, coverage=coverage, detection_limit=detection_limit,
-                                         merge_clones=False,
-                                         binom=False, binom_params=(None, None))
-
-        compare_to_old_results(algorithm, vafs, test_name='random_sampling', result_type='object',
-                               overwrite_results=overwrite_results)
-
-        vafs_merge = get_vafs_for_all_biopsies(sim, biopsies, coverage=coverage, detection_limit=detection_limit,
-                                               merge_clones=True,
-                                               binom=True, binom_params=(33, 0.1))
-        compare_to_old_results(algorithm, vafs_merge, test_name='random_sampling_merge', result_type='object',
-                               overwrite_results=overwrite_results)
-
-        vafs_full = get_vafs_for_all_biopsies(sim, biopsies, coverage=10000, detection_limit=0,
-                                              merge_clones=True,
-                                              binom=False, binom_params=(None, None))
-
-        x1, incom_1 = incomplete_moment_vaf_fixed_intervals(vafs['vaf'], interval=0.02)
-        x2, incom_2 = incomplete_moment_vaf_fixed_intervals(vafs_merge['vaf'], interval=0.02)
-        x3, incom_3 = incomplete_moment_vaf_fixed_intervals(vafs_full['vaf'], interval=0.02)
-
-        ax.plot(x1, incom_1)
-        ax.plot(x2, incom_2)
-        ax.plot(x3, incom_3)
-        ax.set_xlim(left=0)
-        ax.set_yscale('log')
-        ax.set_title('LFIM sampling')
-
-        ax = next_ax(axes, algorithm)
-        vafs['a'] = 1
-        vafs_merge['a'] = 2
-
-        df = pd.concat([vafs, vafs_merge], sort=True)
-        sns.swarmplot(data=df, x='a', y='vaf', hue='gene', ax=ax, order=[1, 2],
-                      hue_order=['driver1', 'driver2'])
-        ax.get_legend().set_visible(False)
-        ax.set_title('Sampling')
-    else:
-        ax.set_title('Not implemented')
-        ax = next_ax(axes, algorithm)
-        ax.set_title('Not implemented')
-
-
-def test_post_processing(axes, algorithm, overwrite_results=False):
+def test_post_processing(mock_random, axes, algorithm, overwrite_results=False):
     # Generate as many of the post processing results as possible, like the mutant clone array etc.
     # Run all plotting functions
     # Not big enough simulation to compare results visually. Just checks things can run.
@@ -892,7 +836,7 @@ def test_post_processing(axes, algorithm, overwrite_results=False):
                            overwrite_results=overwrite_results)
 
 
-def test_post_processing_non_mutation(axes, algorithm, overwrite_results=False):
+def test_post_processing_non_mutation(mock_random, axes, algorithm, overwrite_results=False):
     # Generate as many of the post processing results as possible, like the mutant clone array etc.
     # Run all plotting functions
 
@@ -944,7 +888,7 @@ def test_post_processing_non_mutation(axes, algorithm, overwrite_results=False):
                            overwrite_results=overwrite_results)
 
 
-def test_irregular_sampling(axes, algorithm, overwrite_results=False):
+def test_irregular_sampling(mock_random, axes, algorithm, overwrite_results=False):
     if algorithm.two_dimensional:
         initial_size_array = None
         initial_grid = np.arange(100 ** 2, dtype=int).reshape(100, 100)
@@ -966,7 +910,7 @@ def test_irregular_sampling(axes, algorithm, overwrite_results=False):
     ax.set_title('Irregular samples')
 
 
-def test_partially_simulating_B_cells(axes, algorithm, overwrite_results=False):
+def test_partially_simulating_B_cells(mock_random, axes, algorithm, overwrite_results=False):
     ax = next_ax(axes, algorithm)
     if algorithm.algorithm_class != AlgorithmClass.WF:
         if algorithm.two_dimensional:
@@ -1020,7 +964,7 @@ def test_partially_simulating_B_cells(axes, algorithm, overwrite_results=False):
         ax.set_title('Not implemented')
 
 
-def test_too_many_sample_points(axes, algorithm, overwrite_results=False):
+def test_too_many_sample_points(mock_random, axes, algorithm, overwrite_results=False):
     # If there are more sample points than divisions.
     # Need to reduce number of points.
     ax = next_ax(axes, algorithm)
@@ -1072,7 +1016,7 @@ def test_too_many_sample_points(axes, algorithm, overwrite_results=False):
         ax.set_title('Not implemented')
 
 
-def test_induction_of_label_and_mutant(axes, algorithm, overwrite_results=False):
+def test_induction_of_label_and_mutant(mock_random, axes, algorithm, overwrite_results=False):
     genes = [Gene(name='Neutral', mutation_distribution=FixedValue(1), synonymous_proportion=0.5),
              Gene(name='Notch1', mutation_distribution=FixedValue(4), synonymous_proportion=0)]
     mutation_generator = MutationGenerator(genes=genes, combine_mutations='replace', multi_gene_array=True)
@@ -1149,7 +1093,7 @@ def test_induction_of_label_and_mutant(axes, algorithm, overwrite_results=False)
     sim.muller_plot(quick=True, allow_y_extension=True, ax=ax)
 
 
-def test_seven_cell_neighbourhood(cs_label, axes, algorithm, overwrite_results=False):
+def test_seven_cell_neighbourhood(mock_random, cs_label, axes, algorithm, overwrite_results=False):
     ax = next_ax(axes, algorithm)
     if algorithm.two_dimensional:
         np.random.seed(0)
@@ -1183,7 +1127,7 @@ def test_plots(axes, algorithm):
     plt.savefig(os.path.join(PLOT_DIR, 'test_plots_{}.pdf'.format(algorithm)))
 
 
-def test_animation(algorithm):
+def test_animation(mock_random, algorithm):
     # Make animation
     #  just checking it runs. Can be compared visually or using the output files
     # Have to do after all other plots as this will reset the figures

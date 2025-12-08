@@ -95,7 +95,7 @@ def test_uniform_dist1():
         UniformDist(low=1.1, high=1)
 
 
-def test_uniform_dist2(monkeypatch):
+def test_uniform_dist2():
     u = UniformDist(low=1, high=2)
     assert u.get_mean() == 1.5
 
