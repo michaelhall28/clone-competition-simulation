@@ -1,26 +1,28 @@
 import numpy as np
+from numpy.typing import NDArray
 from scipy.stats import linregress
 import matplotlib.pyplot as plt
+from loguru import logger
 
 
-def mean_clone_size_fit(times, rlam):
+def mean_clone_size_fit(times: NDArray, rlam: float) -> NDArray:
     """For the single progenitor models (for progenitor cells only)"""
     return 1+rlam*times
 
 
-def surviving_clones_fit(times, rlam, start_clones):
+def surviving_clones_fit(times: NDArray, rlam: float, start_clones: int) -> NDArray:
     """For the single progenitor models (for progenitor cells only)"""
-    return start_clones*(1/(1+rlam*times))
+    return start_clones/mean_clone_size_fit(times, rlam)
 
 
-def mean_clone_size(clone_size_dist):
+def mean_clone_size(clone_size_dist: NDArray) -> float:
     # Mean of surviving clones from a clone size frequency array
     """Gets the mean of clones > 1 cell. For dists that start at 0 cell clones"""
-    return sum([(i) * clone_size_dist[i] for i in range(1, len(clone_size_dist))]) / clone_size_dist[1:].sum()
+    return (clone_size_dist[1:] * np.arange(1, len(clone_size_dist))).sum() / clone_size_dist[1:].sum()
 
 
 # Incomplete moment functions
-def incomplete_moment(clone_size_dist):
+def incomplete_moment(clone_size_dist: NDArray) -> NDArray | None:
     # Assuming clone_size_dist starts from zero
     if clone_size_dist[1:].sum() == 0:
         return None
@@ -32,7 +34,7 @@ def incomplete_moment(clone_size_dist):
     return moments / mcs
 
 
-def incomplete_moment_sem(clone_size_dist):
+def incomplete_moment_sem(clone_size_dist: NDArray) -> NDArray:
     sems = []
     s1 = (np.arange(len(clone_size_dist))*clone_size_dist).sum()
     s2 = 0
@@ -45,7 +47,7 @@ def incomplete_moment_sem(clone_size_dist):
     return sems[::-1]
 
 
-def incomplete_moment_vaf_fixed_intervals(vafs, interval):
+def incomplete_moment_vaf_fixed_intervals(vafs: NDArray, interval: float) -> tuple[NDArray, NDArray]:
     vafs = np.flip(np.sort(vafs), axis=0)
     mean_clone_size = vafs.mean()
 
@@ -70,7 +72,7 @@ def incomplete_moment_vaf_fixed_intervals(vafs, interval):
     return x, np.flip(np.array(y), axis=0) / mean_clone_size / len(vafs)
 
 
-def fit_straight_line_to_incomplete_moment(incom, fix_intercept=True):
+def fit_straight_line_to_incomplete_moment(incom: NDArray, fix_intercept: bool=True) -> tuple[float, float, float]:
     """The intercept we refer to here is when x=min_clone_size since this is the point we want to fix
     We therefore will shift over the values by one to fit, then shift back to plot
 
@@ -90,13 +92,13 @@ def fit_straight_line_to_incomplete_moment(incom, fix_intercept=True):
     return slope, one_intercept, r_squared_value
 
 
-def _get_fitting_section(csd, fit_prop):
+def _get_fitting_section(csd: NDArray, fit_prop: float) -> int:
     """Find the clone size for which the cumulative total contains fit_prop of the total clones"""
     csd[0] = 0  # Ensure we don't count clones of size zero
     norm_csd = csd/csd.sum()
     cumprop = np.cumsum(norm_csd)
     ind = np.nonzero(cumprop > fit_prop)[0][0]+1  # The index after the last one we want
-    print('fitting to first', ind, 'values out of', len(csd))
+    logger.debug('fitting to first', ind, 'values out of', len(csd))
     return ind
 
 
