@@ -71,7 +71,7 @@ class ConfigFileSettings(BaseModel):
         return data
 
 
-class SimulationRunSettings(RunSettingsBase, ConfigFileSettings):
+class Parameters(RunSettingsBase, ConfigFileSettings):
     pass
 
     @property

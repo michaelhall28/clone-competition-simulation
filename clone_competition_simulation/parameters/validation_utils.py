@@ -13,7 +13,7 @@ def assign_config_settings(value, info):
             value = value.model_dump()
     else:
         value = {}
-    if info.config['title'] == "SimulationRunSettings":
+    if info.config['title'] == "Parameters":
         value.update(info.data)  # Include any already-validated parameters as they might be needed
         config_settings = info.data.get("config_file_settings")
         value['config_file_settings'] = getattr(config_settings, info.field_name, {})

@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 from clone_competition_simulation.parameters import (
-    SimulationRunSettings,
+    Parameters,
     TimeParameters,
     PopulationParameters,
     FitnessParameters,
@@ -10,19 +10,15 @@ from clone_competition_simulation.parameters import (
     LabelParameters,
     Algorithm
 )
-import pandas as pd
 import matplotlib.pyplot as plt
 from clone_competition_simulation.fitness.fitness_classes import FixedValue, NormalDist, ExponentialDist, UniformDist, Gene, MutationGenerator, \
     BoundedLogisticFitness
 from clone_competition_simulation.simulation_algorithms.general_differentiated_cell_class import set_gsl_random_seed
 from matplotlib.ticker import NullFormatter
 from clone_competition_simulation.plotting.colourscales import ColourScale
-from clone_competition_simulation.tissue_sampling.sim_sampling import get_vafs_for_all_biopsies, biopsy_sample
-from clone_competition_simulation.analysis.analysis import incomplete_moment_vaf_fixed_intervals
 from collections import namedtuple
 import os
 import random
-import seaborn as sns
 import warnings
 from scipy.sparse import SparseEfficiencyWarning
 
@@ -72,11 +68,11 @@ def test_simple(mock_random, axes, algorithm, overwrite_results=False):
     # Does it run with simplest settings
     ax = next_ax(axes, algorithm)
     np.random.seed(0)
-    p = SimulationRunSettings(algorithm=algorithm,
-                              population=PopulationParameters(initial_cells=INITIAL_CELLS,
+    p = Parameters(algorithm=algorithm,
+                   population=PopulationParameters(initial_cells=INITIAL_CELLS,
                                                               cell_in_own_neighbourhood=False),
-                              times=TimeParameters(max_time=MAX_TIME, division_rate=DIVISION_RATE)
-                              )
+                   times=TimeParameters(max_time=MAX_TIME, division_rate=DIVISION_RATE)
+                   )
     sim = p.get_simulator()
     sim.run_sim()
     compare_to_old_results(algorithm, sim, test_name='simple_run', overwrite_results=overwrite_results)
@@ -95,15 +91,15 @@ def test_multiple_clones(mock_random, axes, algorithm, overwrite_results=False):
     #  Multiple clones
     ax = next_ax(axes, algorithm)
     np.random.seed(0)
-    p = SimulationRunSettings(algorithm=algorithm,
-                              population=PopulationParameters(
+    p = Parameters(algorithm=algorithm,
+                   population=PopulationParameters(
                                   initial_size_array=initial_size_array,
                                   initial_grid=initial_grid,
                                   cell_in_own_neighbourhood=False
                               ),
-                              fitness=FitnessParameters(fitness_array=[1, 1.1, 0.9]),
-                              times=TimeParameters(max_time=MAX_TIME, division_rate=DIVISION_RATE)
-                              )
+                   fitness=FitnessParameters(fitness_array=[1, 1.1, 0.9]),
+                   times=TimeParameters(max_time=MAX_TIME, division_rate=DIVISION_RATE)
+                   )
     sim = p.get_simulator()
     sim.run_sim()
     compare_to_old_results(algorithm, sim, test_name='multiple_clones', overwrite_results=overwrite_results)
@@ -137,7 +133,7 @@ def test_mutations(mock_random, axes, algorithm, overwrite_results=False):
     #  Simple
     ax = next_ax(axes, algorithm)
     np.random.seed(0)
-    p = SimulationRunSettings(
+    p = Parameters(
         algorithm=algorithm,
         population=PopulationParameters(initial_cells=INITIAL_CELLS, cell_in_own_neighbourhood=False),
         times=TimeParameters(max_time=MAX_TIME, division_rate=DIVISION_RATE),
@@ -152,7 +148,7 @@ def test_mutations(mock_random, axes, algorithm, overwrite_results=False):
     # High mutation rate
     ax = next_ax(axes, algorithm)
     np.random.seed(0)
-    p = SimulationRunSettings(
+    p = Parameters(
         algorithm=algorithm,
         population=PopulationParameters(initial_cells=INITIAL_CELLS, cell_in_own_neighbourhood=False),
         times=TimeParameters(max_time=3, division_rate=DIVISION_RATE),
@@ -168,7 +164,7 @@ def test_mutations(mock_random, axes, algorithm, overwrite_results=False):
     mutation_rates = np.array([[0, 0.01], [3.5, 0.4]])
     ax = next_ax(axes, algorithm)
     np.random.seed(0)
-    p = SimulationRunSettings(
+    p = Parameters(
         algorithm=algorithm,
         population=PopulationParameters(initial_cells=INITIAL_CELLS, cell_in_own_neighbourhood=False),
         times=TimeParameters(max_time=MAX_TIME, division_rate=DIVISION_RATE),
@@ -184,7 +180,7 @@ def test_mutations(mock_random, axes, algorithm, overwrite_results=False):
     mut_gen = MutationGenerator(multi_gene_array=True, genes=genes, combine_mutations='add')
     ax = next_ax(axes, algorithm)
     np.random.seed(0)
-    p = SimulationRunSettings(
+    p = Parameters(
         algorithm=algorithm,
         population=PopulationParameters(initial_cells=INITIAL_CELLS, cell_in_own_neighbourhood=False),
         times=TimeParameters(max_time=MAX_TIME, division_rate=DIVISION_RATE),
@@ -200,7 +196,7 @@ def test_mutations(mock_random, axes, algorithm, overwrite_results=False):
     mut_gen = MutationGenerator(multi_gene_array=False, genes=genes, combine_mutations='multiply')
     ax = next_ax(axes, algorithm)
     np.random.seed(0)
-    p = SimulationRunSettings(
+    p = Parameters(
         algorithm=algorithm,
         population=PopulationParameters(initial_cells=INITIAL_CELLS, cell_in_own_neighbourhood=False),
         times=TimeParameters(max_time=MAX_TIME, division_rate=DIVISION_RATE),
@@ -216,7 +212,7 @@ def test_mutations(mock_random, axes, algorithm, overwrite_results=False):
     mut_gen = MutationGenerator(multi_gene_array=False, genes=genes, combine_mutations='replace')
     ax = next_ax(axes, algorithm)
     np.random.seed(0)
-    p = SimulationRunSettings(
+    p = Parameters(
         algorithm=algorithm,
         population=PopulationParameters(initial_cells=INITIAL_CELLS, cell_in_own_neighbourhood=False),
         times=TimeParameters(max_time=MAX_TIME, division_rate=DIVISION_RATE),
@@ -232,7 +228,7 @@ def test_mutations(mock_random, axes, algorithm, overwrite_results=False):
     mut_gen = MutationGenerator(multi_gene_array=False, genes=genes, combine_mutations='max')
     ax = next_ax(axes, algorithm)
     np.random.seed(0)
-    p = SimulationRunSettings(
+    p = Parameters(
         algorithm=algorithm,
         population=PopulationParameters(initial_cells=INITIAL_CELLS, cell_in_own_neighbourhood=False),
         times=TimeParameters(max_time=MAX_TIME, division_rate=DIVISION_RATE),
@@ -248,7 +244,7 @@ def test_mutations(mock_random, axes, algorithm, overwrite_results=False):
     mut_gen = MutationGenerator(multi_gene_array=False, genes=genes, combine_mutations='min')
     ax = next_ax(axes, algorithm)
     np.random.seed(0)
-    p = SimulationRunSettings(
+    p = Parameters(
         algorithm=algorithm,
         population=PopulationParameters(initial_cells=INITIAL_CELLS, cell_in_own_neighbourhood=False),
         times=TimeParameters(max_time=MAX_TIME, division_rate=DIVISION_RATE),
@@ -265,7 +261,7 @@ def test_mutations(mock_random, axes, algorithm, overwrite_results=False):
                                 combine_mutations='multiply')
     ax = next_ax(axes, algorithm)
     np.random.seed(0)
-    p = SimulationRunSettings(
+    p = Parameters(
         algorithm=algorithm,
         population=PopulationParameters(initial_cells=INITIAL_CELLS, cell_in_own_neighbourhood=False),
         times=TimeParameters(max_time=MAX_TIME, division_rate=DIVISION_RATE),
@@ -282,7 +278,7 @@ def test_mutations(mock_random, axes, algorithm, overwrite_results=False):
                                 combine_mutations='replace')
     ax = next_ax(axes, algorithm)
     np.random.seed(0)
-    p = SimulationRunSettings(
+    p = Parameters(
         algorithm=algorithm,
         population=PopulationParameters(initial_cells=INITIAL_CELLS, cell_in_own_neighbourhood=False),
         times=TimeParameters(max_time=MAX_TIME, division_rate=DIVISION_RATE),
@@ -299,7 +295,7 @@ def test_mutations(mock_random, axes, algorithm, overwrite_results=False):
                                 combine_mutations='add')
     ax = next_ax(axes, algorithm)
     np.random.seed(0)
-    p = SimulationRunSettings(
+    p = Parameters(
         algorithm=algorithm,
         population=PopulationParameters(initial_cells=INITIAL_CELLS, cell_in_own_neighbourhood=False),
         times=TimeParameters(max_time=MAX_TIME, division_rate=DIVISION_RATE),
@@ -316,7 +312,7 @@ def test_mutations(mock_random, axes, algorithm, overwrite_results=False):
                                 combine_mutations='add')
     ax = next_ax(axes, algorithm)
     np.random.seed(0)
-    p = SimulationRunSettings(
+    p = Parameters(
         algorithm=algorithm,
         population=PopulationParameters(initial_cells=INITIAL_CELLS, cell_in_own_neighbourhood=False),
         times=TimeParameters(max_time=MAX_TIME, division_rate=DIVISION_RATE),
@@ -341,7 +337,7 @@ def test_mutations(mock_random, axes, algorithm, overwrite_results=False):
                                 mutation_combination_class=BoundedLogisticFitness(1.1, 10),
                                 combine_mutations='multiply')
     np.random.seed(0)
-    p = SimulationRunSettings(
+    p = Parameters(
         algorithm=algorithm,
         population=PopulationParameters(initial_cells=INITIAL_CELLS, cell_in_own_neighbourhood=False),
         times=TimeParameters(max_time=20, division_rate=DIVISION_RATE),
@@ -358,7 +354,7 @@ def test_mutations(mock_random, axes, algorithm, overwrite_results=False):
                                 mutation_combination_class=BoundedLogisticFitness(1.1, 10),
                                 combine_mutations='multiply')
     np.random.seed(0)
-    p = SimulationRunSettings(
+    p = Parameters(
         algorithm=algorithm,
         population=PopulationParameters(initial_cells=INITIAL_CELLS, cell_in_own_neighbourhood=False),
         times=TimeParameters(max_time=20, division_rate=DIVISION_RATE),
@@ -381,7 +377,7 @@ def test_neutral_hallmarks(mock_random, axes, algorithm, overwrite_results=False
         initial_grid = None
 
     np.random.seed(0)
-    p = SimulationRunSettings(
+    p = Parameters(
         algorithm=algorithm,
         population=PopulationParameters(initial_size_array=initial_size_array,
                    initial_grid=initial_grid, cell_in_own_neighbourhood=False),
@@ -423,7 +419,7 @@ def test_imbalance(mock_random, axes, algorithm, overwrite_results=False):
 
     fitness_array = [1, 1.2]
     np.random.seed(0)
-    p = SimulationRunSettings(
+    p = Parameters(
         algorithm=algorithm,
         population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
                                         cell_in_own_neighbourhood=False),
@@ -453,7 +449,7 @@ def test_b_cells(mock_random, axes, algorithm, mutation_generator, overwrite_res
             initial_grid = None
         np.random.seed(0)
         set_gsl_random_seed(0)
-        p = SimulationRunSettings(
+        p = Parameters(
             algorithm=algorithm,
             population=PopulationParameters(
                 initial_size_array=initial_size_array,
@@ -472,7 +468,7 @@ def test_b_cells(mock_random, axes, algorithm, mutation_generator, overwrite_res
 
         np.random.seed(0)
         set_gsl_random_seed(0)
-        p = SimulationRunSettings(
+        p = Parameters(
             algorithm=algorithm,
             population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
                                             cell_in_own_neighbourhood=False),
@@ -500,7 +496,7 @@ def test_treatment_with_fixed_clones(mock_random, axes, algorithm, overwrite_res
 
     ax = next_ax(axes, algorithm)
     np.random.seed(0)
-    p = SimulationRunSettings(
+    p = Parameters(
         algorithm=algorithm,
         times=TimeParameters(max_time=12, division_rate=DIVISION_RATE),
         population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
@@ -530,7 +526,7 @@ def test_treatment_replace_with_fixed_clones(mock_random, axes, algorithm, overw
     ax = next_ax(axes, algorithm)
     np.random.seed(0)
 
-    p = SimulationRunSettings(
+    p = Parameters(
         algorithm=algorithm,
         times=TimeParameters(max_time=12, division_rate=DIVISION_RATE),
         population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
@@ -566,7 +562,7 @@ def test_treatment_with_multiple_genes(mock_random, axes, algorithm, overwrite_r
 
     ax = next_ax(axes, algorithm)
     np.random.seed(0)
-    p = SimulationRunSettings(
+    p = Parameters(
         algorithm=algorithm,
         population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
                                         cell_in_own_neighbourhood=False),
@@ -583,7 +579,7 @@ def test_treatment_with_multiple_genes(mock_random, axes, algorithm, overwrite_r
 
     ax = next_ax(axes, algorithm)
     np.random.seed(0)
-    p = SimulationRunSettings(
+    p = Parameters(
         algorithm=algorithm,
         population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
                                         cell_in_own_neighbourhood=False),
@@ -619,7 +615,7 @@ def test_treatment_replace_with_multiple_genes(mock_random, axes, algorithm, ove
 
     ax = next_ax(axes, algorithm)
     np.random.seed(0)
-    p = SimulationRunSettings(
+    p = Parameters(
         algorithm=algorithm,
         times=TimeParameters(max_time=12, division_rate=DIVISION_RATE),
         population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
@@ -636,7 +632,7 @@ def test_treatment_replace_with_multiple_genes(mock_random, axes, algorithm, ove
 
     ax = next_ax(axes, algorithm)
     np.random.seed(0)
-    p = SimulationRunSettings(
+    p = Parameters(
         algorithm=algorithm,
         times=TimeParameters(max_time=12, division_rate=DIVISION_RATE),
         population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
@@ -670,7 +666,7 @@ def test_labels(mock_random, cs_label, axes, algorithm, overwrite_results=False)
 
     ax = next_ax(axes, algorithm)
     np.random.seed(0)
-    p = SimulationRunSettings(
+    p = Parameters(
         algorithm=algorithm,
         times=TimeParameters(max_time=MAX_TIME, division_rate=1),
         plotting=PlottingParameters(colourscales=cs_label),
@@ -690,7 +686,7 @@ def test_labels(mock_random, cs_label, axes, algorithm, overwrite_results=False)
     label_values = [2, 3]
     ax = next_ax(axes, algorithm)
     np.random.seed(0)
-    p = SimulationRunSettings(
+    p = Parameters(
         algorithm=algorithm,
         times=TimeParameters(max_time=MAX_TIME, division_rate=1),
         plotting=PlottingParameters(colourscales=cs_label),
@@ -707,187 +703,6 @@ def test_labels(mock_random, cs_label, axes, algorithm, overwrite_results=False)
     ax.set_title('Late labels')
 
 
-def test_incomplete_moments(mock_random, axes, algorithm, overwrite_results=False):
-    initial_cells = 10000
-    max_time = 10
-
-    neut_genes = [Gene(name='neutral', mutation_distribution=FixedValue(1), synonymous_proportion=0.5)]
-    non_neut_genes = [
-        Gene(name='neutral', mutation_distribution=FixedValue(1), synonymous_proportion=0.5),
-        Gene(name='mild_driver', mutation_distribution=NormalDist(mean=1.2, var=0.02),
-             synonymous_proportion=0.6)]
-    mut_gen_neut = MutationGenerator(multi_gene_array=False, genes=neut_genes, combine_mutations='add')
-    mut_gen_non_neut = MutationGenerator(multi_gene_array=False, genes=non_neut_genes, combine_mutations='add')
-
-    mutation_rate = 0.05
-
-    # Neutral
-    ax = next_ax(axes, algorithm)
-    np.random.seed(0)
-    p = SimulationRunSettings(
-        algorithm=algorithm,
-        times=TimeParameters(max_time=max_time, division_rate=DIVISION_RATE),
-        population=PopulationParameters(initial_cells=initial_cells, cell_in_own_neighbourhood=False),
-        fitness=FitnessParameters(mutation_rates=mutation_rate,
-                   mutation_generator=mut_gen_neut),
-    )
-    sim = p.get_simulator()
-    sim.run_sim()
-    compare_to_old_results(algorithm, sim, test_name='neutral_incom', overwrite_results=overwrite_results)
-    sim.plot_incomplete_moment(ax=ax)
-    ax.set_title('Neutral')
-    ax = next_ax(axes, algorithm)
-    sim.plot_dnds(ax=ax, gene='neutral', legend_label='neutral')
-    ax.legend()
-    ax.set_title('Neutral dN/dS')
-
-    # Non-Neutral
-    ax = next_ax(axes, algorithm)
-    np.random.seed(0)
-    p = SimulationRunSettings(
-        algorithm=algorithm,
-        times=TimeParameters(max_time=max_time, division_rate=DIVISION_RATE),
-        population=PopulationParameters(initial_cells=initial_cells, cell_in_own_neighbourhood=False),
-        fitness=FitnessParameters(mutation_rates=mutation_rate,
-                   mutation_generator=mut_gen_non_neut)
-    )
-    sim = p.get_simulator()
-    sim.run_sim()
-    compare_to_old_results(algorithm, sim, test_name='non_neutral_incom', overwrite_results=overwrite_results)
-    sim.plot_incomplete_moment(ax=ax)
-    ax.set_title('Non-Neutral')
-    ax = next_ax(axes, algorithm)
-    sim.plot_dnds(ax=ax, gene='neutral', legend_label='neutral')
-    sim.plot_dnds(ax=ax, gene='mild_driver', legend_label='driver')
-    ax.legend()
-    ax.set_title('Non-Neutral dN/dS')
-
-
-def test_post_processing(mock_random, axes, algorithm, overwrite_results=False):
-    # Generate as many of the post processing results as possible, like the mutant clone array etc.
-    # Run all plotting functions
-    # Not big enough simulation to compare results visually. Just checks things can run.
-    non_neut_genes = [Gene(name='driver1', mutation_distribution=FixedValue(1.3),
-                           synonymous_proportion=0.8),
-                      Gene(name='driver2', mutation_distribution=FixedValue(1.1),
-                           synonymous_proportion=0.8)]
-    mut_gen = MutationGenerator(multi_gene_array=True, genes=non_neut_genes, combine_array='max',
-                                combine_mutations='max')
-
-    if algorithm.two_dimensional:
-        initial_size_array = None
-        initial_grid = np.tile([0, 1, 1, 2, 2, 2, 3, 3, 3, 3], 100).reshape(20, 50)
-    else:
-        initial_size_array = [100, 200, 300, 400]
-        initial_grid = None
-
-    label_array = [0, 1, 2, 3]
-
-    np.random.seed(0)
-    p = SimulationRunSettings(
-        algorithm=algorithm,
-        population=PopulationParameters(initial_size_array=initial_size_array,
-                   initial_grid=initial_grid, cell_in_own_neighbourhood=False),
-        labels=LabelParameters(label_array=label_array),
-        times=TimeParameters(max_time=5, division_rate=DIVISION_RATE),
-        fitness=FitnessParameters(mutation_rates=0.05, mutation_generator=mut_gen)
-    )
-    sim = p.get_simulator()
-    sim.run_sim()
-    ax = next_ax(axes, algorithm)
-    sim.muller_plot(allow_y_extension=True, min_size=15, ax=ax)
-    ax.set_title('Plot min size')
-
-    # All mutant clone size distributions
-    ax = next_ax(axes, algorithm)
-    csd = sim.get_mutant_clone_size_distribution()
-    csd2 = sim.get_mutant_clone_size_distribution(t=2)
-    csd_ns = sim.get_mutant_clone_size_distribution(selection='ns')
-    csd_s = sim.get_mutant_clone_size_distribution(selection='s')
-    csd_gene = sim.get_mutant_clone_size_distribution(gene_mutated='driver1')
-    ax.scatter(range(1, len(csd)), csd[1:], s=5, label='Full')
-    ax.scatter(range(1, len(csd2)), csd2[1:], s=5, label='t=2')
-    ax.scatter(range(1, len(csd_ns)), csd_ns[1:], s=5, label='NS')
-    ax.scatter(range(1, len(csd_s)), csd_s[1:], s=5, label='S')
-    ax.scatter(range(1, len(csd_gene)), csd_gene[1:], s=5, label='gene')
-    ax.set_title('Clone size dists')
-    ax.set_xlim([1, 10])
-    ax.legend()
-
-    ax = next_ax(axes, algorithm)
-    sim.plot_overall_population(legend_label='all', ax=ax)
-    sim.plot_overall_population(label=0, legend_label='0', ax=ax)
-    sim.plot_overall_population(label=1, legend_label='1', ax=ax)
-    sim.plot_overall_population(label=2, legend_label='2', ax=ax)
-    sim.plot_overall_population(label=3, legend_label='3', ax=ax)
-    ax.legend()
-    ax.set_title('Populations')
-
-    compare_to_old_results(algorithm, sim, test_name='post_process', overwrite_results=overwrite_results)
-
-    res_dict = {}
-    res_dict['labeled_pop1'] = sim.get_labeled_population(label=1)
-    res_dict['labeled_pop2'] = sim.get_labeled_population(label=2)
-    res_dict['mean_mutant_clone_size'] = sim.get_mean_clone_size()
-    res_dict['mean_driver1_clone_size'] = sim.get_mean_clone_size(gene_mutated="driver1")
-    res_dict['mean_clone_sizes_syn_nonsyn'] = sim.get_mean_clone_sizes_syn_and_non_syn()
-    res_dict['get_average_fitness'] = sim.get_average_fitness()
-    compare_to_old_results(algorithm, res_dict, test_name='post_process_dict', result_type='dict',
-                           overwrite_results=overwrite_results)
-
-
-def test_post_processing_non_mutation(mock_random, axes, algorithm, overwrite_results=False):
-    # Generate as many of the post processing results as possible, like the mutant clone array etc.
-    # Run all plotting functions
-
-    if algorithm.two_dimensional:
-        initial_size_array = None
-        initial_grid = np.tile([0, 1, 1, 2, 2, 2, 3, 3, 3, 3], 100).reshape(20, 50)
-    else:
-        initial_size_array = [100, 200, 300, 400]
-        initial_grid = None
-
-    label_array = [0, 1, 1, 2]
-    fitness_array = [0.9, 1, 1.1, 1.2]
-
-    res_dict = {}
-
-    np.random.seed(0)
-    p = SimulationRunSettings(
-        algorithm=algorithm,
-        population=PopulationParameters(
-            initial_size_array=initial_size_array, initial_grid=initial_grid, cell_in_own_neighbourhood=False),
-        times=TimeParameters(max_time=5, division_rate=DIVISION_RATE),
-        fitness=FitnessParameters(fitness_array=fitness_array),
-        labels=LabelParameters(label_array=label_array),
-    )
-    sim = p.get_simulator()
-    sim.run_sim()
-    res_dict['clone_sizes_array1'] = sim.get_clone_sizes_array_for_non_mutation()
-    res_dict['clone_sizes_array2'] = sim.get_clone_sizes_array_for_non_mutation(t=3, index_given=False,
-                                                                                exclude_zeros=False)
-    res_dict['clone_sizes_array3'] = sim.get_clone_sizes_array_for_non_mutation(t=3, index_given=True,
-                                                                                exclude_zeros=True, label=1)
-
-    res_dict['clone_size_dist1'] = sim.get_clone_size_distribution_for_non_mutation()
-    res_dict['clone_size_dist2'] = sim.get_clone_size_distribution_for_non_mutation(t=3, index_given=False,
-                                                                                    exclude_zeros=True)
-    res_dict['clone_size_dist3'] = sim.get_clone_size_distribution_for_non_mutation(t=3, index_given=True,
-                                                                                    exclude_zeros=False, label=1)
-
-    res_dict['surviving_clones1'] = sim.get_surviving_clones_for_non_mutation()
-    res_dict['surviving_clones2'] = sim.get_surviving_clones_for_non_mutation(label=1)
-    res_dict['surviving_clones3'] = sim.get_surviving_clones_for_non_mutation(times=[1, 2, 3, 3.1, 3.2, 4], label=1)
-
-    res_dict['labeled_pop1'] = sim.get_labeled_population(label=1)
-    res_dict['labeled_pop2'] = sim.get_labeled_population(label=2)
-
-    res_dict['get_average_fitness'] = sim.get_average_fitness()
-
-    compare_to_old_results(algorithm, res_dict, test_name='post_process_non_mutation_dict', result_type='dict',
-                           overwrite_results=overwrite_results)
-
-
 def test_irregular_sampling(mock_random, axes, algorithm, overwrite_results=False):
     if algorithm.two_dimensional:
         initial_size_array = None
@@ -897,7 +712,7 @@ def test_irregular_sampling(mock_random, axes, algorithm, overwrite_results=Fals
         initial_grid = None
     ax = next_ax(axes, algorithm)
     np.random.seed(0)
-    p = SimulationRunSettings(
+    p = Parameters(
         algorithm=algorithm,
         population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
                                         cell_in_own_neighbourhood=False),
@@ -921,7 +736,7 @@ def test_partially_simulating_B_cells(mock_random, axes, algorithm, overwrite_re
             initial_grid = None
         np.random.seed(0)
         set_gsl_random_seed(0)
-        p = SimulationRunSettings(
+        p = Parameters(
             algorithm=algorithm,
             population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
                                             cell_in_own_neighbourhood=False),
@@ -935,7 +750,7 @@ def test_partially_simulating_B_cells(mock_random, axes, algorithm, overwrite_re
         ax.set_title('B cells - partial sim')
         np.random.seed(0)
         set_gsl_random_seed(0)
-        p = SimulationRunSettings(
+        p = Parameters(
             algorithm=algorithm,
             population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
                                             cell_in_own_neighbourhood=False),
@@ -948,7 +763,7 @@ def test_partially_simulating_B_cells(mock_random, axes, algorithm, overwrite_re
 
         np.random.seed(0)
         set_gsl_random_seed(0)
-        p = SimulationRunSettings(
+        p = Parameters(
             algorithm=algorithm,
             population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
                                             cell_in_own_neighbourhood=False),
@@ -984,7 +799,7 @@ def test_too_many_sample_points(mock_random, axes, algorithm, overwrite_results=
         initial_grid = None
 
     np.random.seed(0)
-    p = SimulationRunSettings(
+    p = Parameters(
         algorithm=algorithm,
         times=TimeParameters(times=TIMES, division_rate=div_rate),
         population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
@@ -1000,7 +815,7 @@ def test_too_many_sample_points(mock_random, axes, algorithm, overwrite_results=
         ax.set_title('Reduce samples - B')
         np.random.seed(0)
         set_gsl_random_seed(0)
-        p = SimulationRunSettings(
+        p = Parameters(
             algorithm=algorithm,
             population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
                                             cell_in_own_neighbourhood=False),
@@ -1049,7 +864,7 @@ def test_induction_of_label_and_mutant(mock_random, axes, algorithm, overwrite_r
     else:
         label_fitness = 4
     np.random.seed(0)
-    p = SimulationRunSettings(
+    p = Parameters(
         algorithm=algorithm,
         population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
                                         cell_in_own_neighbourhood=False),
@@ -1075,7 +890,7 @@ def test_induction_of_label_and_mutant(mock_random, axes, algorithm, overwrite_r
         label_fitness = [4, 8]
     label_genes = [-1, 1]  # Apply the mutants to different genes
     np.random.seed(0)
-    p = SimulationRunSettings(
+    p = Parameters(
         algorithm=algorithm,
         population=PopulationParameters(
             initial_size_array=initial_size_array, initial_grid=initial_grid, cell_in_own_neighbourhood=False
@@ -1098,7 +913,7 @@ def test_seven_cell_neighbourhood(mock_random, cs_label, axes, algorithm, overwr
     if algorithm.two_dimensional:
         np.random.seed(0)
         initial_grid = np.arange(30 ** 2).reshape((30, 30))
-        p = SimulationRunSettings(
+        p = Parameters(
             algorithm=algorithm,
             times=TimeParameters(max_time=MAX_TIME, division_rate=1),
             population=PopulationParameters(initial_grid=initial_grid, cell_in_own_neighbourhood=True),
@@ -1147,7 +962,7 @@ def test_animation(mock_random, algorithm):
     mutation_rate = 0.05
     np.random.seed(0)
     random.seed(0)  # Animation currently uses random numbers from random module, not numpy
-    p = SimulationRunSettings(
+    p = Parameters(
         algorithm=algorithm,
         times=TimeParameters(max_time=MAX_TIME, division_rate=1),
         population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,

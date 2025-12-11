@@ -1,4 +1,4 @@
-from .parameter_validation import SimulationRunSettings
+from .parameter_validation import Parameters
 from .algorithm_validation import Algorithm
 from .differentiated_cells_validation import DifferentiatedCellsParameters
 from .fitness_validation import FitnessParameters

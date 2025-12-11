@@ -4,28 +4,33 @@ It contains the common function to setup, run and plot results from simulations.
 
 The subclasses have to define the sim_step and any other functions required for the specific algorithm
 """
-from typing import TYPE_CHECKING
-from functools import lru_cache
-import numpy as np
-import math
-import pandas as pd
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm
-import itertools
 import bisect
-from collections import Counter
-import pickle
 import copy
+import gzip
+import itertools
+import math
+import pickle
+import warnings
+from collections import Counter
+from functools import lru_cache
+from typing import TYPE_CHECKING, Iterable, Literal
+
+import matplotlib.cm as cm
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from numpy.typing import NDArray
+from scipy.sparse import lil_matrix, SparseEfficiencyWarning
+from treelib import Tree
+from loguru import logger
+
 from analysis.analysis import mean_clone_size, mean_clone_size_fit, surviving_clones_fit, \
     incomplete_moment, add_incom_to_plot
 from plotting.animator import NonSpatialToGridAnimator, HexAnimator, HexFitnessAnimator
 from plotting.colourscales import get_default_random_colourscale
-import warnings
-from scipy.sparse import lil_matrix, SparseEfficiencyWarning
-import gzip
-from treelib import Tree
+
 if TYPE_CHECKING:
-    from clone_competition_simulation.parameters.parameter_validation import SimulationRunSettings
+    from clone_competition_simulation.parameters.parameter_validation import Parameters
 warnings.simplefilter('ignore',SparseEfficiencyWarning)
 
 
@@ -34,7 +39,7 @@ class GeneralSimClass(object):
     Common functions for all simulation algorithms.
     Functions for setting up simulations and for plotting results
     """
-    def __init__(self, parameters: "SimulationRunSettings"):
+    def __init__(self, parameters: "Parameters"):
         """
 
         :param parameters: A Parameters object.
@@ -563,7 +568,7 @@ class GeneralSimClass(object):
         pass
 
     ############ Functions for post-processing simulations ############
-    def view_clone_info(self, include_raw_fitness=False):
+    def view_clone_info(self, include_raw_fitness: bool=False) -> pd.DataFrame:
         """
         This converts the clone_array into a more readable pandas dataframe
         :param include_raw_fitness: Add the raw_fitness_array data to the dataframe
@@ -572,15 +577,16 @@ class GeneralSimClass(object):
         df = pd.DataFrame({
             'clone id': pd.Series(self.clones_array[:, self.id_idx], dtype=int),
             'label': pd.Series(self.clones_array[:, self.label_idx], dtype=int),
-            'fitness': pd.Series(self.clones_array[:, self.fitness_idx], dtype=int),
+            'fitness': pd.Series(self.clones_array[:, self.fitness_idx], dtype=float),
             'generation born': pd.Series(self.clones_array[:, self.generation_born_idx], dtype=int),
             'parent clone id': pd.Series(self.clones_array[:, self.parent_idx], dtype=int),
-            'last gene mutated': pd.Series(
-                [self.mutation_generator.get_gene_name(int(g)) for g in self.clones_array[:, self.gene_mutated_idx]],
-                dtype=object),
         })
+        if self.mutation_generator is not None:
+            df['last gene mutated'] = pd.Series(
+                [self.mutation_generator.get_gene_name(int(g)) for g in self.clones_array[:, self.gene_mutated_idx]],
+                dtype=object)
 
-        if include_raw_fitness:
+        if include_raw_fitness and self.mutation_generator is not None:
             cols = []
             if self.mutation_generator.multi_gene_array:
                 cols += ['Initial clone fitness']
@@ -592,7 +598,7 @@ class GeneralSimClass(object):
 
         return df
 
-    def change_sparse_to_csr(self):
+    def change_sparse_to_csr(self) -> None:
         """
         Converts to a different type of sparse matrix.
         Required for some of the post-processing and plotting functions.
@@ -601,7 +607,7 @@ class GeneralSimClass(object):
             self.population_array = self.population_array.tocsr()  # Convert to CSR matrix
         self.is_lil = False
 
-    def _convert_time_to_index(self, t, nearest=True):
+    def _convert_time_to_index(self, t: float, nearest: bool=True) -> int:
         if nearest:  # Find nearest point to the time of interest
             return self._find_nearest(t)
         else:  # Find the index at or just before the time of interest
@@ -610,7 +616,7 @@ class GeneralSimClass(object):
                 return i - 1
             raise ValueError
 
-    def _find_nearest(self, t):
+    def _find_nearest(self, t: float) -> int:
         # From stackoverflow, Demitri, https://stackoverflow.com/a/26026189
         array = self.times
         idx = np.searchsorted(array, t, side="left")
@@ -619,7 +625,9 @@ class GeneralSimClass(object):
         else:
             return idx
 
-    def get_clone_sizes_array_for_non_mutation(self, t=None, index_given=False, label=None, exclude_zeros=True):
+    def get_clone_sizes_array_for_non_mutation(self, t: float | int | None=None,
+                                               index_given:bool=False, label: int | None=None,
+                                               exclude_zeros: bool=True) -> NDArray[int]:
         """
         Gets array of all clone sizes.
         Clones here are defined by a unique set of mutations, not per mutation.
@@ -627,6 +635,8 @@ class GeneralSimClass(object):
         a number of initial clones.
         :param t: time or index of the sample to get the distribution for.
         :param index_given: True if t is the index
+        :param label: label of the clones to include. Will return all clones if None.
+        :param exclude_zeros: Remove any "dead" clones
         :return:
         """
         if self.is_lil:
@@ -651,7 +661,8 @@ class GeneralSimClass(object):
 
         return clones
 
-    def get_clone_size_distribution_for_non_mutation(self, t=None, index_given=False, label=None, exclude_zeros=False):
+    def get_clone_size_distribution_for_non_mutation(self, t: float | int | None=None, index_given:bool=False,
+                                                     label: int | None=None, exclude_zeros: bool=True) -> NDArray[int]:
         """
         Gets the clone size frequencies. Not normalised.
         Clones here are defined by a unique set of mutations, not per mutation.
@@ -666,7 +677,8 @@ class GeneralSimClass(object):
         counts = np.bincount(clones)
         return counts
 
-    def get_surviving_clones_for_non_mutation(self, times=None, label=None):
+    def get_surviving_clones_for_non_mutation(self, times: Iterable[float] | None=None, label: int | None=None)\
+            -> tuple[NDArray[int], Iterable[float]]:
         """
         Follows the surviving clones based on of each row in the clone array. This is a clone defined by a unique set of
         mutations, not be a particular mutation.
@@ -687,7 +699,7 @@ class GeneralSimClass(object):
 
         return surviving_clones, times
 
-    def get_clone_ancestors(self, clone_idx):
+    def get_clone_ancestors(self, clone_idx: int) -> list[int]:
         """
         Return the clone ids of all ancestors of a given clone.
         :param clone_idx: int
@@ -695,7 +707,7 @@ class GeneralSimClass(object):
         """
         return [n for n in self.tree.rsearch(clone_idx)]
 
-    def get_clone_descendants(self, clone_idx):
+    def get_clone_descendants(self, clone_idx: int) -> list[int]:
         """
         Return the clone ids of all descendants of a given clone.
         :param clone_idx: int
@@ -726,11 +738,12 @@ class GeneralSimClass(object):
                     break
         return trimmed_tree, sampled_clones
 
-    def _get_clone_descendants_trimmed(self, trimmed_tree: Tree, clone_idx: int):
+    def _get_clone_descendants_trimmed(self, trimmed_tree: Tree, clone_idx: int) -> list[int]:
         """Must run trim tree first"""
         return list(trimmed_tree.subtree(clone_idx).nodes.keys())
 
-    def track_mutations(self, selection='all'):
+    def track_mutations(self, selection: Literal['all', 's', 'ns', 'label', 'mutations', 'non_zero']='all') \
+            -> dict[int, list[int]]:
         """
         Get a dictionary of the clones which contain each mutation.
         :param selection: 'all', 'ns', 's'. All/non-synonymous only/synonymous only.
@@ -751,7 +764,7 @@ class GeneralSimClass(object):
             trimmed_tree, sampled_clones = self._trim_tree()
             mutant_clones = {k: self._get_clone_descendants_trimmed(trimmed_tree, k) for k in sampled_clones}
         else:
-            print("Please select from 'all', 's', 'ns', 'label', 'mutations' or 'non_zero'")
+            logger.error("Please select from 'all', 's', 'ns', 'label', 'mutations' or 'non_zero'")
             raise ValueError("Please select from 'all', 's', 'ns', 'label', 'mutations' or 'non_zero'")
 
         return mutant_clones
@@ -766,7 +779,7 @@ class GeneralSimClass(object):
         for mutant in mutant_clones:
             self.mutant_clone_array[mutant] = self.population_array[mutant_clones[mutant]].sum(axis=0)
 
-    def get_idx_of_gene_mutated(self, gene_mutated):
+    def get_idx_of_gene_mutated(self, gene_mutated: str) -> set[int]:
         """
         Returns a set of all clones with gene_mutated given
         :param gene_mutated: The name of the gene mutated.
@@ -774,7 +787,10 @@ class GeneralSimClass(object):
         gene_num = self.mutation_generator.get_gene_number(gene_mutated)
         return set(np.where(self.clones_array[:, self.gene_mutated_idx] == gene_num)[0])
 
-    def get_mutant_clone_sizes(self, t=None, selection='mutations', index_given=False, gene_mutated=None, non_zero_only=False):
+    def get_mutant_clone_sizes(self, t: float | int | None=None,
+                               selection: Literal['mutations', 'all', 'ns', 's', 'label']='mutations',
+                               index_given: bool=False, gene_mutated: str | None=None,
+                               non_zero_only: bool=False) -> NDArray:
         """
         Get an array of mutant clone sizes at a particular time
         WARNING: This may not work exactly as expected if there were multiple initial clones!
@@ -819,7 +835,9 @@ class GeneralSimClass(object):
         else:
             return mutant_clones
 
-    def get_mutant_clone_size_distribution(self, t=None, selection='mutations', index_given=False, gene_mutated=None):
+    def get_mutant_clone_size_distribution(self, t: float | int | None=None,
+                                           selection: Literal['mutations', 'ns', 's']='mutations',
+                                           index_given: bool=False, gene_mutated: str | None=None) -> NDArray:
         """
         Get the frequencies of mutant clone sizes. Not normalised.
         :param t: time/sample index
@@ -842,13 +860,13 @@ class GeneralSimClass(object):
             elif self.s_muts and not self.ns_muts:
                 selection = 's'
             elif not self.s_muts and not self.ns_muts:
-                print('No mutations at all')
+                logger.debug('No mutations at all')
                 return None
         elif selection == 'ns' and not self.ns_muts:
-            print('No non-synonymous mutations')
+            logger.debug('No non-synonymous mutations')
             return None
         elif selection == 's' and not self.s_muts:
-            print('No synonymous mutations')
+            logger.debug('No synonymous mutations')
             return None
 
         clones = self.get_mutant_clone_sizes(i, selection=selection, index_given=True,
@@ -857,7 +875,7 @@ class GeneralSimClass(object):
         counts = np.bincount(clones)
         return counts
 
-    def get_dnds(self, t=None, min_size=1, gene=None):
+    def get_dnds(self, t: float | int | None=None, min_size: int=1, gene: str | None=None) -> float:
         """
         Returns the dN/dS at a particular time.
         :param t: Time. If None, will be the end of the simulation.
@@ -882,7 +900,7 @@ class GeneralSimClass(object):
         except ZeroDivisionError as e:
             return np.nan
 
-    def get_labeled_population(self, label=None):
+    def get_labeled_population(self, label: int | None=None) -> NDArray:
         """
         If label is None, will return the total population (not interesting for the fixed population models)
         :param label:
@@ -896,7 +914,9 @@ class GeneralSimClass(object):
 
         return pop.toarray().sum(axis=0)
 
-    def get_mean_clone_size(self, t=None, selection='mutations', index_given=False, gene_mutated=None):
+    def get_mean_clone_size(self, t: float | int| None=None,
+                            selection: Literal['mutations', 'all', 'ns', 's', 'label']='mutations',
+                            index_given: bool=False, gene_mutated: str | None=None) -> float:
         """
         Returns the mean mutant clone size.
         Each clone is defined as the total cells containing a mutation.
@@ -912,7 +932,8 @@ class GeneralSimClass(object):
         mean_ = clone_sizes[clone_sizes > 0].mean()
         return mean_
 
-    def get_mean_clone_sizes_syn_and_non_syn(self, t=None, index_given=False, gene_mutated=None):
+    def get_mean_clone_sizes_syn_and_non_syn(self, t: float | int | None=None, index_given: bool=False,
+                                             gene_mutated: str | None=None) -> tuple[float, float]:
         """
         Convenient function to get mean size of both the synonymous and non-synonymous mutations.
         :param t:
@@ -925,7 +946,7 @@ class GeneralSimClass(object):
 
         return mean_syn, mean_non_syn
 
-    def get_average_fitness(self, t=None):
+    def get_average_fitness(self, t: float | None=None) -> float:
         """
         Get the average fitness of the entire population at the given time point.
         :param t: If None, will be the end of the simulation.
@@ -1239,7 +1260,7 @@ class GeneralSimClass(object):
                 elif show_plot:
                     plt.show()
 
-    def _expected_incomplete_moment(self, t, max_n):
+    def _expected_incomplete_moment(self, t: float, max_n: int) -> NDArray:
         """The expected incomplete moment if the simulation is neutral and all clones are measured accurately"""
         return np.exp(-np.arange(1, max_n + 1) / (self.division_rate * t))
 
