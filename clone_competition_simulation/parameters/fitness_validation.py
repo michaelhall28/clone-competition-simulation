@@ -4,12 +4,11 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Tag,
-    BeforeValidator, field_validator,
+    BeforeValidator
 )
 from .validation_utils import (
     assign_config_settings,
     ValidationBase,
-    FloatParameter,
     FloatOrArrayParameter,
     IntOrArrayParameter,
     AlwaysValidateNoneField
