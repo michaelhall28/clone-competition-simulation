@@ -127,7 +127,7 @@ def get_default_random_colourscale():
     return cs
 
 
-# An example colourscale which plots type 0 cells and type 1 cells as yellow/green
+# An example colourscale which plots label 0 cells as beige, label 1 cells as yellow/green, and label 2 cells as purple
 Key1 = namedtuple('Key1', ['label' ])
 COLOURSCALE_EXAMPLE1 = ColourScale(
     name='Single Green Mutant',

@@ -1,1 +1,1 @@
-from .colourscales import ColourScale, get_default_random_colourscale
+from .colourscales import ColourScale, get_default_random_colourscale, COLOURSCALE_EXAMPLE1, COLOURSCALE_EXAMPLE2
