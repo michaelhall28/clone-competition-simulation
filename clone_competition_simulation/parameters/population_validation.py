@@ -10,6 +10,7 @@ from .validation_utils import (
     assign_config_settings,
     IntParameter,
     ArrayParameter,
+    IntArrayParameter,
     AlwaysValidateNoneField,
     ValidationBase
 )
@@ -20,9 +21,9 @@ class PopulationParameters(BaseModel):
     tag: Literal['Base'] = 'Base'
     model_config = ConfigDict(arbitrary_types_allowed=True)
     initial_cells: IntParameter = AlwaysValidateNoneField
-    initial_size_array: ArrayParameter = AlwaysValidateNoneField
+    initial_size_array: IntArrayParameter = AlwaysValidateNoneField
     grid_shape: tuple[int, int] | None = AlwaysValidateNoneField
-    initial_grid: ArrayParameter = AlwaysValidateNoneField
+    initial_grid: IntArrayParameter = AlwaysValidateNoneField
     population_limit: int | None = AlwaysValidateNoneField
     cell_in_own_neighbourhood: bool | None = AlwaysValidateNoneField
 
@@ -52,7 +53,7 @@ class PopulationValidator(PopulationParameters, ValidationBase):
     def _setup_2D_initial_population(self):
         if self.initial_cells is not None:
             self._try_making_square_grid()
-            self.initial_size_array = np.array([self.initial_cells])
+            self.initial_size_array = np.array([self.initial_cells], dtype=int)
             self.initial_grid = np.zeros(self.grid_shape, dtype=int)
         elif self.initial_size_array is not None:
             if len(self.initial_size_array) == 1:
@@ -63,7 +64,7 @@ class PopulationValidator(PopulationParameters, ValidationBase):
                 raise ValueError('Cannot use initial_size_array with 2D simulation. Provide initial_grid instead.')
         elif self.grid_shape is not None:
             self.initial_cells = self.grid_shape[0] * self.grid_shape[1]
-            self.initial_size_array = np.array([self.initial_cells])
+            self.initial_size_array = np.array([self.initial_cells], dtype=int)
             self.initial_grid = np.zeros(self.grid_shape, dtype=int)
         elif self.initial_grid is not None:
             self.grid_shape = self.initial_grid.shape
@@ -101,11 +102,11 @@ class PopulationValidator(PopulationParameters, ValidationBase):
                 self.initial_size_array.append(idx_counts[i])
             else:
                 self.initial_size_array.append(0)
-        self.initial_size_array = np.array(self.initial_size_array)
+        self.initial_size_array = np.array(self.initial_size_array, dtype=int)
 
     def _setup_initial_population_non_spatial(self):
         if self.initial_cells is not None:
-            self.initial_size_array = np.array([self.initial_cells])
+            self.initial_size_array = np.array([self.initial_cells], dtype=int)
         elif self.initial_size_array is not None:
             self.initial_cells = sum(self.initial_size_array)
 

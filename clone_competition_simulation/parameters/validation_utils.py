@@ -1,8 +1,9 @@
+from functools import partial
 from typing import Annotated, Self
 
-from pydantic import BaseModel, Field, model_validator, BeforeValidator
 import numpy as np
 from numpy.typing import NDArray
+from pydantic import BaseModel, Field, model_validator, BeforeValidator
 
 from .algorithm_validation import Algorithm
 
@@ -40,7 +41,7 @@ class ValidationBase(BaseModel):
         return value
 
 
-def convert_to_array(value):
+def convert_to_array(value, dtype=None):
     """
     Numbers and None are returned unchanged, otherwise
     convert anything "array like" to a numpy array.
@@ -54,9 +55,11 @@ def convert_to_array(value):
         return value
     if not isinstance(value, np.ndarray):
         try:
-            return np.array(value)
+            return np.array(value, dtype=dtype)
         except ValueError:
             return value
+    elif dtype is not None and value.dtype != dtype:
+        return value.astype(dtype)
     return value
 
 
@@ -64,8 +67,9 @@ def convert_to_array(value):
 IntParameter = int | None
 FloatParameter = float | None
 ArrayParameter = Annotated[NDArray | None, BeforeValidator(convert_to_array)]
-FloatOrArrayParameter = Annotated[NDArray | float | None, BeforeValidator(convert_to_array)]
-IntOrArrayParameter = Annotated[NDArray | int | None, BeforeValidator(convert_to_array)]
+IntArrayParameter = Annotated[NDArray[np.int_] | None, BeforeValidator(partial(convert_to_array, dtype=np.int64))]
+FloatOrArrayParameter = Annotated[NDArray | float | None, BeforeValidator(partial(convert_to_array, dtype=np.float64))]
+IntOrArrayParameter = Annotated[NDArray | int | None, BeforeValidator(partial(convert_to_array, dtype=np.int64))]
 
 
 # Fields
