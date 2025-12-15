@@ -1,26 +1,15 @@
-import pytest
-import sys
 import os
-import types
+import sys
+
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(TEST_DIR))
 import numpy as np
 from clone_competition_simulation.parameters.algorithm_validation import Algorithm
 import pandas as pd
 import matplotlib.pyplot as plt
-from fitness.fitness_classes import FixedValue, NormalDist, ExponentialDist, UniformDist, Gene, MutationGenerator, \
-    BoundedLogisticFitness
-from simulation_algorithms.general_differentiated_cell_class import set_gsl_random_seed
-from matplotlib.ticker import NullFormatter
-
-from plotting.animator import HexAnimator
-from tissue_sampling.sim_sampling import get_vafs_for_all_biopsies, biopsy_sample
-from analysis.analysis import incomplete_moment_vaf_fixed_intervals
 import pickle
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 import os
-import random
-import seaborn as sns
 import warnings
 from scipy.sparse import lil_matrix, csr_matrix, SparseEfficiencyWarning
 warnings.simplefilter('ignore',SparseEfficiencyWarning)

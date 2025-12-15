@@ -117,16 +117,20 @@ def test_mutations(mock_random, axes, algorithm, overwrite_results=False):
 
     # Need lower fitnesses for the branching process - numbers are not equivalent in the different algorithms
     if algorithm == Algorithm.BRANCHING:
-        norm_mean = 1.1
+        norm_mean = 1.02
+        exp_mean = 1.02
+        uniform_high = 1.05
     else:
         norm_mean = 4.5
+        exp_mean = 1.3
+        uniform_high = 1.2
     genes = [Gene(name='neutral', mutation_distribution=FixedValue(1), synonymous_proportion=0.5),
              Gene(name='mild_driver', mutation_distribution=FixedValue(1.1), synonymous_proportion=0.5),
              Gene(name='random_driver', mutation_distribution=NormalDist(mean=norm_mean, var=0.05),
                   synonymous_proportion=0.8),
-             Gene(name='uniform_driver', mutation_distribution=UniformDist(low=0.7, high=1.2),
+             Gene(name='uniform_driver', mutation_distribution=UniformDist(low=0.7, high=uniform_high),
                   synonymous_proportion=0.2),
-             Gene(name='exp_driver', mutation_distribution=ExponentialDist(mean=1.3, offset=0.8),
+             Gene(name='exp_driver', mutation_distribution=ExponentialDist(mean=exp_mean, offset=0.8),
                   synonymous_proportion=0.2)]
     mut_gen1 = MutationGenerator(multi_gene_array=False, genes=genes, combine_mutations='add')
 
@@ -443,7 +447,7 @@ def test_b_cells(mock_random, axes, algorithm, mutation_generator, overwrite_res
     if not algorithm.algorithm_class == AlgorithmClass.WF:
         if algorithm.two_dimensional:
             initial_size_array = None
-            initial_grid = np.arange(30 ** 2).reshape((30, 30))
+            initial_grid = np.arange(4 ** 2).reshape((4, 4))
         else:
             initial_size_array = np.ones(30 ** 2)
             initial_grid = None
@@ -859,8 +863,7 @@ def test_induction_of_label_and_mutant(mock_random, axes, algorithm, overwrite_r
     label_value = 1
     label_freq = 0.05
     if algorithm == Algorithm.BRANCHING:
-        label_fitness = 1.2
-        return
+        label_fitness = 1.01
     else:
         label_fitness = 4
     np.random.seed(0)
@@ -884,8 +887,8 @@ def test_induction_of_label_and_mutant(mock_random, axes, algorithm, overwrite_r
     label_time = [3, 6]
     label_value = [1, 2]
     label_freq = [0.05, 0.1]
-    if algorithm == "Branching":
-        label_fitness = [1.15, 1.25]
+    if algorithm == Algorithm.BRANCHING:
+        label_fitness = [1.01, 1.02]
     else:
         label_fitness = [4, 8]
     label_genes = [-1, 1]  # Apply the mutants to different genes
