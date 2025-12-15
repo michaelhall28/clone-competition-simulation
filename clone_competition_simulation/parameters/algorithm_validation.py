@@ -19,7 +19,3 @@ class Algorithm(Enum):
         obj.two_dimensional = two_dimensional
         obj.algorithm_class = algorithm_class
         return obj
-
-
-if __name__ == '__main__':
-    print(Algorithm.MORAN.value)

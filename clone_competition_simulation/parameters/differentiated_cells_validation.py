@@ -7,9 +7,9 @@ from pydantic import (
     Tag,
     BeforeValidator
 )
-from .algorithm_validation import AlgorithmClass
-from .validation_utils import assign_config_settings, ValidationBase
-from .times_validation import TimeValidator
+from clone_competition_simulation.parameters.algorithm_validation import AlgorithmClass
+from clone_competition_simulation.parameters.validation_utils import assign_config_settings, ValidationBase
+from clone_competition_simulation.parameters.times_validation import TimeValidator
 
 
 class DifferentiatedCellsParameters(BaseModel):
