@@ -127,7 +127,7 @@ class GeneralSimClass(object):
         self.tree = Tree()
         self.tree.create_node(str(-1), -1)  # Make a root node that isn't a clone.
         self.trimmed_tree = None  # Used for mutant clone arrays.
-        self._init_arrays(parameters.labels.label_array, parameters.fitness.gene_label_array)
+        self._init_arrays(parameters.labels.label_array, parameters.fitness.initial_mutant_gene_array)
         self.next_mutation_index = self.initial_clones  # Keeping track of how many mutations added
 
         # Details for plotting
@@ -167,7 +167,7 @@ class GeneralSimClass(object):
         """
         self.new_mutation_count = 0
 
-    def _init_arrays(self, labels_array, gene_label_array):
+    def _init_arrays(self, labels_array, initial_mutant_gene_array):
         """
         Defines self.clones_array, self.population_array and self.raw_fitness_array
         Fills the self.clones_array with any information given about the initial cells.
@@ -179,10 +179,10 @@ class GeneralSimClass(object):
             labels_array = 0
         self.clones_array[:self.initial_clones, self.label_idx] = labels_array  # Give each intial cell a type
 
-        if gene_label_array is None:
-            gene_label_array = -1
+        if initial_mutant_gene_array is None:
+            initial_mutant_gene_array = -1
         # Give each initial cell mutation type. -1 if no mutation
-        self.clones_array[:self.initial_clones, self.gene_mutated_idx] = gene_label_array
+        self.clones_array[:self.initial_clones, self.gene_mutated_idx] = initial_mutant_gene_array
 
         self.clones_array[:self.initial_clones, self.generation_born_idx] = 0
         self.clones_array[:self.initial_clones, self.parent_idx] = -1
@@ -592,7 +592,7 @@ class GeneralSimClass(object):
                 cols += ['Initial clone fitness']
             cols += [g.name for g in self.mutation_generator.genes]
             if self.mutation_generator.epistatics is not None:
-                cols += [e[0] for e in self.mutation_generator.epistatics]
+                cols += [e.name for e in self.mutation_generator.epistatics]
             raw_df = pd.DataFrame(self.raw_fitness_array, columns=cols)
             df = pd.concat([df, raw_df], axis=1)
 

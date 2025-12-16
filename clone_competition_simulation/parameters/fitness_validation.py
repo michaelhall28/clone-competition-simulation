@@ -24,7 +24,7 @@ class FitnessParameters(BaseModel):
     mutation_generator: MutationGenerator | None = AlwaysValidateNoneField
     mutation_rates: FloatOrArrayParameter = AlwaysValidateNoneField
     fitness_array: FloatOrArrayParameter = AlwaysValidateNoneField
-    gene_label_array: IntOrArrayParameter = AlwaysValidateNoneField
+    initial_mutant_gene_array: IntOrArrayParameter = AlwaysValidateNoneField
 
 
 class FitnessValidator(FitnessParameters, ValidationBase):
@@ -45,15 +45,15 @@ class FitnessValidator(FitnessParameters, ValidationBase):
         if self.mutation_generator is None:
             self.mutation_generator = self.config_file_settings.mutation_generator
 
-        self.gene_label_array = self.get_value_from_config("gene_label_array")
-        if self.gene_label_array is None:
-            self.gene_label_array = np.full_like(initial_size_array, self._default_mutation_type)
-        elif isinstance(self.gene_label_array, int):
-            self.gene_label_array = np.full_like(initial_size_array, self.gene_label_array)
-        elif len(self.gene_label_array) != len(initial_size_array):
-            raise ValueError('Inconsistent initial_size_array and additional_label_array. Ensure same length.')
+        self.initial_mutant_gene_array = self.get_value_from_config("initial_mutant_gene_array")
+        if self.initial_mutant_gene_array is None:
+            self.initial_mutant_gene_array = np.full_like(initial_size_array, self._default_mutation_type)
+        elif isinstance(self.initial_mutant_gene_array, int):
+            self.initial_mutant_gene_array = np.full_like(initial_size_array, self.initial_mutant_gene_array)
+        elif len(self.initial_mutant_gene_array) != len(initial_size_array):
+            raise ValueError('Inconsistent initial_size_array and initial_mutant_gene_array. Ensure same length.')
         elif not isinstance(initial_size_array, np.ndarray):
-            raise TypeError("Unexpected type for gene_label_array. Should be integer or array like")
+            raise TypeError("Unexpected type for initial_mutant_gene_array. Should be integer or array like")
 
         if self.mutation_generator is not None and self.mutation_generator.multi_gene_array:
             # Make sure the fitness array has the appropriate dimensions.
@@ -75,7 +75,7 @@ class FitnessValidator(FitnessParameters, ValidationBase):
                                                   np.nan, dtype=float)
                     blank_fitness_array[:, 0] = self._wt_fitness
                     blank_fitness_array[
-                        np.arange(len(initial_size_array)), self.gene_label_array + 1] = self.fitness_array
+                        np.arange(len(initial_size_array)), self.initial_mutant_gene_array + 1] = self.fitness_array
 
                     self.fitness_array = blank_fitness_array
                 elif self.fitness_array.shape == (len(initial_size_array), len(self.mutation_generator.genes)+1):

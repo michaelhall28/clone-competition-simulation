@@ -571,7 +571,7 @@ def test_treatment_with_multiple_genes(mock_random, axes, algorithm, overwrite_r
         population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
                                         cell_in_own_neighbourhood=False),
         times=TimeParameters(max_time=12, division_rate=DIVISION_RATE),
-        fitness=FitnessParameters(gene_label_array=[0, 1], mutation_generator=mut_gen,
+        fitness=FitnessParameters(initial_mutant_gene_array=[0, 1], mutation_generator=mut_gen,
                                   fitness_array=[1.05, 1]),
         treatment=TreatmentParameters(treatment_timings=timings, treatment_effects=treatment_arrays),
     )
@@ -588,7 +588,7 @@ def test_treatment_with_multiple_genes(mock_random, axes, algorithm, overwrite_r
         population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
                                         cell_in_own_neighbourhood=False),
         times=TimeParameters(max_time=12, division_rate=DIVISION_RATE),
-        fitness=FitnessParameters(gene_label_array=[0, 1], mutation_generator=mut_gen,
+        fitness=FitnessParameters(initial_mutant_gene_array=[0, 1], mutation_generator=mut_gen,
                                   fitness_array=[1.05, 1], mutation_rates=0.005),
         treatment=TreatmentParameters(treatment_timings=timings, treatment_effects=treatment_arrays),
     )
@@ -624,7 +624,7 @@ def test_treatment_replace_with_multiple_genes(mock_random, axes, algorithm, ove
         times=TimeParameters(max_time=12, division_rate=DIVISION_RATE),
         population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
                                         cell_in_own_neighbourhood=False),
-        fitness=FitnessParameters(gene_label_array=[0, 1], mutation_generator=mut_gen, fitness_array=[1.05, 1]),
+        fitness=FitnessParameters(initial_mutant_gene_array=[0, 1], mutation_generator=mut_gen, fitness_array=[1.05, 1]),
         treatment=TreatmentParameters(treatment_timings=timings, treatment_effects=treatment_arrays,
                                       treatment_replace_fitness=True),
     )
@@ -641,7 +641,7 @@ def test_treatment_replace_with_multiple_genes(mock_random, axes, algorithm, ove
         times=TimeParameters(max_time=12, division_rate=DIVISION_RATE),
         population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
                                         cell_in_own_neighbourhood=False),
-        fitness=FitnessParameters(gene_label_array=[0, 1], mutation_generator=mut_gen, mutation_rates=0.005,
+        fitness=FitnessParameters(initial_mutant_gene_array=[0, 1], mutation_generator=mut_gen, mutation_rates=0.005,
                                   fitness_array=[1.05, 1]),
         treatment=TreatmentParameters(treatment_timings=timings, treatment_effects=treatment_arrays,
                                       treatment_replace_fitness=False)
