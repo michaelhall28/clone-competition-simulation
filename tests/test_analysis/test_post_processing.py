@@ -13,9 +13,9 @@ from clone_competition_simulation.parameters import (
     PopulationParameters,
     TimeParameters,
     FitnessParameters,
-    LabelParameters
+    LabelParameters,
 )
-from clone_competition_simulation.fitness import MutationGenerator, Gene, NormalDist
+from clone_competition_simulation.fitness import MutationGenerator, Gene, NormalDist, FixedValue, EpistaticEffect
 
 
 @pytest.fixture
@@ -144,6 +144,57 @@ def test_view_clone_info3(mutating_sim2):
     expected['A'] = expected['fitness']
     expected.loc[expected['A'] == 1, 'A'] = np.nan
     pd.testing.assert_frame_equal(df2, expected)
+
+
+def test_view_clone_info4(monkeypatch):
+    expected = pd.DataFrame(
+        {
+            "clone id": np.arange(7),
+            "label": np.zeros(7, dtype=int),
+            "fitness": [1, 1.1, 1.1, 1.05, 3, 3, 3],
+            "generation born": [0, 8, 13, 18, 25, 35, 48],
+            "parent clone id": [-1, 0, 0, 0, 2, 4, 4],
+            "last gene mutated": [None, "Gene1", "Gene1", "Gene2", "Gene2", "Gene2", "Gene1"],
+            "Initial clone fitness": [1.] * 7,
+            "Gene1": [np.nan, 1.1, 1.1, np.nan, 1.1, 1.1, 1.1],
+            "Gene2": [np.nan, np.nan, np.nan, 1.05, 1.05, 1.05, 1.05],
+            "Epi1": [np.nan, np.nan, np.nan, np.nan, 3., 3., 3.]
+        }
+    )
+
+    with monkeypatch.context() as m:
+        rng = np.random.RandomState()
+        monkeypatch.setattr('numpy.random', rng)
+        np.random.seed(0)
+        mut_gen = MutationGenerator(
+            genes=[
+                Gene(name='Gene1', mutation_distribution=FixedValue(1.1), synonymous_proportion=0),
+                Gene(name='Gene2', mutation_distribution=FixedValue(1.05), synonymous_proportion=0)
+            ],
+            epistatics=[
+                EpistaticEffect(
+                    name='Epi1',
+                    gene_names=['Gene1', 'Gene2'],
+                    fitness_distribution=FixedValue(3)
+                )
+            ],
+            multi_gene_array=True,
+            combine_mutations='replace',  # With FixedValue this means further mutations will do nothing
+        )
+        p = Parameters(
+            algorithm='Moran',
+            times=TimeParameters(max_time=10, division_rate=1),
+            population=PopulationParameters(initial_cells=6),
+            fitness=FitnessParameters(
+                mutation_rates=0.15,
+                mutation_generator=mut_gen,
+            )
+        )
+        s = p.get_simulator()
+        s.run_sim()
+
+    df = s.view_clone_info(include_raw_fitness=True)
+    pd.testing.assert_frame_equal(df, expected)
 
 
 def test_change_sparse_to_csr(non_mutating_sim):
