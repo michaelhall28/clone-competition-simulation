@@ -1,3 +1,4 @@
+from typing import Any
 from simulation_algorithms.moran import MoranSim
 from simulation_algorithms.moran2D import Moran2D
 from simulation_algorithms.wf import WrightFisherSim
@@ -23,7 +24,8 @@ class StopConditionClass:
         :param stop_condition_function: An function that takes a simulation object as an argument and raises a
         StopConditionError if the simulation should stop.
         """
-        self.stop_condition_result = None   # Spare attribute to place any relevant result from the stopping
+        self.stop_time: float | None = None
+        self.stop_condition_result: Any | None = None   # Spare attribute to place any relevant result from the stopping
         self.stop_function = stop_condition_function
         super().__init__(parameters)
 
@@ -31,6 +33,8 @@ class StopConditionClass:
         try:
             super().run_sim(continue_sim)
         except EndConditionError as e:
+            # Record the stop time
+            self.stop_time = self.times[self.plot_idx-1]
             pass
 
     def _record_results(self, i, current_population, non_zero_clones):

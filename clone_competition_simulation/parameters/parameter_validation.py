@@ -18,6 +18,7 @@ from clone_competition_simulation.parameters.differentiated_cells_validation imp
 from clone_competition_simulation.parameters.plotting_validation import plotting_validation_type
 from clone_competition_simulation.parameters.algorithm_validation import Algorithm
 from clone_competition_simulation.parameters.validation_utils import ValidationModelField, AlwaysValidateNoneField
+from clone_competition_simulation.simulation_algorithms.general_sim_class import GeneralSimClass
 from clone_competition_simulation.simulation_algorithms.wf import WrightFisherSim
 from clone_competition_simulation.simulation_algorithms.moran import MoranSim
 from clone_competition_simulation.simulation_algorithms.moran2D import Moran2D
@@ -38,7 +39,7 @@ class RunSettingsBase(BaseSettings):
     differentiated_cells: differentiated_cells_validation_type = ValidationModelField
     plotting: plotting_validation_type = ValidationModelField
 
-    end_condition_function: Callable | None = None
+    end_condition_function: Callable[[GeneralSimClass], None] | None = None
     progress: int | None = None
     tmp_store: Path | None = None
 
