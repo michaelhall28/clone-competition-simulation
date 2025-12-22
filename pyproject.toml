@@ -25,6 +25,10 @@ dependencies = [
 
 [tool.pytest.ini_options]
 pythonpath="."
+filterwarnings = [
+    "ignore::scipy.sparse.SparseEfficiencyWarning",
+    "ignore::RuntimeWarning"
+]
 
 [build-system]
 requires = ["setuptools>=65.0.0", "cython", "numpy", "cythongsl"]
