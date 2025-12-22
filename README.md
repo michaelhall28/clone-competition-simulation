@@ -16,19 +16,20 @@ and install the code in this repository
 
 First, the parameters for the simulation are defined. The Parameters class checks that the parameters are appropriate for the chosen algorithm.
 e.g.
-```
-from clone_competition_simulation.parameters import Parameters
+```python
+from clone_competition_simulation.parameters import Parameters, TimeParameters, PopulationParmaters, FitnessParameters
 from clone_competition_simulation.fitness_classes import Gene, UniformDist, MutationGenerator
 
 # Define the effect of mutations that appear during the simulation
-mutation_generator = MutationGenerator(genes=[Gene('example_gene', UniformDist(1, 2), synonymous_proportion=0.5)],
+mutation_generator = MutationGenerator(genes=[Gene(name='example_gene', UniformDist(1, 2), synonymous_proportion=0.5)],
                                         combine_mutations='multiply')
 
-p = Parameters(algorithm='WF2D', grid_shape=(100, 100),
-                mutation_generator=mutation_generator,
-                mutation_rates=0.01, max_time=20,
-                print_warnings=False, division_rate=1,
-                cell_in_own_neighbourhood=True)
+p = Parameters(
+        algorithm=algorithm,
+        population=PopulationParameters(grid_shape=(100, 100), cell_in_own_neighbourhood=True),
+        times=TimeParameters(max_time=20, division_rate=1),
+        fitness=FitnessParameters(mutation_rates=0.01, mutation_generator=mutation_generator)
+    )
 
 ```
 
@@ -40,7 +41,41 @@ s.run_sim()
 s.muller_plot()
 ```
 
-There are Jupyter Notebooks containing guides to the various features of the code in the Tutorials directory.
+There are guides to the various features of the code in the Tutorials directory.
+
+### Updates from version 0.0.1 (pre-2025)
+
+* The parameters are grouped by theme (timing, cell population, mutation fitness etc). Can be grouped using the 
+  parameter classes or using dictionaries. 
+* Some parameters have to be explicitly given instead of using default values (max_time, division_rate, 
+  mutation_generator, cell_in_own_neighbourhood)
+```python
+####  Old 
+p = Parameters(
+    algorithm='WF2D', 
+    grid_shape=(100, 100),
+    mutation_rates=0.01,
+)
+
+####  New 
+p = Parameters(
+    algorithm='WF2D',
+    population=PopulationParameters(grid_shape=(100, 100), cell_in_own_neighbourhood=False),
+    times=TimeParameters(max_time=10, division_rate=1),
+    fitness=FitnessParameters(mutation_rates=0.01, mutation_generator=mutation_generator)
+)
+# or
+p = Parameters(
+    algorithm='WF2D',
+    population=dict(grid_shape=(100, 100), cell_in_own_neighbourhood=False),
+    times=dict(max_time=10, division_rate=1),
+    fitness=dict(mutation_rates=0.01, mutation_generator=mutation_generator)
+)
+```
+* A yml file can be used to supply parameters. These can be combined with `__init__` parameters (guide coming soon)
+* Biopsies are now Pydantic classes (`from clone_competition import Biopsy`) instead of dictionaries
+
+See the updated tutorial guides for more details. 
 
 ## Algorithms
 There are 5 algorithms that can be run.

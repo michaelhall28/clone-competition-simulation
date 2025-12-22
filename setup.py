@@ -49,7 +49,7 @@ gsl_lib_dir = get_gsl_config("--libs") or "/usr/lib"
 extensions = [
     Extension(
         name="diff_cell_functions",
-        sources=["clone_competition_simulation/diff_cell_functions.pyx"],
+        sources=["clone_competition_simulation/simulation_algorithms/diff_cell_functions.pyx"],
 
         # 1. TELL COMPILER WHERE HEADERS ARE
         # This fixes "gsl/gsl_mode.h not found"
