@@ -7,7 +7,7 @@ population:
 fitness:
   fitness_array: 1  # For initial clones. Integers be converted to a list
   mutation_rates: 0
-  gene_label_array: -1  # For the genes of initial clones. Integers be converted to a list. -1 means not associated with a gene.
+  initial_mutant_gene_array: -1  # For the genes of initial clones. Integers be converted to a list. -1 means not associated with a gene.
 labels:
   label_array: 0   # For initial clones. Integers be converted to a list
 treatment:
