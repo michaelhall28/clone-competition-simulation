@@ -5,29 +5,27 @@ It contains the common function to setup, run and plot results from simulations.
 The subclasses have to define the sim_step and any other functions required for the specific algorithm
 """
 import bisect
-import copy
 import gzip
 import itertools
 import math
-import pickle
 import warnings
 from collections import Counter
 from functools import lru_cache
 from typing import TYPE_CHECKING, Iterable, Literal
 
+import dill as pickle
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from loguru import logger
 from numpy.typing import NDArray
 from scipy.sparse import lil_matrix, SparseEfficiencyWarning
 from treelib import Tree
-from loguru import logger
 
 from analysis.analysis import mean_clone_size, mean_clone_size_fit, surviving_clones_fit, \
     incomplete_moment, add_incom_to_plot
 from plotting.animator import NonSpatialToGridAnimator, HexAnimator, HexFitnessAnimator
-from plotting.colourscales import get_default_random_colourscale
 
 if TYPE_CHECKING:
     from clone_competition_simulation.parameters.parameter_validation import Parameters
@@ -333,26 +331,8 @@ class GeneralSimClass(object):
                 self.pickle_dump(self.tmp_store)
                 self.store_rotation = 1
             else:
-                self.pickle_dump(self.tmp_store + '1')
+                self.pickle_dump(str(self.tmp_store) + '1')
                 self.store_rotation = 0
-
-    def _clear_colourscales(self, return_copy=True):
-        """
-        pickling doesn't work for functions.
-        Need to clear the colourscales before using pickle dump.
-        :return: If return_copy=True, returns a copy of the simulation object with the colourscales removed.
-        If return_copy=False, removes the colourscales from self and returns None
-        """
-        if return_copy:
-            sim = copy.deepcopy(self)
-        else:
-            sim = self
-
-        sim.colourscales = None
-        sim.parameters.colourscales = None
-        sim.parameters.default_colourscales = None
-
-        return sim
 
     def set_colourscale(self, colourscale, regenerate_colours=True):
         """
@@ -366,9 +346,8 @@ class GeneralSimClass(object):
 
     def pickle_dump(self, filename):
         self.random_state = np.random.get_state()
-        self_copy = self._clear_colourscales(return_copy=True)
         with gzip.open(filename, 'wb') as f:
-            pickle.dump(self_copy, f, protocol=4)
+            pickle.dump(self, f, protocol=4)
 
     ##### Functions for changing treatment (changes clone fitness)
     def _check_treatment_time(self):
@@ -1477,7 +1456,7 @@ class GeneralSimClass(object):
         ax.legend()
 
 
-def pickle_load(filename, change_sparse_to_csr=True, colourscale=None):
+def pickle_load(filename, change_sparse_to_csr=True):
     """
     Load a simulation from a gzipped pickle
     :param filename:
@@ -1488,13 +1467,5 @@ def pickle_load(filename, change_sparse_to_csr=True, colourscale=None):
 
     if change_sparse_to_csr:
         sim.change_sparse_to_csr()
-
-    if colourscale is None:
-        # Add the default colourscale.
-        sim.set_colourscale(get_default_random_colourscale(), regenerate_colours=False)
-    else:
-        # Add the colourscale given
-        sim.set_colourscale(colourscale, regenerate_colours=False)
-
 
     return sim

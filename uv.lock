@@ -2,7 +2,8 @@ version = 1
 revision = 3
 requires-python = ">=3.11"
 resolution-markers = [
-    "python_full_version >= '3.12'",
+    "python_full_version >= '3.14'",
+    "python_full_version >= '3.12' and python_full_version < '3.14'",
     "python_full_version < '3.12'",
 ]
 
@@ -22,6 +23,7 @@ source = { editable = "." }
 dependencies = [
     { name = "cython" },
     { name = "cythongsl" },
+    { name = "dill" },
     { name = "loguru" },
     { name = "matplotlib" },
     { name = "numpy" },
@@ -43,6 +45,7 @@ dev = [
 requires-dist = [
     { name = "cython", specifier = ">=3.2.1" },
     { name = "cythongsl", specifier = ">=0.2.2" },
+    { name = "dill", specifier = ">=0.4.0" },
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "matplotlib", specifier = ">=3.10.7" },
     { name = "numpy", specifier = ">=2.2.6" },
@@ -200,6 +203,15 @@ dependencies = [
     { name = "cython" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/33/12/a54b03b0a1059f74f4f0830b0f8c2b335254e3b7670fc940a100fe562c4d/CythonGSL-0.2.2.tar.gz", hash = "sha256:9310ec565f4691fd20f49193744e76dae5b36b5f6460318009f8890cab0f58c6", size = 85364, upload-time = "2017-02-23T08:38:18.813Z" }
+
+[[package]]
+name = "dill"
+version = "0.4.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/12/80/630b4b88364e9a8c8c5797f4602d0f76ef820909ee32f0bacb9f90654042/dill-0.4.0.tar.gz", hash = "sha256:0633f1d2df477324f53a895b02c901fb961bdbf65a17122586ea7019292cbcf0", size = 186976, upload-time = "2025-04-16T00:41:48.867Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/50/3d/9373ad9c56321fdab5b41197068e1d8c25883b3fea29dd361f9b55116869/dill-0.4.0-py3-none-any.whl", hash = "sha256:44f54bf6412c2c8464c14e8243eb163690a9800dbe2c367330883b19c7561049", size = 119668, upload-time = "2025-04-16T00:41:47.671Z" },
+]
 
 [[package]]
 name = "fonttools"
