@@ -1,9 +1,9 @@
 from functools import partial
-from typing import Annotated, Self
+from typing import Annotated, Self, Literal, Any
 
 import numpy as np
 from numpy.typing import NDArray
-from pydantic import BaseModel, Field, model_validator, BeforeValidator
+from pydantic import BaseModel, Field, model_validator, BeforeValidator, ValidationError, ModelWrapValidatorHandler
 
 from .algorithm_validation import Algorithm
 
@@ -20,6 +20,31 @@ def assign_config_settings(value, info):
         value['config_file_settings'] = getattr(config_settings, info.field_name, {})
         value['tag'] = "Full"
     return value
+
+
+class ParameterBase(BaseModel):
+    tag: Literal['Base', 'Full']
+
+    @model_validator(mode='wrap')
+    @classmethod
+    def clean_validation_errors(cls, data: Any, handler: ModelWrapValidatorHandler[Self]) -> Self:
+        """
+        The tags are used for class discrimination but the validation errors are not helpful for users.
+        Args:
+            data:
+            handler:
+
+        Returns:
+
+        """
+        try:
+            return handler(data)
+        except ValidationError as e:
+            clean_errors = []
+            for error in e.errors():
+                if 'tag' not in error['loc']:
+                    clean_errors.append(error)
+            raise ValidationError.from_exception_data(title=cls.__name__, line_errors=clean_errors)
 
 
 class ValidationBase(BaseModel):
@@ -68,6 +93,7 @@ IntParameter = int | None
 FloatParameter = float | None
 ArrayParameter = Annotated[NDArray | None, BeforeValidator(convert_to_array)]
 IntArrayParameter = Annotated[NDArray[np.int_] | None, BeforeValidator(partial(convert_to_array, dtype=np.int64))]
+FloatArrayParameter = Annotated[NDArray[np.float64] | None, BeforeValidator(partial(convert_to_array, dtype=np.float64))]
 FloatOrArrayParameter = Annotated[NDArray | float | None, BeforeValidator(partial(convert_to_array, dtype=np.float64))]
 IntOrArrayParameter = Annotated[NDArray | int | None, BeforeValidator(partial(convert_to_array, dtype=np.int64))]
 

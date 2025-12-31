@@ -1,17 +1,24 @@
 from typing import Annotated, Literal
+
 import numpy as np
 from pydantic import (
-    BaseModel,
     ConfigDict,
     Tag,
     BeforeValidator
 )
-from .validation_utils import assign_config_settings, ValidationBase, IntOrArrayParameter, ArrayParameter, FloatOrArrayParameter
-from .population_validation import PopulationValidator
+
 from .fitness_validation import FitnessValidator
+from .population_validation import PopulationValidator
+from .validation_utils import (
+    assign_config_settings,
+    ValidationBase,
+    IntOrArrayParameter,
+    FloatOrArrayParameter,
+    ParameterBase
+)
 
 
-class LabelParameters(BaseModel):
+class LabelParameters(ParameterBase):
     tag: Literal['Base'] = 'Base'
     model_config = ConfigDict(arbitrary_types_allowed=True)
     label_array: IntOrArrayParameter = None
@@ -19,7 +26,7 @@ class LabelParameters(BaseModel):
     label_frequencies: FloatOrArrayParameter= None
     label_values: FloatOrArrayParameter = None
     label_fitness: FloatOrArrayParameter = None
-    label_genes: ArrayParameter = None
+    label_genes: IntOrArrayParameter = None
 
 
 class LabelValidator(LabelParameters, ValidationBase):
@@ -37,7 +44,7 @@ class LabelValidator(LabelParameters, ValidationBase):
             self.label_array = self._default_label
 
         if isinstance(self.label_array, int):
-            self.label_array = np.full_like(initial_size_array, self._default_label)
+            self.label_array = np.full_like(initial_size_array, self.label_array)
         elif len(self.label_array) != len(initial_size_array):
             raise ValueError('Inconsistent initial_size_array and label_array. Ensure same length.')
 

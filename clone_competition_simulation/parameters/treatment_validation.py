@@ -1,23 +1,24 @@
 from typing import Annotated, Literal
+
 import numpy as np
+from loguru import logger
 from pydantic import (
-    BaseModel,
     ConfigDict,
     Tag,
     BeforeValidator
 )
-from .validation_utils import assign_config_settings, ValidationBase, FloatOrArrayParameter
-from .population_validation import PopulationValidator
-from .fitness_validation import FitnessValidator
+
 from clone_competition_simulation.fitness.fitness_classes import UnboundedFitness
-from loguru import logger
+from .fitness_validation import FitnessValidator
+from .population_validation import PopulationValidator
+from .validation_utils import assign_config_settings, ValidationBase, FloatArrayParameter, ParameterBase
 
 
-class TreatmentParameters(BaseModel):
+class TreatmentParameters(ParameterBase):
     tag: Literal['Base'] = 'Base'
     model_config = ConfigDict(arbitrary_types_allowed=True)
-    treatment_timings: FloatOrArrayParameter = None
-    treatment_effects: FloatOrArrayParameter = None
+    treatment_timings: FloatArrayParameter = None
+    treatment_effects: FloatArrayParameter = None
     treatment_replace_fitness: bool | None = None
 
 
