@@ -1,25 +1,32 @@
-from typing import Annotated, Literal, Self
+from typing import Annotated, Literal
+
 import numpy as np
+from loguru import logger
 from pydantic import (
-    BaseModel,
     ConfigDict,
     Tag, BeforeValidator
 )
+
 from .algorithm_validation import AlgorithmClass
-from .validation_utils import assign_config_settings, ValidationBase, FloatParameter, IntParameter, ArrayParameter
 from .population_validation import PopulationValidator
-from loguru import logger
+from .validation_utils import (
+    ParameterBase,
+    assign_config_settings,
+    ValidationBase,
+    FloatParameter,
+    IntParameter,
+    FloatArrayParameter
+)
 
 
-class TimeParameters(BaseModel):
+class TimeParameters(ParameterBase):
     tag: Literal['Base'] = 'Base'
     model_config = ConfigDict(arbitrary_types_allowed=True)
-    times: ArrayParameter = None
+    times: FloatArrayParameter = None
     max_time: FloatParameter = None
     simulation_steps: IntParameter = None
     division_rate: FloatParameter = None
     samples: IntParameter = None
-    sample_times: ArrayParameter = None
 
 
 class TimeValidator(TimeParameters, ValidationBase):

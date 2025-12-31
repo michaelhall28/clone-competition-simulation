@@ -5,11 +5,11 @@ from pydantic import (
     Tag,
     BeforeValidator
 )
-from .validation_utils import assign_config_settings, ValidationBase
+from .validation_utils import assign_config_settings, ValidationBase, ParameterBase
 from clone_competition_simulation.plotting import ColourScale, get_default_random_colourscale
 
 
-class PlottingParameters(BaseModel):
+class PlottingParameters(ParameterBase):
     tag: Literal['Base'] = 'Base'
     model_config = ConfigDict(arbitrary_types_allowed=True)
     figsize: tuple[int, int] | None = None

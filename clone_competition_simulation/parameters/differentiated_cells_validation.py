@@ -8,11 +8,11 @@ from pydantic import (
     BeforeValidator
 )
 from clone_competition_simulation.parameters.algorithm_validation import AlgorithmClass
-from clone_competition_simulation.parameters.validation_utils import assign_config_settings, ValidationBase
+from clone_competition_simulation.parameters.validation_utils import assign_config_settings, ValidationBase, ParameterBase
 from clone_competition_simulation.parameters.times_validation import TimeValidator
 
 
-class DifferentiatedCellsParameters(BaseModel):
+class DifferentiatedCellsParameters(ParameterBase):
     tag: Literal['Base'] = 'Base'
     model_config = ConfigDict(arbitrary_types_allowed=True)
     r: float | None = None
@@ -40,8 +40,8 @@ class DifferentiatedCellsValidator(DifferentiatedCellsParameters, ValidationBase
         if self.r is not None or self.gamma is not None:
             if self.algorithm.algorithm_class not in (AlgorithmClass.MORAN, AlgorithmClass.BRANCHING):
                 raise ValueError(
-                    'Cannot run {} algorithms with B cells. Change algorithm or do not supply r or gamma arguments'.format(
-                        self.algorithm.algorithm_class))
+                    f'Cannot run {self.algorithm.algorithm_class} algorithms with B cells. '
+                    f'Change algorithm or do not supply r or gamma arguments')
             if self.r is None:
                 raise ValueError(
                     'Must provide both r and gamma to run with B cells. Please provide r')

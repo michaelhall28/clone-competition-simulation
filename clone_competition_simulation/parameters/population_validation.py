@@ -9,15 +9,15 @@ from pydantic import (
 from .validation_utils import (
     assign_config_settings,
     IntParameter,
-    ArrayParameter,
     IntArrayParameter,
     AlwaysValidateNoneField,
-    ValidationBase
+    ValidationBase,
+    ParameterBase
 )
 from loguru import logger
 
 
-class PopulationParameters(BaseModel):
+class PopulationParameters(ParameterBase):
     tag: Literal['Base'] = 'Base'
     model_config = ConfigDict(arbitrary_types_allowed=True)
     initial_cells: IntParameter = AlwaysValidateNoneField

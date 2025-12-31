@@ -9,6 +9,7 @@ from pydantic import (
 from .validation_utils import (
     assign_config_settings,
     ValidationBase,
+    ParameterBase,
     FloatOrArrayParameter,
     IntOrArrayParameter,
     AlwaysValidateNoneField
@@ -18,7 +19,7 @@ from .population_validation import PopulationValidator
 from clone_competition_simulation.fitness import MutationGenerator
 
 
-class FitnessParameters(BaseModel):
+class FitnessParameters(ParameterBase):
     tag: Literal['Base'] = 'Base'
     model_config = ConfigDict(arbitrary_types_allowed=True)
     mutation_generator: MutationGenerator | None = AlwaysValidateNoneField
