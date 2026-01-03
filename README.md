@@ -1,3 +1,5 @@
+[![docs](https://img.shields.io/badge/docs-blue)](michaelhall28.github.io)
+
 # clone-competition-simulation
 Python3 simulations of clone competition during ongoing mutagenesis.
 

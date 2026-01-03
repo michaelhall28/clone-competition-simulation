@@ -1,0 +1,29 @@
+site_name: Clone Competition Simulation
+repo_url: https://github.com/michaelhall28/clone-competition-simulation
+repo_name: michaelhall28/clone-competition-simulation
+theme:
+  name: readthedocs
+plugins:
+  - search
+markdown_extensions:
+  - admonition
+
+nav:
+  - Home: index.md
+  - Guides:
+    - Introduction: Introduction.md
+    - Algorithms: Algorithms.md
+    - Simulation Length: SimulationLength.md
+    - Initial Clone Sizes: DefiningInitialCloneSizes.md
+    - Initial Clone Fitness: DefiningInitialCloneFitness.md
+    - Lineage Tracing Simulations: LineageTracingSimulations.md
+    - Mutations 1: Mutations.md
+    - Mutations 2: Mutations2.md
+    - Mutations 3: Mutations3.md
+    - Simulating Biopsies: SimulatingBiopsies.md
+    - Animation: Animation.md
+    - Colours: Colours.md
+    - Early Stopping: EarlyStoppingConditions.md
+    - Differentiated Cells: DifferentiatedCells.md
+    - Treatments: Treatments.md
+    - Storing and Loading: StoringAndLoadingSimulations.md
