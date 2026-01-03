@@ -1,4 +1,4 @@
-[![docs](https://img.shields.io/badge/docs-blue)](michaelhall28.github.io)
+[![docs](https://img.shields.io/badge/docs-blue)](https://michaelhall28.github.io/clone-competition-simulation/)
 
 # clone-competition-simulation
 Python3 simulations of clone competition during ongoing mutagenesis.
@@ -43,7 +43,7 @@ s.run_sim()
 s.muller_plot()
 ```
 
-There are guides to the various features of the code in the Tutorials directory.
+See the [docs](https://michaelhall28.github.io/clone-competition-simulation/) for more detailed guides.
 
 ### Updates from version 0.0.1 (pre-2025)
 
@@ -77,7 +77,7 @@ p = Parameters(
 * A yml file can be used to supply parameters. These can be combined with `__init__` parameters (guide coming soon)
 * Biopsies are now Pydantic classes (`from clone_competition import Biopsy`) instead of dictionaries
 
-See the updated tutorial guides for more details. 
+See the [docs](https://michaelhall28.github.io/clone-competition-simulation/) for more details. 
 
 ## Algorithms
 There are 5 algorithms that can be run.
