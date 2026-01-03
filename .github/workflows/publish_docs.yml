@@ -5,14 +5,14 @@ on:
       - master
       - develop
 
+permissions:
+  contents: write
+
 jobs:
-  publish-docs:
+  build:
     name: Publish documentation
     runs-on: ubuntu-latest
     if: startsWith(github.event.pull_request.head.ref, 'docs/') || startsWith(github.event.pull_request.head.ref, 'release/')
-    permissions:
-      id-token: write
-      pages: write
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v5
@@ -43,9 +43,15 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
             path: site
-
-      - name: Deploy pages
+  deploy:
+    needs: build
+    permissions:
+      id-token: write
+      pages: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Github Pages
         uses: actions/deploy-pages@v4
-
-permissions:
-  contents: write
