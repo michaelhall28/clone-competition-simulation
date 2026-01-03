@@ -1,7 +1,7 @@
 # Introduction
 
-This notebook explains the basics of running simulations and plotting the results.  
-See the subsequent notebooks for more in-depth guides to the various options available.  
+This guide explains the basics of running simulations and plotting the results.  
+See the subsequent guides for more in-depth guides to the various options available.  
 
 
 # Setting up and running simulations
