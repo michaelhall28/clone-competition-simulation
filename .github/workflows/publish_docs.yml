@@ -22,6 +22,12 @@ jobs:
         with:
           python-version-file: "pyproject.toml"
 
+      - name: Install GSL
+        run: sudo apt install -y libgsl-dev
+
+      - name: Install FFMPEG
+        run: sudo apt install -y ffmpeg
+
       - name: Install uv
         uses: astral-sh/setup-uv@v6
         with:
