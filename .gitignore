@@ -8,3 +8,4 @@ build
 *.c
 *.egg-info/
 .idea
+site
