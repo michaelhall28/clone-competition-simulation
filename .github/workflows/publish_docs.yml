@@ -1,6 +1,8 @@
 name: publish_docs.yml
 on:
   pull_request:
+    types:
+      - closed
     branches:
       - master
       - develop
