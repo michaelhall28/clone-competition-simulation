@@ -1,0 +1,37 @@
+name: Package
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: "Build and publish package"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: "pyproject.toml"
+
+      - name: Install GSL
+        run: sudo apt install -y libgsl-dev
+
+      - name: Install FFMPEG
+        run: sudo apt install -y ffmpeg
+
+      - name: Install the latest version of uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: Build dist
+        run: uv build
+
+      - name: Publish packages
+        run: uv publish
