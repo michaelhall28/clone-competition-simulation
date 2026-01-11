@@ -1,7 +1,6 @@
 from typing import Annotated, Literal
 import numpy as np
 from pydantic import (
-    BaseModel,
     ConfigDict,
     Tag,
     BeforeValidator
@@ -16,7 +15,7 @@ from .validation_utils import (
 )
 from .times_validation import TimeValidator
 from .population_validation import PopulationValidator
-from clone_competition_simulation.fitness import MutationGenerator
+from ..fitness import MutationGenerator
 
 
 class FitnessParameters(ParameterBase):

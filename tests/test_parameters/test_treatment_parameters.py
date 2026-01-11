@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from pydantic import ValidationError
 
-from clone_competition_simulation.parameters.treatment_validation import TreatmentParameters, TreatmentValidator
+from src.clone_competition_simulation.parameters.treatment_validation import TreatmentParameters, TreatmentValidator
 
 
 def test_treatment_validation_missing_parameters1():

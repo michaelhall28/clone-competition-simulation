@@ -4,7 +4,7 @@ import sys
 TEST_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(TEST_DIR))
 import numpy as np
-from clone_competition_simulation.parameters.algorithm_validation import Algorithm
+from src.clone_competition_simulation.parameters.algorithm_validation import Algorithm
 import pandas as pd
 import matplotlib.pyplot as plt
 import pickle

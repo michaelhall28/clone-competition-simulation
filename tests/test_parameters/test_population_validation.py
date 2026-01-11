@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from pydantic import ValidationError
 
-from clone_competition_simulation.parameters.population_validation import PopulationValidator, PopulationParameters
+from src.clone_competition_simulation.parameters.population_validation import PopulationValidator, PopulationParameters
 
 
 def test_population_validation_missing_parameters1():

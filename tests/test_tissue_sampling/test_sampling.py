@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from clone_competition_simulation.tissue_sampling.sim_sampling import (
+from src.clone_competition_simulation.tissue_sampling.sim_sampling import (
     Biopsy,
     get_vafs_for_all_biopsies,
     get_sample_dnds,

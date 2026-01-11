@@ -1,8 +1,6 @@
-import numpy as np
 import pytest
 from pydantic import ValidationError
-from clone_competition_simulation.parameters.differentiated_cells_validation import (
-    DifferentiatedCellsParameters,
+from src.clone_competition_simulation.parameters.differentiated_cells_validation import (
     DifferentiatedCellsValidator
 )
 

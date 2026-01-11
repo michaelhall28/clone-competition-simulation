@@ -1,7 +1,8 @@
-import pytest
 import numpy as np
 import numpy.testing
-from clone_competition_simulation.simulation_algorithms.general_2D_class import (
+import pytest
+
+from src.clone_competition_simulation.simulation_algorithms.general_2D_class import (
     get_neighbour_map,
     get_1D_coord,
     get_2D_coord

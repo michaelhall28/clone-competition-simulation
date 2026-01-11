@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from pydantic import ValidationError
 
-from clone_competition_simulation.parameters.label_validation import LabelParameters, LabelValidator
+from src.clone_competition_simulation.parameters.label_validation import LabelParameters, LabelValidator
 
 
 @pytest.fixture

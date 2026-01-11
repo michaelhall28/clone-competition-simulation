@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from pydantic import ValidationError
 
-from clone_competition_simulation.parameters.times_validation import TimeValidator, TimeParameters
+from src.clone_competition_simulation.parameters.times_validation import TimeValidator, TimeParameters
 
 
 def test_time_validation_missing_parameters1():

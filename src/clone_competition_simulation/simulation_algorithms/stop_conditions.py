@@ -1,8 +1,8 @@
 from typing import Any
-from simulation_algorithms.moran import MoranSim
-from simulation_algorithms.moran2D import Moran2D
-from simulation_algorithms.wf import WrightFisherSim
-from simulation_algorithms.wf2D import WrightFisher2D
+from .moran import MoranSim
+from .moran2D import Moran2D
+from .wf import WrightFisherSim
+from .wf2D import WrightFisher2D
 import numpy as np
 
 

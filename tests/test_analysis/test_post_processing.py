@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from scipy.sparse import lil_matrix, csr_matrix
 
-from clone_competition_simulation.parameters import (
+from src.clone_competition_simulation.parameters import (
     Parameters,
     Algorithm,
     PopulationParameters,
@@ -15,7 +15,7 @@ from clone_competition_simulation.parameters import (
     FitnessParameters,
     LabelParameters,
 )
-from clone_competition_simulation.fitness import MutationGenerator, Gene, NormalDist, FixedValue, EpistaticEffect
+from src.clone_competition_simulation.fitness import MutationGenerator, Gene, NormalDist, FixedValue, EpistaticEffect
 
 
 @pytest.fixture

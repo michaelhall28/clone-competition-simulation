@@ -9,24 +9,24 @@ from pydantic_settings import (
     BaseSettings,
     YamlConfigSettingsSource,
 )
-from clone_competition_simulation.parameters.times_validation import times_validation_type
-from clone_competition_simulation.parameters.population_validation import population_validation_type
-from clone_competition_simulation.parameters.fitness_validation import fitness_validation_type
-from clone_competition_simulation.parameters.label_validation import label_validation_type
-from clone_competition_simulation.parameters.treatment_validation import treatment_validation_type
-from clone_competition_simulation.parameters.differentiated_cells_validation import differentiated_cells_validation_type
-from clone_competition_simulation.parameters.plotting_validation import plotting_validation_type
-from clone_competition_simulation.parameters.algorithm_validation import Algorithm
-from clone_competition_simulation.parameters.validation_utils import ValidationModelField, AlwaysValidateNoneField
-from clone_competition_simulation.simulation_algorithms.general_sim_class import GeneralSimClass
-from clone_competition_simulation.simulation_algorithms.wf import WrightFisherSim
-from clone_competition_simulation.simulation_algorithms.moran import MoranSim
-from clone_competition_simulation.simulation_algorithms.moran2D import Moran2D
-from clone_competition_simulation.simulation_algorithms.branching_process import SimpleBranchingProcess
-from clone_competition_simulation.simulation_algorithms.wf2D import WrightFisher2D
-from clone_competition_simulation.simulation_algorithms.general_differentiated_cell_class import (
+from .times_validation import times_validation_type
+from .population_validation import population_validation_type
+from .fitness_validation import fitness_validation_type
+from .label_validation import label_validation_type
+from .treatment_validation import treatment_validation_type
+from .differentiated_cells_validation import differentiated_cells_validation_type
+from .plotting_validation import plotting_validation_type
+from .algorithm_validation import Algorithm
+from .validation_utils import ValidationModelField, AlwaysValidateNoneField
+from ..simulation_algorithms.general_sim_class import GeneralSimClass
+from ..simulation_algorithms.wf import WrightFisherSim
+from ..simulation_algorithms.moran import MoranSim
+from ..simulation_algorithms.moran2D import Moran2D
+from ..simulation_algorithms.branching_process import SimpleBranchingProcess
+from ..simulation_algorithms.wf2D import WrightFisher2D
+from ..simulation_algorithms.general_differentiated_cell_class import (
     Moran2DWithDiffcells, MoranWithDiffCells, BranchingWithDiffCells)
-from clone_competition_simulation.simulation_algorithms.stop_conditions import WFStop, WF2DStop, MoranStop, Moran2DStop
+from ..simulation_algorithms.stop_conditions import WFStop, WF2DStop, MoranStop, Moran2DStop
 
 
 class RunSettingsBase(BaseSettings):

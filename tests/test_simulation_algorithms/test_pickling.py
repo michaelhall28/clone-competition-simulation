@@ -1,5 +1,5 @@
 import numpy as np
-from clone_competition_simulation import (
+from src.clone_competition_simulation import (
     Parameters,
     TimeParameters,
     PopulationParameters,

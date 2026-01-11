@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from clone_competition_simulation.analysis.analysis import (
+from src.clone_competition_simulation.analysis.analysis import (
     mean_clone_size,
     mean_clone_size_fit,
     surviving_clones_fit,

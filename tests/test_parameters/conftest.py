@@ -1,15 +1,15 @@
 import pytest
 
-from clone_competition_simulation import (
+from src.clone_competition_simulation import (
     PopulationParameters,
     TimeParameters,
     DifferentiatedCellsParameters,
     FitnessParameters, Gene, FixedValue,
     MutationGenerator
 )
-from clone_competition_simulation.parameters.fitness_validation import FitnessValidator
-from clone_competition_simulation.parameters.population_validation import PopulationValidator
-from clone_competition_simulation.parameters.times_validation import TimeValidator
+from src.clone_competition_simulation.parameters.fitness_validation import FitnessValidator
+from src.clone_competition_simulation.parameters.population_validation import PopulationValidator
+from src.clone_competition_simulation.parameters.times_validation import TimeValidator
 
 
 @pytest.fixture

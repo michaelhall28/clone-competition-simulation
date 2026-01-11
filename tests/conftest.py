@@ -1,11 +1,10 @@
 from collections import namedtuple
 
 import pytest
-from numpy.random import RandomState
 
-from clone_competition_simulation.fitness import MutationGenerator, Gene, UnboundedFitness, NormalDist
-from clone_competition_simulation.parameters.algorithm_validation import Algorithm
-from clone_competition_simulation.plotting.colourscales import ColourScale
+from src.clone_competition_simulation.fitness import MutationGenerator, Gene, UnboundedFitness, NormalDist
+from src.clone_competition_simulation.parameters.algorithm_validation import Algorithm
+from src.clone_competition_simulation.plotting.colourscales import ColourScale
 
 
 

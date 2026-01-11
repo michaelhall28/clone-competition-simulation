@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from clone_competition_simulation.parameters.plotting_validation import PlottingParameters, PlottingValidator
+from src.clone_competition_simulation.parameters.plotting_validation import PlottingParameters, PlottingValidator
 
 
 def test_plotting_validation_missing_parameters1():

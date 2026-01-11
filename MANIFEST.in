@@ -1,1 +1,1 @@
-recursive-include clone_competition_simulation *.py *.pyx
+recursive-include src *.py *.pyx

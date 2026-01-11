@@ -2,14 +2,13 @@ from typing import Annotated, Literal
 import numpy as np
 from scipy.stats import expon
 from pydantic import (
-    BaseModel,
     ConfigDict,
     Tag,
     BeforeValidator
 )
-from clone_competition_simulation.parameters.algorithm_validation import AlgorithmClass
-from clone_competition_simulation.parameters.validation_utils import assign_config_settings, ValidationBase, ParameterBase
-from clone_competition_simulation.parameters.times_validation import TimeValidator
+from .algorithm_validation import AlgorithmClass
+from .validation_utils import assign_config_settings, ValidationBase, ParameterBase
+from .times_validation import TimeValidator
 
 
 class DifferentiatedCellsParameters(ParameterBase):

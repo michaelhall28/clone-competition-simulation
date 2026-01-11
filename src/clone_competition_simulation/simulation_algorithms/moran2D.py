@@ -3,8 +3,8 @@ A class to run Moran-style simulations on a 2D hexagonal grid
 """
 
 import numpy as np
-from simulation_algorithms.moran import MoranSim
-from simulation_algorithms.general_2D_class import GeneralHexagonalGridSim, get_neighbour_map
+from .moran import MoranSim
+from .general_2D_class import GeneralHexagonalGridSim, get_neighbour_map
 
 
 class Moran2D(GeneralHexagonalGridSim, MoranSim):

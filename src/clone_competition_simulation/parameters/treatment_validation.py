@@ -8,7 +8,7 @@ from pydantic import (
     BeforeValidator
 )
 
-from clone_competition_simulation.fitness.fitness_classes import UnboundedFitness
+from ..fitness.fitness_classes import UnboundedFitness
 from .fitness_validation import FitnessValidator
 from .population_validation import PopulationValidator
 from .validation_utils import assign_config_settings, ValidationBase, FloatArrayParameter, ParameterBase

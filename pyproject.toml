@@ -39,9 +39,9 @@ build-backend = "setuptools.build_meta"
 dev = [
     "pytest>=9.0.1",
     "mkdocs>=1.6.1",
+    "twine>=6.2.0",
 ]
 
 [tool.setuptools]
-package-dir = {"" = "clone_competition_simulation"}
-include-package-data = false
+include-package-data = true
 
