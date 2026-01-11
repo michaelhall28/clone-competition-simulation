@@ -43,7 +43,7 @@ Setting a non-zero mutation_rates randomly introduces mutations. The value is th
 per cell division.  
 
 To introduce mutations, we must also define what effect the mutations will have. This 
-is explained further in [Controlling the mutation effects](#Controlling the mutation effects) below.
+is explained further in **Controlling the mutation effects** below.
 
 ```python
 from clone_competition_simulation import (

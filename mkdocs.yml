@@ -11,6 +11,7 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Guides:
+    - Installation: Installation.md
     - Introduction: Introduction.md
     - Algorithms: Algorithms.md
     - Simulation Length: SimulationLength.md
