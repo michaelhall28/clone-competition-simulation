@@ -1,0 +1,59 @@
+name: publish_docs.yml
+on:
+  pull_request:
+    types:
+      - closed
+    branches:
+      - master
+      - develop
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Publish documentation
+    runs-on: ubuntu-latest
+    if: startsWith(github.event.pull_request.head.ref, 'docs/') || startsWith(github.event.pull_request.head.ref, 'release/')
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: "pyproject.toml"
+
+      - name: Install GSL
+        run: sudo apt install -y libgsl-dev
+
+      - name: Install FFMPEG
+        run: sudo apt install -y ffmpeg
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.9.11"
+
+      - name: Install the project
+        run: uv sync --locked --all-extras --dev
+
+      - name: Build docs
+        run: uv run mkdocs build
+
+      - name: Upload docs as artifacts
+        uses: actions/upload-pages-artifact@v3
+        with:
+            path: site
+  deploy:
+    needs: build
+    permissions:
+      id-token: write
+      pages: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Github Pages
+        uses: actions/deploy-pages@v4

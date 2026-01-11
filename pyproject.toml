@@ -1,0 +1,47 @@
+[project]
+name = "clone-competition-simulation"
+version = "0.1.4"
+description = "Python simulations of clone competition during ongoing mutagenesis."
+authors = [
+    {name="Michael Hall", email="mh28@sanger.ac.uk"}
+]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "cython>=3.2.1",
+    "cythongsl>=0.2.2",
+    "dill>=0.4.0",
+    "loguru>=0.7.3",
+    "matplotlib>=3.10.7",
+    "numpy>=2.2.6",
+    "pandas>=2.3.3",
+    "pydantic>=2.12.5",
+    "pydantic-settings>=2.12.0",
+    "pyyaml>=6.0.3",
+    "scipy>=1.15.3",
+    "seaborn>=0.13.2",
+    "setuptools>=80.9.0",
+    "treelib>=1.8.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath="."
+filterwarnings = [
+    "ignore::scipy.sparse.SparseEfficiencyWarning",
+    "ignore::RuntimeWarning"
+]
+
+[build-system]
+requires = ["setuptools>=65.0.0", "cython", "numpy", "cythongsl"]
+build-backend = "setuptools.build_meta"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.1",
+    "mkdocs>=1.6.1",
+    "twine>=6.2.0",
+]
+
+[tool.setuptools]
+include-package-data = true
+
