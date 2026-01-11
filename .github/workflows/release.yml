@@ -43,7 +43,7 @@ jobs:
         run: uv run pytest tests
 
       - name: Build dist
-        run: uv build
+        run: uv build --sdist
 
       - name: Publish packages
         run: uv publish
