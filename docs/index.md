@@ -9,6 +9,9 @@ the simulations in this repository and view the results.
 
 These are roughly in order of simple to complicated, and useful to less useful.
 
+#### [Installation](Installation.md)
+- Requirements and installation
+
 #### [Introduction](Introduction.md)
 - A guide to the basics of running a simulation and viewing the results
 
@@ -26,7 +29,7 @@ These are roughly in order of simple to complicated, and useful to less useful.
 #### [Defining Initial Clone Fitness](DefiningInitialCloneFitness.md)
 - A very brief guide to the `fitness_array` argument of the Parameters class
 
-#### [Lineage Tracing Simulations](LineageTracingSimulatoins.md)
+#### [Lineage Tracing Simulations](LineageTracingSimulations.md)
 - How to set up simulations of lineage tracing experiments
 - How to introduce inheritable labels into simulations
 
