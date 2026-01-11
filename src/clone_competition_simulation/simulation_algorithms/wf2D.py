@@ -2,8 +2,8 @@
 A class to run Moran-style simulations on a 2D hexagonal grid
 """
 
-from simulation_algorithms.wf import WrightFisherSim
-from simulation_algorithms.general_2D_class import GeneralHexagonalGridSim, get_neighbour_map
+from .wf import WrightFisherSim
+from .general_2D_class import GeneralHexagonalGridSim, get_neighbour_map
 import numpy as np
 
 

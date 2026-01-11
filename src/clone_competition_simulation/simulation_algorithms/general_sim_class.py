@@ -23,12 +23,12 @@ from numpy.typing import NDArray
 from scipy.sparse import lil_matrix, SparseEfficiencyWarning
 from treelib import Tree
 
-from analysis.analysis import mean_clone_size, mean_clone_size_fit, surviving_clones_fit, \
+from ..analysis.analysis import mean_clone_size, mean_clone_size_fit, surviving_clones_fit, \
     incomplete_moment, add_incom_to_plot
-from plotting.animator import NonSpatialToGridAnimator, HexAnimator, HexFitnessAnimator
+from ..plotting.animator import NonSpatialToGridAnimator, HexAnimator, HexFitnessAnimator
 
 if TYPE_CHECKING:
-    from clone_competition_simulation.parameters.parameter_validation import Parameters
+    from ..parameters.parameter_validation import Parameters
 warnings.simplefilter('ignore',SparseEfficiencyWarning)
 
 

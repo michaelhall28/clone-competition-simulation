@@ -8,17 +8,18 @@ Uses Cython code (diff_cell_functions.pyx) to increase speed of the differentiat
 
 Not used or tested extensively, and not all functions will work well with these simulations.
 """
-from simulation_algorithms.general_sim_class import GeneralSimClass
-from simulation_algorithms.moran import MoranSim
-from simulation_algorithms.moran2D import Moran2D
-from simulation_algorithms.branching_process import SimpleBranchingProcess
-from clone_competition_simulation.parameters.algorithm_validation import AlgorithmClass
-from scipy.sparse import lil_matrix
-import numpy as np
 import matplotlib.pyplot as plt
-from analysis.analysis import mean_clone_size, mean_clone_size_fit
-from utils import find_ge
+import numpy as np
+from scipy.sparse import lil_matrix
+
 import diff_cell_functions
+from .branching_process import SimpleBranchingProcess
+from .general_sim_class import GeneralSimClass
+from .moran import MoranSim
+from .moran2D import Moran2D
+from ..analysis.analysis import mean_clone_size, mean_clone_size_fit
+from ..parameters.algorithm_validation import AlgorithmClass
+from ..utils import find_ge
 
 
 class GeneralSimDiffCells(GeneralSimClass):
@@ -396,7 +397,7 @@ class MoranWithDiffCells(MoranSim, GeneralSimDiffCells):
                                                                                      current_diff_cell_population)
         if self.sim_diff_cells:
             current_diff_cell_population = diff_cell_functions.bcell_cy(current_population, current_diff_cell_population,
-                                                                     self.time_step, self.asym_div_rate, self.gamma)
+                                                                        self.time_step, self.asym_div_rate, self.gamma)
 
         # Select population to replicate cell
         # Select random number to select which population
@@ -450,7 +451,7 @@ class Moran2DWithDiffcells(Moran2D, GeneralSimDiffCells):
                                                                                      current_diff_cell_population)
         if self.sim_diff_cells:
             current_diff_cell_population = diff_cell_functions.bcell_cy(current_population, current_diff_cell_population,
-                                                                     self.time_step, self.asym_div_rate, self.gamma)
+                                                                        self.time_step, self.asym_div_rate, self.gamma)
 
         death_idx, coord = self._random_death(i)
         birth_idx = self._get_divider(coord)
@@ -566,10 +567,10 @@ class BranchingWithDiffCells(SimpleBranchingProcess, GeneralSimDiffCells):
                                                                                      current_diff_cell_population)
         if self.sim_diff_cells:
             current_diff_cell_population = diff_cell_functions.single_gillespie_cy_with_check(current_population,
-                                                                                           current_diff_cell_population,
-                                                                                           time_step=current_time - last_time,
-                                                                                           asym_div_rate=self.asym_div_rate,
-                                                                                           gamma=self.gamma)
+                                                                                              current_diff_cell_population,
+                                                                                              time_step=current_time - last_time,
+                                                                                              asym_div_rate=self.asym_div_rate,
+                                                                                              gamma=self.gamma)
 
         return current_diff_cell_population
 

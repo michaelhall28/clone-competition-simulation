@@ -1,12 +1,14 @@
 """
 Functions to simulate the taking of biopsies and DNA sequencing
 """
-import pandas as pd
-import numpy as np
-from numpy.typing import NDArray
 from collections import defaultdict
+
+import numpy as np
+import pandas as pd
+from numpy.typing import NDArray
 from pydantic import BaseModel, field_validator
-from clone_competition_simulation.simulation_algorithms.general_2D_class import GeneralHexagonalGridSim
+
+from ..simulation_algorithms.general_2D_class import GeneralHexagonalGridSim
 
 
 class Biopsy(BaseModel):

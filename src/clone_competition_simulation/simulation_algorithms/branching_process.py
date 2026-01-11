@@ -7,9 +7,10 @@ simulated. A class including those cells is available in general_differentiated_
 and gamma when setting up the Parameters).
 """
 
-from simulation_algorithms.general_sim_class import GeneralSimClass
 import numpy as np
 from scipy.sparse import lil_matrix
+
+from .general_sim_class import GeneralSimClass
 
 
 class OverPopulationError(BaseException): pass

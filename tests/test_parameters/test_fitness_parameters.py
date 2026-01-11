@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from pydantic import ValidationError
 
-from clone_competition_simulation.fitness import (
+from src.clone_competition_simulation.fitness import (
     MutationGenerator,
     Gene,
     FixedValue,
@@ -10,7 +10,7 @@ from clone_competition_simulation.fitness import (
     ArrayCombination,
     UnboundedFitness
 )
-from clone_competition_simulation.parameters.fitness_validation import (
+from src.clone_competition_simulation.parameters.fitness_validation import (
     FitnessValidator
 )
 

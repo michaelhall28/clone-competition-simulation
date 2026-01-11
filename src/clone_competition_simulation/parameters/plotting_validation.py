@@ -1,12 +1,11 @@
 from typing import Annotated, Literal
 from pydantic import (
-    BaseModel,
     ConfigDict,
     Tag,
     BeforeValidator
 )
 from .validation_utils import assign_config_settings, ValidationBase, ParameterBase
-from clone_competition_simulation.plotting import ColourScale, get_default_random_colourscale
+from ..plotting import ColourScale, get_default_random_colourscale
 
 
 class PlottingParameters(ParameterBase):

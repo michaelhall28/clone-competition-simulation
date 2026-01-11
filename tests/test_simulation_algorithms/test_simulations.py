@@ -1,6 +1,20 @@
-import pytest
+import os
+import random
+import warnings
+from collections import namedtuple
+
+import matplotlib.pyplot as plt
 import numpy as np
-from clone_competition_simulation.parameters import (
+import pytest
+from matplotlib.ticker import NullFormatter
+from scipy.sparse import SparseEfficiencyWarning
+
+from src.clone_competition_simulation.fitness.fitness_classes import FixedValue, NormalDist, ExponentialDist, UniformDist, Gene, MutationGenerator, \
+    BoundedLogisticFitness
+from src.clone_competition_simulation.parameters.algorithm_validation import AlgorithmClass
+from src.clone_competition_simulation.plotting.colourscales import ColourScale
+from src.clone_competition_simulation.simulation_algorithms.general_differentiated_cell_class import set_gsl_random_seed
+from src.clone_competition_simulation.parameters import (
     Parameters,
     TimeParameters,
     PopulationParameters,
@@ -8,22 +22,9 @@ from clone_competition_simulation.parameters import (
     DifferentiatedCellsParameters,
     PlottingParameters,
     LabelParameters,
+    TreatmentParameters,
     Algorithm
 )
-import matplotlib.pyplot as plt
-from clone_competition_simulation.fitness.fitness_classes import FixedValue, NormalDist, ExponentialDist, UniformDist, Gene, MutationGenerator, \
-    BoundedLogisticFitness
-from clone_competition_simulation.simulation_algorithms.general_differentiated_cell_class import set_gsl_random_seed
-from matplotlib.ticker import NullFormatter
-from clone_competition_simulation.plotting.colourscales import ColourScale
-from collections import namedtuple
-import os
-import random
-import warnings
-from scipy.sparse import SparseEfficiencyWarning
-
-from clone_competition_simulation.parameters.algorithm_validation import AlgorithmClass
-from parameters import TreatmentParameters
 from tests.utilities import (
     compare_to_old_results,
     next_ax,
@@ -33,6 +34,7 @@ from tests.utilities import (
     PLOT_DIR,
     get_plots
 )
+
 warnings.simplefilter('ignore',SparseEfficiencyWarning)
 
 

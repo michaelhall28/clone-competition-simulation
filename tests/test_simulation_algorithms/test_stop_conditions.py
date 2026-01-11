@@ -1,11 +1,12 @@
 import numpy as np
-from clone_competition_simulation import (
+
+from src.clone_competition_simulation import (
     EndConditionError,
     Parameters,
     TimeParameters,
     PopulationParameters,
 )
-from clone_competition_simulation.simulation_algorithms.stop_conditions import MoranStop
+from src.clone_competition_simulation.simulation_algorithms.stop_conditions import MoranStop
 
 
 def test_stop_condition(monkeypatch):

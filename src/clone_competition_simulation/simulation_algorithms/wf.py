@@ -2,7 +2,7 @@
 A class to run non-spatial Wright-Fisher-style simulations
 """
 
-from simulation_algorithms.general_sim_class import GeneralSimClass
+from .general_sim_class import GeneralSimClass
 import numpy as np
 
 
