@@ -1,9 +1,9 @@
 from functools import partial
-from typing import Annotated, Self, Literal, Any
+from typing import Annotated, Self, Literal
 
 import numpy as np
 from numpy.typing import NDArray
-from pydantic import BaseModel, Field, model_validator, BeforeValidator, ValidationError, ModelWrapValidatorHandler
+from pydantic import BaseModel, Field, model_validator, BeforeValidator
 
 from .algorithm_validation import Algorithm
 
@@ -19,32 +19,13 @@ def assign_config_settings(value, info):
         config_settings = info.data.get("config_file_settings")
         value['config_file_settings'] = getattr(config_settings, info.field_name, {})
         value['tag'] = "Full"
+        if value['algorithm'] is None and config_settings is not None:
+            value['algorithm'] = config_settings.algorithm
     return value
 
 
 class ParameterBase(BaseModel):
     tag: Literal['Base', 'Full']
-
-    @model_validator(mode='wrap')
-    @classmethod
-    def clean_validation_errors(cls, data: Any, handler: ModelWrapValidatorHandler[Self]) -> Self:
-        """
-        The tags are used for class discrimination but the validation errors are not helpful for users.
-        Args:
-            data:
-            handler:
-
-        Returns:
-
-        """
-        try:
-            return handler(data)
-        except ValidationError as e:
-            clean_errors = []
-            for error in e.errors():
-                if 'tag' not in error['loc']:
-                    clean_errors.append(error)
-            raise ValidationError.from_exception_data(title=cls.__name__, line_errors=clean_errors)
 
 
 class ValidationBase(BaseModel):
@@ -100,4 +81,5 @@ IntOrArrayParameter = Annotated[NDArray | int | None, BeforeValidator(partial(co
 
 # Fields
 AlwaysValidateNoneField = Field(None, validate_default=True)
-ValidationModelField = Field(None, validate_default=True, json_schema_extra={'config_validation': True})
+ValidationModelField = Field(None, validate_default=True, json_schema_extra={'config_validation': True},
+                             discriminator="tag")

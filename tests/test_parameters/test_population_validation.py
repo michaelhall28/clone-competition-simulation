@@ -7,10 +7,9 @@ from src.clone_competition_simulation.parameters.population_validation import Po
 
 def test_population_validation_missing_parameters1():
     with pytest.raises(ValidationError) as exc_info:
-        pop = PopulationValidator()
+        pop = PopulationValidator(tag="Full")
 
-        assert 'tag' not in str(exc_info)
-        assert 'algorithm' in str(exc_info)
+    assert 'algorithm\n' in str(exc_info)
 
 
 def test_population_validation_missing_parameters2(empty_population_parameters):
@@ -19,14 +18,9 @@ def test_population_validation_missing_parameters2(empty_population_parameters):
                                   config_file_settings=empty_population_parameters)
 
 
-        error_msg = str(exc_info)
-        assert 'tag' not in error_msg
-        assert 'algorithm' not in error_msg
-        assert """Must provide one of:
-        	initial_cells
-        	initial_size_array
-        	grid_shape (Moran2D/WF2D only)
-        	initial_grid (Moran2D/WF2D only)""" in error_msg
+    error_msg = str(exc_info)
+    assert 'algorithm\n' not in error_msg
+    assert "Must provide one of:\n\tinitial_cells\n\tinitial_size_array\n\tgri" in error_msg
 
 def test_array_types():
     p = PopulationParameters(

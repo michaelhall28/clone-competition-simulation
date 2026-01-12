@@ -7,12 +7,9 @@ from src.clone_competition_simulation.parameters.treatment_validation import Tre
 
 def test_treatment_validation_missing_parameters1():
     with pytest.raises(ValidationError) as exc_info:
-        p = TreatmentValidator()
+        p = TreatmentValidator(tag="Full")
 
-        assert 'tag' not in str(exc_info)
-        assert 'algorithm' in str(exc_info)
-        assert 'population' in str(exc_info)
-        assert 'fitness' in str(exc_info)
+    assert 'algorithm\n' in str(exc_info)
 
 
 @pytest.fixture

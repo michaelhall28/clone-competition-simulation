@@ -6,9 +6,9 @@ from src.clone_competition_simulation.parameters.plotting_validation import Plot
 
 def test_plotting_validation_missing_parameters1():
     with pytest.raises(ValidationError) as exc_info:
-        p = PlottingValidator()
+        p = PlottingValidator(tag="Full")
 
-        assert 'tag' not in str(exc_info)
+    assert 'algorithm\n' in str(exc_info)
 
 
 @pytest.fixture
