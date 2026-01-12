@@ -12,12 +12,9 @@ def empty_label_parameters():
 
 def test_label_validation_missing_parameters1():
     with pytest.raises(ValidationError) as exc_info:
-        p = LabelValidator()
+        p = LabelValidator(tag="Full")
 
-        assert 'tag' not in str(exc_info)
-        assert 'algorithm' in str(exc_info)
-        assert 'population' in str(exc_info)
-        assert 'fitness' in str(exc_info)
+    assert 'algorithm\n' in str(exc_info)
 
 
 def test_label_array_types():
@@ -89,6 +86,4 @@ def test_label_validation3(validated_population_parameters,
             label_genes=0,
         )
 
-        assert 'tag' not in str(exc_info)
-        assert ('Applying labels with mutations to particular genes requires a '
-                'mutation generator with multi_gene_array=True') in str(exc_info)
+    assert 'Applying labels with mutations to particular genes requires a' in str(exc_info)

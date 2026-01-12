@@ -18,9 +18,21 @@ from src.clone_competition_simulation.parameters.fitness_validation import (
 def test_gene1():
     with pytest.raises(ValidationError) as exc_info:
         gene = Gene()
-        assert 'name' in str(exc_info)
-        assert 'mutation_distribution' in str(exc_info)
-        assert 'synonymous_proportion' in str(exc_info)
+
+    assert 'name\n' in str(exc_info)
+
+    with pytest.raises(ValidationError) as exc_info:
+        gene = Gene(name="test")
+
+    assert 'name\n' not in str(exc_info)
+    assert 'mutation_distribution\n' in str(exc_info)
+
+    with pytest.raises(ValidationError) as exc_info:
+        gene = Gene(name="test", mutation_distribution=FixedValue(1.1))
+
+    assert 'name\n' not in str(exc_info)
+    assert 'mutation_distribution\n' not in str(exc_info)
+    assert 'synonymous_proportion\n' in str(exc_info)
 
 
 def test_gene2():
@@ -33,7 +45,8 @@ def test_gene2():
 def test_mutation_generation1():
     with pytest.raises(ValidationError) as exc_info:
         mut_gen = MutationGenerator()
-        assert 'genes' in str(exc_info)
+
+    assert 'genes' in str(exc_info)
 
 
 def test_mutation_generation2(gene):
@@ -46,14 +59,24 @@ def test_mutation_generation2(gene):
     assert not mut_gen.multi_gene_array
 
 
-def test_fitness_validation_missing_parameters1():
+def test_fitness_validation_missing_parameters1(validated_time_parameters):
     with pytest.raises(ValidationError) as exc_info:
-        p = FitnessValidator()
+        p = FitnessValidator(tag="Full")
 
-        assert 'tag' not in str(exc_info)
-        assert 'algorithm' in str(exc_info)
-        assert 'times' in str(exc_info)
-        assert 'population' in str(exc_info)
+    assert 'algorithm' in str(exc_info)
+
+    with pytest.raises(ValidationError) as exc_info:
+        p = FitnessValidator(algorithm="WF2D", tag="Full")
+
+    assert 'algorithm\n' not in str(exc_info)
+    assert 'times\n' in str(exc_info)
+
+    with pytest.raises(ValidationError) as exc_info:
+        p = FitnessValidator(algorithm="WF2D", times=validated_time_parameters, tag="Full")
+
+    assert 'algorithm\n' not in str(exc_info)
+    assert 'times\n' not in str(exc_info)
+    assert 'population\n' in str(exc_info)
 
 
 def test_fitness_validation1(empty_fitness_params, validated_time_parameters,

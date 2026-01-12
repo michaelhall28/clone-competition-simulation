@@ -1,0 +1,10 @@
+algorithm: "Moran"
+times:
+  division_rate: 1
+  max_time: 10
+  samples: 100
+population:
+  initial_cells: 100
+fitness:
+  fitness_array: 1  # For initial clones. Integers be converted to a list
+  mutation_rates: 0
