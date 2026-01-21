@@ -56,20 +56,22 @@ class ConfigFileSettings(BaseModel):
 
     @field_validator("run_config_file", mode="before")
     @classmethod
-    def validate_config_file_path(cls, value) -> Path:
+    def validate_config_file_path(cls, value) -> Path | None:
         if value is not None:
             return value
-        if env_path := os.environ.get('RUN_CONFIG', None):
-            run_config_file = Path(env_path)
-        else:
-            run_config_file = Path("run_config.yaml")
-        return run_config_file
+        if env_path := os.environ.get('CCS_RUN_CONFIG', None):
+            return Path(env_path)
+        return None
 
     @field_validator("config_file_settings", mode="before")
     @classmethod
     def load_config_file_settings(cls, data, info):
-        y = YamlConfigSettingsSource(cls, yaml_file=info.data['run_config_file'])
-        data = y()
+        run_config_file = info.data['run_config_file']
+        if run_config_file is not None:
+            y = YamlConfigSettingsSource(cls, yaml_file=info.data['run_config_file'])
+            data = y()
+        else:
+            data = {}
         for field, field_info in RunSettingsBase.model_fields.items():
             if field_info.json_schema_extra and field_info.json_schema_extra.get("config_validation"):
                 if field not in data:
@@ -93,7 +95,7 @@ ERROR_PATTERNS_TO_DEDUPLICATE = [
 
 def match_loc(loc: tuple[str,...], match_pattern: tuple[str,...]) -> bool:
     """
-    Match the loc from a validation error e.g. (population, Full, algorithm) agains the patterns we want to exclude.
+    Match the loc from a validation error e.g. (population, Full, algorithm) against the patterns we want to exclude.
     Args:
         loc:
         match_pattern:
@@ -127,9 +129,16 @@ class Parameters(RunSettingsBase, ConfigFileSettings):
             model = handler(data)
             # Get any values from the config file that aren't in the nested models
             for field, field_info in cls.model_fields.items():
-                if ((not field_info.json_schema_extra or field_info.json_schema_extra.get("config_validation") is None)
-                        and getattr(model, field) is None):
-                    setattr(model, field, getattr(model.config_file_settings, field))
+                if field == "run_config_file":  # Not in the config file
+                    continue
+                if field_info.json_schema_extra and field_info.json_schema_extra.get("config_validation") is not None:
+                    # One of the sub-models. The parameters from the config file are dealt with in those models
+                    continue
+                if getattr(model, field) is not None:
+                    # The fields is already defined by a value in the init
+                    continue
+                # If we got here, then we want to grab the value from the config file (if there is one)
+                setattr(model, field, getattr(model.config_file_settings, field))
             return model
         except ValidationError as e:
             clean_errors = []

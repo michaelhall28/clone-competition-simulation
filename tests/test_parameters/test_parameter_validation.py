@@ -16,6 +16,14 @@ def test_validation_failure1():
     assert 'tag' not in str(exc_info)
 
 
+def test_validation_no_config():
+    p = Parameters(algorithm=Algorithm.BRANCHING, population={'initial_cells': 100},
+                   times={"division_rate": 1, "max_time": 10})
+    assert p.algorithm == Algorithm.BRANCHING
+    assert p.times.division_rate == 1
+    assert p.times.max_time == 10
+
+
 def test_validation_from_config1():
     p = Parameters(run_config_file=os.path.join(CURRENT_DIR, "test_run_config.yml"))
     assert p.algorithm == Algorithm.MORAN
@@ -52,3 +60,17 @@ def test_validation_from_config4():
 
     assert "config_file_settings.algorithm\n  Input should be 'WF', 'WF2D', 'Moran', 'Moran2D'" in str(exc_info)
 
+
+def test_validation_from_config5(monkeypatch):
+    with monkeypatch.context() as m:
+        monkeypatch.setenv('CCS_RUN_CONFIG', os.path.join(CURRENT_DIR, "test_run_config.yml"))
+
+        p = Parameters()
+        assert p.algorithm == Algorithm.MORAN
+        assert p.times.division_rate == 1
+        assert p.times.max_time == 10
+        assert p.times.samples == 100
+        assert p.population.initial_cells == 100
+        np.testing.assert_array_equal(p.fitness.fitness_array, [1])
+        np.testing.assert_array_equal(p.fitness.mutation_rates, [[0, 0]])
+        del os.environ["CCS_RUN_CONFIG"]
