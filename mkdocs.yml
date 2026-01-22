@@ -28,3 +28,4 @@ nav:
     - Differentiated Cells: DifferentiatedCells.md
     - Treatments: Treatments.md
     - Storing and Loading: StoringAndLoadingSimulations.md
+    - Config Files: RunConfigFile.md

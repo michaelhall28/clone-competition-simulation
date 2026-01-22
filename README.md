@@ -83,7 +83,7 @@ p = Parameters(
     fitness=dict(mutation_rates=0.01, mutation_generator=mutation_generator)
 )
 ```
-* A yml file can be used to supply parameters. These can be combined with `__init__` parameters (guide coming soon)
+* A yml file can be used to supply parameters. These can be combined with `__init__` parameters.  
 * Biopsies are now Pydantic classes (`from clone_competition import Biopsy`) instead of dictionaries
 
 See the [docs](https://michaelhall28.github.io/clone-competition-simulation/) for more details. 
