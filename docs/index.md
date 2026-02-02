@@ -79,3 +79,6 @@ These are roughly in order of simple to complicated, and useful to less useful.
 
 #### [Storing And Loading Simulations](StoringAndLoadingSimulations.md)
 - How to save and load simulation objects using pickle
+
+#### [Config Files](RunConfigFile.md)
+- Using a yml file to define simulation parameters 
