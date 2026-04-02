@@ -19,6 +19,7 @@ from .validation_utils import (
 
 
 class LabelParameters(ParameterBase):
+    _field_name = "labels"
     tag: Literal['Base'] = 'Base'
     model_config = ConfigDict(arbitrary_types_allowed=True)
     label_array: IntOrArrayParameter = None

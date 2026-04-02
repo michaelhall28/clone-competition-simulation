@@ -15,6 +15,7 @@ from .validation_utils import assign_config_settings, ValidationBase, FloatArray
 
 
 class TreatmentParameters(ParameterBase):
+    _field_name = "treatment"
     tag: Literal['Base'] = 'Base'
     model_config = ConfigDict(arbitrary_types_allowed=True)
     treatment_timings: FloatArrayParameter = None

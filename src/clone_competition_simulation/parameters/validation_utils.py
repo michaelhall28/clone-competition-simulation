@@ -1,36 +1,31 @@
 from functools import partial
-from typing import Annotated, Self, Literal
+from typing import Annotated, Any, Self, Literal, ClassVar
 
 import numpy as np
 from numpy.typing import NDArray
-from pydantic import BaseModel, Field, model_validator, BeforeValidator
+from pydantic import BaseModel, Field, model_validator, BeforeValidator, ConfigDict
 
 from .algorithm_validation import Algorithm
 
 
-def assign_config_settings(value, info):
-    if value is not None:
-        if isinstance(value, BaseModel):
-            value = value.model_dump()
-    else:
-        value = {}
-    if info.config['title'] == "Parameters":
-        value.update(info.data)  # Include any already-validated parameters as they might be needed
-        config_settings = info.data.get("config_file_settings")
-        value['config_file_settings'] = getattr(config_settings, info.field_name, {})
-        value['tag'] = "Full"
-        if value['algorithm'] is None and config_settings is not None:
-            value['algorithm'] = config_settings.algorithm
-    return value
-
-
 class ParameterBase(BaseModel):
+    _field_name: ClassVar[str]
     tag: Literal['Base', 'Full']
+
+    # Be strict at this stage so we catch typos in the input. 
+    model_config = ConfigDict(extra='forbid')
 
 
 class ValidationBase(BaseModel):
     algorithm: Algorithm
     validated: bool = False
+    config_file_settings: ParameterBase | None = None
+
+    # Be less strict here so we ignore arguments meant for other settings. 
+    model_config = ConfigDict(extra='ignore')
+
+    def _validate_model(self) -> None:
+        raise NotImplementedError
 
     @model_validator(mode="after")
     def validate_model(self) -> Self:
@@ -45,6 +40,35 @@ class ValidationBase(BaseModel):
         if value is None:
             return getattr(self.config_file_settings, field_name)
         return value
+    
+
+def assign_config_settings(value, info) -> dict[str, Any]:
+    if value is not None:
+        if not isinstance(value, ParameterBase):
+            # Run through the basic pydantic input validation if not done already
+            value = find_subclass(ParameterBase, info.field_name)(**value)
+        if isinstance(value, BaseModel):
+            value = value.model_dump()
+    else:
+        value = {}
+    if info.config['title'] == "Parameters":
+        value.update(info.data)  # Include any already-validated parameters as they might be needed
+        config_settings = info.data.get("config_file_settings")
+        value['config_file_settings'] = getattr(config_settings, info.field_name, {})
+        value['tag'] = "Full"
+        if value['algorithm'] is None and config_settings is not None:
+            value['algorithm'] = config_settings.algorithm
+    return value
+
+
+def find_subclass(cls: type[ParameterBase], field_name: str) -> type[ParameterBase]:
+    """
+    Find the right ParameterBase subclass for the parameter field
+    """
+    for subcls in cls.__subclasses__():
+        if subcls._field_name == field_name:
+            return subcls
+    raise ValueError(f"No ParameterClass for field name {field_name}")
 
 
 def convert_to_array(value, dtype=None):

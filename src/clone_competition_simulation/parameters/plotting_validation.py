@@ -9,6 +9,7 @@ from ..plotting import ColourScale, get_default_random_colourscale
 
 
 class PlottingParameters(ParameterBase):
+    _field_name = "plotting"
     tag: Literal['Base'] = 'Base'
     model_config = ConfigDict(arbitrary_types_allowed=True)
     figsize: tuple[int, int] | None = None

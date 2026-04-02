@@ -12,6 +12,7 @@ from .times_validation import TimeValidator
 
 
 class DifferentiatedCellsParameters(ParameterBase):
+    _field_name = "differentiated_cells"
     tag: Literal['Base'] = 'Base'
     model_config = ConfigDict(arbitrary_types_allowed=True)
     r: float | None = None

@@ -18,6 +18,7 @@ from loguru import logger
 
 
 class PopulationParameters(ParameterBase):
+    _field_name = "population"
     tag: Literal['Base'] = 'Base'
     model_config = ConfigDict(arbitrary_types_allowed=True)
     initial_cells: IntParameter = AlwaysValidateNoneField

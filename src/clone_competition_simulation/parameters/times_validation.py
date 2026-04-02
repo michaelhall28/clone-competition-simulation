@@ -20,6 +20,7 @@ from .validation_utils import (
 
 
 class TimeParameters(ParameterBase):
+    _field_name = "times"
     tag: Literal['Base'] = 'Base'
     model_config = ConfigDict(arbitrary_types_allowed=True)
     times: FloatArrayParameter = None
