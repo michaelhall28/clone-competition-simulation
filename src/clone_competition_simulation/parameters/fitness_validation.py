@@ -19,6 +19,7 @@ from ..fitness import MutationGenerator
 
 
 class FitnessParameters(ParameterBase):
+    _field_name = "fitness"
     tag: Literal['Base'] = 'Base'
     model_config = ConfigDict(arbitrary_types_allowed=True)
     mutation_generator: MutationGenerator | None = AlwaysValidateNoneField
