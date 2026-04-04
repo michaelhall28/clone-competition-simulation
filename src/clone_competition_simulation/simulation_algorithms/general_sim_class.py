@@ -1354,8 +1354,11 @@ class GeneralSimClass(object):
 
         else:
             if fitness:
-                print('Cannot currently animate fitness for non-spatial simulations')
-            animator = NonSpatialToGridAnimator(self, grid_size=grid_size, generations_per_frame=generations_per_frame,
+                raise NotImplementedError('Cannot currently animate fitness for non-spatial simulations')
+            else:
+                if grid_size is None:
+                    raise ValueError("Must provide a grid size for animations of non-spatial simulations")
+                animator = NonSpatialToGridAnimator(self, grid_size=grid_size, generations_per_frame=generations_per_frame,
                                 starting_clones=starting_clones, figsize=figsize, bitrate=bitrate, min_prop=min_prop,
                                 dpi=dpi, fps=fps)
 
