@@ -3,6 +3,7 @@ A class to set up the hexagonal grids and general functions that apply to both t
 """
 import numpy as np
 from ..plotting.animator import HexAnimator
+from .general_sim_class import CurrentData
 
 
 class GeneralHexagonalGridSim:
@@ -11,12 +12,13 @@ class GeneralHexagonalGridSim:
     Should be inherited along with the GeneralSimClass (or a subclass of it) to create a 2D simulation class.
     """
 
-    def _add_label(self, current_population, non_zero_clones, label_frequency, label, label_fitness, label_gene):
+    def _add_label(self, current_data: CurrentData, label_frequency, label, label_fitness, label_gene) -> CurrentData:
         """
         Add some labelling at the current label frequency.
         The labelling is not exact, so each cell has same chance.
         Apply the mutants to the grid.
         """
+        current_population = current_data.current_population
         num_labels = np.random.binomial(self.total_pop, label_frequency)
 
         # Extend the arrays
@@ -40,7 +42,11 @@ class GeneralHexagonalGridSim:
         else:
             self.next_label_time = np.inf
 
-        return current_population, non_zero_clones
+        current_data.update(
+            current_population=current_population, 
+            non_zero_clones=current_data.non_zero_clones
+        )
+        return current_data
 
 
     def plot_grid(self, t=None, index_given=False, grid=None, figsize=None, figxsize=5, bitrate=500, dpi=100,

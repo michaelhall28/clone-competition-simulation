@@ -4,19 +4,20 @@ It contains the common function to setup, run and plot results from simulations.
 
 The subclasses have to define the sim_step and any other functions required for the specific algorithm
 """
+
 import bisect
+from dataclasses import dataclass
 import gzip
 import itertools
 import math
 import warnings
 from collections import Counter
 from functools import lru_cache
-from typing import TYPE_CHECKING, Iterable, Literal
+from typing import TYPE_CHECKING, Iterable, Literal, Any
 from abc import ABC
 
 import dill as pickle
 import matplotlib.cm as cm
-from matplotlib.pylab import ndarray
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -32,6 +33,31 @@ from ..plotting.animator import NonSpatialToGridAnimator, HexAnimator, HexFitnes
 if TYPE_CHECKING:
     from ..parameters.parameter_validation import Parameters
 warnings.simplefilter('ignore',SparseEfficiencyWarning)
+
+
+class EndConditionError(Exception):
+    pass
+
+
+@dataclass
+class CurrentData:
+    """Data passed to each sim step
+    """
+    current_population: np.ndarray[tuple[int], np.dtype[np.int_]]  # Number of cells in each clone
+    non_zero_clones: np.ndarray[tuple[int], np.dtype[np.int_]] | None # indices of clones with living cells
+
+    def update(self, current_population: np.ndarray[tuple[int], np.dtype[np.int_]], 
+               non_zero_clones: np.ndarray[tuple[int], np.dtype[np.int_]] | None) -> None:
+        """Update the current data
+
+        Using a function to ensure all attributes are updated
+
+        Args:
+            current_population (np.ndarray[tuple[int], np.dtype[np.int_]]): New cell count for each clone
+            non_zero_clones (np.ndarray[tuple[int], np.dtype[np.int_]]): New list of the surviving clones
+        """
+        self.current_population = current_population
+        self.non_zero_clones = non_zero_clones
 
 
 class GeneralSimClass(ABC):
@@ -122,6 +148,11 @@ class GeneralSimClass(ABC):
             print(self.new_mutation_count, 'mutations to add', flush=True)
 
         self._init_arrays(parameters.labels.label_array, parameters.fitness.initial_mutant_gene_array, parameters.fitness.fitness_array)
+        
+        # Attributes for early stopping
+        self.stop_time: float | None = None
+        self.stop_condition_result: Any | None = None   # Spare attribute to place any relevant result from the stopping
+        self.stop_function = parameters.end_condition_function
 
     ##### Functions for setting up the simulations
     def _calculate_search_times(self):
@@ -234,6 +265,18 @@ class GeneralSimClass(ABC):
             self.tree.create_node(str(i), i, parent=-1)  # Directly descended from the root node
 
     ##### Functions for running the simulation
+
+    def _setup_current_data(self) -> CurrentData:
+        current_population = np.zeros(len(self.clones_array), dtype=int)
+        current_population[:self.initial_clones] = self.initial_size_array
+        if self.non_zero_calc:  # Faster for the non-spatial simulations to only track the current surviving clones
+            non_zero_clones = np.where(current_population > 0)[0]
+            current_population = current_population[non_zero_clones]
+        else:
+            non_zero_clones = None
+        return CurrentData(current_population=current_population, non_zero_clones=non_zero_clones)
+
+    
     def run_sim(self, continue_sim=False):
         # Functions which runs any of the simulation types.
         # self.sim_step will include the differences between the methods.
@@ -249,13 +292,9 @@ class GeneralSimClass(ABC):
                 print('Simulation already started but incomplete')
                 return
 
-        current_population = np.zeros(len(self.clones_array), dtype=int)
-        current_population[:self.initial_clones] = self.initial_size_array
-        if self.non_zero_calc:  # Faster for the non-spatial simulations to only track the current surviving clones
-            non_zero_clones = np.where(current_population > 0)[0]
-            current_population = current_population[non_zero_clones]
-        else:
-            non_zero_clones = None
+        # Set up the data to hold the current state of the simulation.
+        # The state of this data will be recorded at each sample point
+        current_data = self._setup_current_data()
 
         # Change treatment if required (can change fitness of clones)
         if self._check_treatment_time():
@@ -263,36 +302,39 @@ class GeneralSimClass(ABC):
 
         # Add a label (similar to a lineage tracing label) if requested
         if self._check_label_time():
-            current_population, non_zero_clones = self._add_label(current_population,
-                                                                  non_zero_clones,
-                                                                  self.label_frequencies[self.label_count],
-                                                                  self.label_values[self.label_count],
-                                                                  self.label_fitness[self.label_count],
-                                                                  self.label_genes[self.label_count])
+            current_data = self._add_label(current_data, 
+                                           self.label_frequencies[self.label_count],
+                                           self.label_values[self.label_count],
+                                           self.label_fitness[self.label_count],
+                                           self.label_genes[self.label_count])
         if self.progress:
             print('Steps completed:')
 
-        while self.plot_idx < self.sim_length:
-            # Run step of the simulation
-            # Each step can be a generation (Wright-Fisher), a single birth-death-mutation event (Moran) or
-            # a single birth or death event (Branching)
-            current_population, non_zero_clones = self._sim_step(self.i, current_population,
-                                                                 non_zero_clones)
-            self.i += 1
-            self._record_results(self.i, current_population, non_zero_clones)  # Record the current state
+        try:
+            while self.plot_idx < self.sim_length:
+                # Run step of the simulation
+                # Each step can be a generation (Wright-Fisher), a single birth-death-mutation event (Moran) or
+                # a single birth or death event (Branching)
+                current_data = self._sim_step(self.i, current_data)
+                self.i += 1
+                self._record_results(self.i, current_data)  # Record the current state
 
-            # Add a label (similar to a lineage tracing label) if requested
-            if self._check_label_time():
-                current_population, non_zero_clones = self._add_label(current_population,
-                                                                      non_zero_clones,
-                                                                      self.label_frequencies[self.label_count],
-                                                                      self.label_values[self.label_count],
-                                                                      self.label_fitness[self.label_count],
-                                                                      self.label_genes[self.label_count])
+                # Add a label (similar to a lineage tracing label) if requested
+                if self._check_label_time():
+                    current_data = self._add_label(current_data,
+                                                   self.label_frequencies[self.label_count],
+                                                   self.label_values[self.label_count],
+                                                   self.label_fitness[self.label_count],
+                                                   self.label_genes[self.label_count])
 
-            # Change treatment if required (can change fitness of clones)
-            if self._check_treatment_time():
-                self._change_treatment()
+                # Change treatment if required (can change fitness of clones)
+                if self._check_treatment_time():
+                    self._change_treatment()
+        except EndConditionError:
+            # The simulation has stopped early because the end condition has been met
+            # Record the stop time
+            self.stop_time = self.times[self.plot_idx-1]
+            pass
 
         if self.progress:
             print('Finished', self.i, 'steps')
@@ -306,8 +348,8 @@ class GeneralSimClass(ABC):
             np.random.set_state(self.random_state)
         self.run_sim(continue_sim=True)
 
-    def _sim_step(self, i, current_population, non_zero_clones):  # Overwrite
-        return current_population, non_zero_clones
+    def _sim_step(self, i, current_data: CurrentData) -> CurrentData:  # Overwrite
+        raise NotImplementedError()
 
     def _finish_up(self):
         """
@@ -318,7 +360,7 @@ class GeneralSimClass(ABC):
         pass
 
     ##### Functions for storing population counts.
-    def _record_results(self, i, current_population, non_zero_clones):
+    def _record_results(self, i, current_data: CurrentData):
         """
         Check if the current step is one of the sample points
         Record the results at the point the simulation is up to.
@@ -328,18 +370,20 @@ class GeneralSimClass(ABC):
         :return:
         """
         if i == self.sample_points[self.plot_idx]:  # Regularly take a sample for the plot
-            self._take_sample(current_population, non_zero_clones)
+            self._take_sample(current_data)
+            if self.stop_function is not None:
+                self.stop_function(self)
 
         if self.progress:
             if i % self.progress == 0:
                 print(i, end=', ', flush=True)
 
-    def _take_sample(self, current_population, non_zero_clones):
+    def _take_sample(self, current_data: CurrentData):
         if self.non_zero_calc:
-            self.population_array[non_zero_clones, self.plot_idx] = current_population
+            self.population_array[current_data.non_zero_clones, self.plot_idx] = current_data.current_population
         else:
-            non_zero = np.where(current_population > 0)[0]
-            self.population_array[non_zero, self.plot_idx] = current_population[non_zero]
+            non_zero = np.where(current_data.current_population > 0)[0]
+            self.population_array[non_zero, self.plot_idx] = current_data.current_population[non_zero]
         self.plot_idx += 1
         if self.tmp_store is not None:  # Store current state of the simulation.
             if self.store_rotation == 0:
@@ -421,22 +465,22 @@ class GeneralSimClass(ABC):
             return True
         return False
 
-    def _add_label(self, current_population, non_zero_clones, label_frequency, label, label_fitness, label_gene):
+    def _add_label(self, current_data: CurrentData, label_frequency, label, label_fitness, label_gene) -> CurrentData:
         """
         Add some labelling at the current label frequency.
         The labelling is not exact, so each cell has same chance.
         Use a Poisson distribution of events for each clone.
         """
         # Random draw for each clone base on clone size
-        labels_per_clone = np.random.binomial(current_population, label_frequency)
-        assert not np.any(labels_per_clone - current_population > 0), (labels_per_clone, current_population)
+        labels_per_clone = np.random.binomial(current_data.current_population, label_frequency)
+        assert not np.any(labels_per_clone - current_data.current_population > 0), (labels_per_clone, current_data.current_population)
 
         num_labels = np.sum(labels_per_clone)
         self._extend_arrays_fixed_amount(num_labels)
 
         # Add the new clones to the current population. Cells will be removed from the old clones below.
-        current_population = np.concatenate([current_population, np.ones(num_labels, dtype=int)])
-        non_zero_clones = np.concatenate([non_zero_clones,
+        current_population = np.concatenate([current_data.current_population, np.ones(num_labels, dtype=int)])
+        non_zero_clones = np.concatenate([current_data.non_zero_clones,
                                           np.arange(self.next_mutation_index,
                                                     self.next_mutation_index + num_labels)])
 
@@ -455,7 +499,9 @@ class GeneralSimClass(ABC):
         else:
             self.next_label_time = np.inf
 
-        return current_population, non_zero_clones
+        current_data.update(current_population=current_population, 
+                            non_zero_clones=non_zero_clones)
+        return current_data
 
     def _add_labelled_clone(self, parent_idx, label, label_fitness, label_gene):
         """Select a fitness for the new mutation and the cell in which the mutation occurs

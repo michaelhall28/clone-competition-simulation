@@ -3,7 +3,7 @@ A class to run Moran-style simulations.
 """
 import numpy as np
 from numpy.typing import ArrayLike
-from .general_sim_class import *
+from .general_sim_class import GeneralSimClass, CurrentData
 from ..utils import find_ge
 
 
@@ -47,9 +47,11 @@ class MoranSim(GeneralSimClass):
         new_mutation_count = mutations_to_add.sum()
         return new_mutation_count, mutations_to_add
 
-    def _sim_step(self, i, current_population, non_zero_clones):
+    def _sim_step(self, i, current_data: CurrentData) -> CurrentData:
         """One cell is selected to die at random. Another cell is selected to replicate and replace the dead cell
         with its offspring. The replicating cell is selected in proportion with its relative fitness"""
+
+        current_population, non_zero_clones = current_data.current_population, current_data.non_zero_clones
 
         # Select population to replicate cell
         # Select random number to select which population
@@ -85,4 +87,8 @@ class MoranSim(GeneralSimClass):
             current_population = np.concatenate([current_population[:death_idx], current_population[death_idx + 1:]])
             non_zero_clones = np.concatenate([non_zero_clones[:death_idx], non_zero_clones[death_idx + 1:]])
 
-        return current_population, non_zero_clones
+        current_data.update(
+            current_population=current_population, 
+            non_zero_clones=non_zero_clones
+        )
+        return current_data
