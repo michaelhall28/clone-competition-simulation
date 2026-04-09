@@ -12,14 +12,16 @@ import warnings
 from collections import Counter
 from functools import lru_cache
 from typing import TYPE_CHECKING, Iterable, Literal
+from abc import ABC
 
 import dill as pickle
 import matplotlib.cm as cm
+from matplotlib.pylab import ndarray
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from loguru import logger
-from numpy.typing import NDArray
+from numpy.typing import ArrayLike, NDArray
 from scipy.sparse import lil_matrix, SparseEfficiencyWarning
 from treelib import Tree
 
@@ -32,11 +34,20 @@ if TYPE_CHECKING:
 warnings.simplefilter('ignore',SparseEfficiencyWarning)
 
 
-class GeneralSimClass(object):
+class GeneralSimClass(ABC):
     """
     Common functions for all simulation algorithms.
     Functions for setting up simulations and for plotting results
     """
+    # Indices of the columns in the clones array
+    id_idx = 0  # Unique integer id for each clone. Int.
+    label_idx = 1  # The type of the clone. Inherited label does not change. Int. Represents GFP or similar.
+    fitness_idx = 2  # The fitness of the clone. Float.
+    generation_born_idx = 3  # The sample the clone first appeared in.  Int.
+    parent_idx = 4  # The id of the clone that this clone emerged from.  Int.
+    gene_mutated_idx = 5  # The gene (index) the mutation appears in (or similar info). Int.
+    # Could encode gene and/or nonsense/missense/... depending on how genes are defined
+
     def __init__(self, parameters: "Parameters"):
         """
 
@@ -45,19 +56,11 @@ class GeneralSimClass(object):
         # Get attributes from the parameters
         self.total_pop = parameters.population.initial_cells
         self.initial_size_array = parameters.population.initial_size_array
-        self.initial_clones = len(self.initial_size_array)
         self.mutation_rates = parameters.fitness.mutation_rates
         self.mutation_generator = parameters.fitness.mutation_generator
         self.division_rate = parameters.times.division_rate
         self.max_time = parameters.times.max_time
         self.times = parameters.times.times
-        # To make sure the floating point errors do not lead to incorrect times when searching adjust by small value.
-        # Generally not used - finds the closest time instead.
-        if len(self.times) > 1:
-            min_diff = np.diff(self.times).min()
-        else:
-            min_diff = self.times[0]
-        self._search_times = self.times - min_diff/100
         self.sample_points = parameters.times.sample_points
         self.non_zero_calc = parameters.non_zero_calc
         self.label_times = parameters.labels.label_times
@@ -65,15 +68,85 @@ class GeneralSimClass(object):
         self.label_values = parameters.labels.label_values
         self.label_fitness = parameters.labels.label_fitness
         self.label_genes = parameters.labels.label_genes
+        self.parameters = parameters
 
+        # Define new attributes required for the simulation
+        self.initial_clones = len(self.initial_size_array)
+        self.current_fitness_multiplier = None  # The effect of the current treatment
+        self.sim_length = len(self.times)
+        self._search_times = None
+        self.s_muts = set()  # Synonymous mutations. Indices of the first clone they appear in
+        self.ns_muts = set()  # Non-synonymous mutations. Indices of the first clone they appear in
+        self.label_muts = set()  # Labelled clones. Indices of the clones that get a labeled (after init)
+        self.label_count = 0
+        self.next_label_time = None
+        self.treatment_count = -1
+        self.next_treatment_time = 0
+        self.treatment_replace_fitness = None
+        self.treatment_timings = None
+        self.treatment_effects = None
+        self.plot_idx = 0  # Keeping track of x-coordinate of the plot
+        self.tree = None
+        self.new_mutation_count = None
+        self.mutations_to_add = None
+
+        # Details for plotting
+        self.figsize = parameters.plotting.figsize
+        self.descendant_counts = {}
+        self.colourscales = parameters.plotting.colourscales
+        self.progress = parameters.progress  # Prints update every n samples
+        self.i = 0
+        self.colours = None
+
+        # Stores the sizes of clones containing particular mutants.
+        self.mutant_clone_array = None
+        self.trimmed_tree = None  # Used for mutant clone arrays.
+
+        # A few attributes to help with the simulation running and storage
+        self.tmp_store = parameters.tmp_store
+        self.store_rotation = 0  # Alternates between two tmp stores (0, 1) in case error occurs during pickle dump.
+        self.is_lil = True  # Is the population array stored in scipy.sparse.lil_matrix (True) or numpy array (False)
+        self.finished = False
+        self.random_state = None  # For storing the state of the random sequence for continuing
+
+        # Setup the various initial arrays
+        self._calculate_search_times()
+        self._setup_label_times()
+        self._setup_treatment(parameters)
+        self._setup_clone_tree()
+        self.new_mutation_count, self.mutations_to_add = self._precalculate_mutations()  # Faster to pre-calculate mutations for long, mutation heavy simulations
+        self.total_clone_count = self.initial_clones + self.new_mutation_count
+        self.next_mutation_index = self.initial_clones  # Keeping track of how many mutations added
+        
+        if parameters.progress:
+            print(self.new_mutation_count, 'mutations to add', flush=True)
+
+        self._init_arrays(parameters.labels.label_array, parameters.fitness.initial_mutant_gene_array, parameters.fitness.fitness_array)
+
+    ##### Functions for setting up the simulations
+    def _calculate_search_times(self):
+        """Calculates slightly adjusted times so floating point errors do not lead to incorrect time point selection
+
+        To fix the cases where we are searching for the time before or equal to t and we exclude t.0000000001. 
+        The times are adjusted by a small value to account for this floating point error. 
+        
+        Generally not used - finds the closest time instead.
+        """
+        
+        if len(self.times) > 1:
+            min_diff = np.diff(self.times).min()
+        else:
+            min_diff = self.times[0]
+        self._search_times = self.times - min_diff/100
+
+    def _setup_label_times(self):
         self.label_times = self._adjust_raw_times(self.label_times)
         if self.label_times is not None:
             self.next_label_time = self.label_times[0]
         else:
             self.next_label_time = np.inf
-        self.label_count = 0
 
-        self.current_fitness_multiplier = None  # The effect of the current treatment
+    def _setup_treatment(self, parameters: "Parameters"):
         self.treatment_count = -1
         if parameters.treatment.treatment_timings is None:
             # No treatment applied. But this set up means the initial fitness is set correctly then not changed.
@@ -88,84 +161,28 @@ class GeneralSimClass(object):
             self.next_treatment_time = self.treatment_timings[0]  # First value will always be zero
             self.treatment_replace_fitness = parameters.treatment.treatment_replace_fitness
 
-        self.parameters = parameters
-
-        self.sim_length = len(self.times)
-
-        self.raw_fitness_array = parameters.fitness.fitness_array
-        self.clones_array = None  # Will store the information about the clones. One row per clone.
-        # A clone here will contain exactly the same combination of mutations.
-        self.population_array = None  # Will store the clone sizes. One row per clone. One column per sample.
-
-        # Include indices here for later use. These are the columns of self.clones_array
-        self.id_idx = 0  # Unique integer id for each clone. Int.
-        self.label_idx = 1  # The type of the clone. Inherited label does not change. Int. Represents GFP or similar.
-        self.fitness_idx = 2  # The fitness of the clone. Float.
-        self.generation_born_idx = 3  # The sample the clone first appeared in.  Int.
-        self.parent_idx = 4  # The id of the clone that this clone emerged from.  Int.
-        self.gene_mutated_idx = 5  # The gene (index) the mutation appears in (or similar info). Int.
-        # Could encode gene and/or nonsense/missense/... depending on how genes are defined
-
-        self.s_muts = set()  # Synonymous mutations. Indices of the first clone they appear in
-        self.ns_muts = set()  # Non-synonymous mutations. Indices of the first clone they appear in
-        self.label_muts = set()  # Labelled clones. Indices of the clones that get a labeled (after init)
-
-        self.plot_idx = 0  # Keeping track of x-coordinate of the plot
-
-        self.new_mutation_count = 0
-
-        # We can calculate the number of mutations added in each generation beforehand and make the arrays the correct
-        # size. This should speed things up for long, mutation heavy simulations.
-        self._precalculate_mutations()
-        self.total_clone_count = self.initial_clones + self.new_mutation_count
-        if parameters.progress:
-            print(self.new_mutation_count, 'mutations to add', flush=True)
-
-        # Make the arrays the correct size.
+    def _setup_clone_tree(self):
         self.tree = Tree()
         self.tree.create_node(str(-1), -1)  # Make a root node that isn't a clone.
-        self.trimmed_tree = None  # Used for mutant clone arrays.
-        self._init_arrays(parameters.labels.label_array, parameters.fitness.initial_mutant_gene_array)
-        self.next_mutation_index = self.initial_clones  # Keeping track of how many mutations added
-
-        # Details for plotting
-        self.figsize = parameters.plotting.figsize
-        self.descendant_counts = {}
-        self.colourscales = parameters.plotting.colourscales
-        self.progress = parameters.progress  # Prints update every n samples
-        self.i = 0
-        self.colours = None
-
-        # Stores the sizes of clones containing particular mutants.
-        self.mutant_clone_array = None
-
-        self.tmp_store = parameters.tmp_store
-        self.store_rotation = 0  # Alternates between two tmp stores (0, 1) in case error occurs during pickle dump.
-        self.is_lil = True  # Is the population array stored in scipy.sparse.lil_matrix (True) or numpy array (False)
-        self.finished = False
-        self.random_state = None  # For storing the state of the random sequence for continuing
-
-    ############ Functions for running simulations ############
-
-    ##### Functions for setting up the simulations
-    def _adjust_raw_times(self, array):
+    
+    def _adjust_raw_times(self, array: ArrayLike) -> np.ndarray[tuple[int], np.dtype[np.float64]]:
         """
         Takes an array of time points and converts to number of simulation steps
         This is for the Moran simulations. Overwrite for the other cases
         :param array: Numpy array or list of time points.
         """
-        if array is not None:
-            array = np.array(array) * self.division_rate * self.total_pop
-        return array
+        raise NotImplementedError()
 
-    def _precalculate_mutations(self):
-        """
-        To be overwritten. Will calculate the number and timing of all mutations in the simulation
+    def _precalculate_mutations(self) -> tuple[int, np.ndarray[tuple[int], np.dtype[np.int_]]]:
+        """Calculates the number of mutations to add at each simulation step
+
+        Should return the total new_mutation_count and mutations_to_add (an array of the number of mutations to add 
+        at each simulation step)
         :return:
         """
-        self.new_mutation_count = 0
+        raise NotImplementedError()
 
-    def _init_arrays(self, labels_array, initial_mutant_gene_array):
+    def _init_arrays(self, labels_array, initial_mutant_gene_array, input_fitness_array):
         """
         Defines self.clones_array, self.population_array and self.raw_fitness_array
         Fills the self.clones_array with any information given about the initial cells.
@@ -196,14 +213,12 @@ class GeneralSimClass(object):
             blank_fitness_array = np.full((self.total_clone_count, num_cols),
                                           np.nan, dtype=float)
             blank_fitness_array[:, 0] = self.parameters.fitness._wt_fitness
-            blank_fitness_array[:self.initial_clones, :num_cols_genes] = self.raw_fitness_array
+            blank_fitness_array[:self.initial_clones, :num_cols_genes] = input_fitness_array
             self.raw_fitness_array = blank_fitness_array
-            # self.clones_array[:, self.fitness_idx] = self._apply_treatment(fitness_arrays=self.raw_fitness_array)
         else:
             blank_fitness_array = np.full((self.total_clone_count, 1), self.parameters.fitness._wt_fitness, dtype=float)
-            blank_fitness_array[:self.initial_clones, 0] = self.raw_fitness_array
+            blank_fitness_array[:self.initial_clones, 0] = input_fitness_array
             self.raw_fitness_array = blank_fitness_array
-            # self.clones_array[:, self.fitness_idx] = self._apply_treatment(fitness_values=self.raw_fitness_array)
 
         self.population_array = lil_matrix((self.total_clone_count,
                                             self.sim_length))  # Will store the population counts
@@ -336,8 +351,7 @@ class GeneralSimClass(object):
 
     def set_colourscale(self, colourscale, regenerate_colours=True):
         """
-        For reinstating the ColourScale after pickling and reloading.
-        Or for changing a ColourScale
+        For changing a ColourScale
         :return: None
         """
         self.colourscales = colourscale

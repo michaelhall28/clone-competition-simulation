@@ -1,7 +1,8 @@
 """
 A class to run Moran-style simulations.
 """
-
+import numpy as np
+from numpy.typing import ArrayLike
 from .general_sim_class import *
 from ..utils import find_ge
 
@@ -16,7 +17,17 @@ class MoranSim(GeneralSimClass):
 
         super().__init__(parameters)
 
-    def _precalculate_mutations(self):
+    def _adjust_raw_times(self, array: ArrayLike) -> np.ndarray[tuple[int], np.dtype[np.float64]]:
+        """
+        Takes an array of time points and converts to number of simulation steps
+        This is for the Moran simulations. Overwrite for the other cases
+        :param array: Numpy array or list of time points.
+        """
+        if array is not None:
+            array = np.array(array) * self.division_rate * self.total_pop
+        return array
+
+    def _precalculate_mutations(self) -> tuple[int, np.ndarray[tuple[int], np.dtype[np.int_]]]:
         """
         The timing of mutations that occur during the simulation can be calculated in advance.
         This speeds up the simulation a little.
@@ -32,8 +43,9 @@ class MoranSim(GeneralSimClass):
         for (t_start, mut_rate), t_end in zip(self.mutation_rates, t_ends):
             mms.append(np.random.poisson(mut_rate, int(t_end) - int(t_start)))  # integer
 
-        self.mutations_to_add = np.concatenate(mms)
-        self.new_mutation_count = self.mutations_to_add.sum()
+        mutations_to_add = np.concatenate(mms)
+        new_mutation_count = mutations_to_add.sum()
+        return new_mutation_count, mutations_to_add
 
     def _sim_step(self, i, current_population, non_zero_clones):
         """One cell is selected to die at random. Another cell is selected to replicate and replace the dead cell
