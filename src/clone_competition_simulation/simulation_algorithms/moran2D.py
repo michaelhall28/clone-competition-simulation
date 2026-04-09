@@ -3,6 +3,7 @@ A class to run Moran-style simulations on a 2D hexagonal grid
 """
 
 import numpy as np
+from .general_sim_class import CurrentData
 from .moran import MoranSim
 from .general_2D_class import GeneralHexagonalGridSim, get_neighbour_map
 
@@ -29,7 +30,9 @@ class Moran2D(GeneralHexagonalGridSim, MoranSim):
         # Can therefore calculate the positions of all the dying cells in advance to save time.
         self.death_coords = np.random.randint(0, self.total_pop, size=self.parameters.times.simulation_steps)
 
-    def _sim_step(self, i, current_population, non_zero_clones):
+    def _sim_step(self, i, current_data: CurrentData) -> CurrentData:
+
+        current_population, non_zero_clones = current_data.current_population, current_data.non_zero_clones
 
         death_idx, coord = self._random_death(i)
         birth_idx = self._get_divider(coord)
@@ -55,7 +58,11 @@ class Moran2D(GeneralHexagonalGridSim, MoranSim):
             grid = np.reshape(self.grid_array, self.grid_shape)
             self.grid_results.append(grid.copy())
 
-        return current_population, non_zero_clones
+        current_data.update(
+            current_population=current_population, 
+            non_zero_clones=non_zero_clones
+        )
+        return current_data
 
     def _random_death(self, i):
         """

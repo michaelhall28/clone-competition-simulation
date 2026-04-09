@@ -8,18 +8,30 @@ Uses Cython code (diff_cell_functions.pyx) to increase speed of the differentiat
 
 Not used or tested extensively, and not all functions will work well with these simulations.
 """
+from dataclasses import dataclass
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.sparse import lil_matrix
 
 import diff_cell_functions
 from .branching_process import SimpleBranchingProcess
-from .general_sim_class import GeneralSimClass
+from .general_sim_class import GeneralSimClass, CurrentData
 from .moran import MoranSim
 from .moran2D import Moran2D
 from ..analysis.analysis import mean_clone_size, mean_clone_size_fit
 from ..parameters.algorithm_validation import AlgorithmClass
 from ..utils import find_ge
+
+
+@dataclass
+class DiffCurrentData(CurrentData):
+    current_diff_cell_population: np.ndarray[tuple[int], np.dtype[np.int_]]
+
+    def update(self, current_population: np.ndarray[tuple[int], np.dtype[np.int_]], 
+               non_zero_clones: np.ndarray[tuple[int], np.dtype[np.int_]] | None, 
+               current_diff_cell_population: np.ndarray[tuple[int], np.dtype[np.int_]]) -> None:
+        super().update(current_population=current_population, non_zero_clones=non_zero_clones)
+        self.current_diff_cell_population = current_diff_cell_population
 
 
 class GeneralSimDiffCells(GeneralSimClass):
@@ -70,22 +82,11 @@ class GeneralSimDiffCells(GeneralSimClass):
         self.next_diff_cell_switch = self.diff_cell_sim_switches[self.diff_cell_switch_idx]
 
     ############ Functions for running simulations ############
-    def run_sim(self, continue_sim=False):
 
-        if self.i > 0:
-            # Not the first time it has been run
-            if self.finished:
-                print('Simulation already run')
-                return
-            elif continue_sim:
-                print('Continuing from step', self.i)
-            else:
-                print('Simulation already started but incomplete')
-                return
-
+    def _setup_current_data(self) -> CurrentData:
         current_population = np.zeros(len(self.clones_array), dtype=int)
         current_population[:self.initial_clones] = self.initial_size_array
-        if self.non_zero_calc:
+        if self.non_zero_calc:  # Faster for the non-spatial simulations to only track the current surviving clones
             non_zero_clones = np.where(current_population > 0)[0]
             current_population = current_population[non_zero_clones]
         else:
@@ -93,61 +94,26 @@ class GeneralSimDiffCells(GeneralSimClass):
 
         current_diff_cell_population = np.zeros_like(current_population)
 
-        # Change treatment if required (can change fitness of clones)
-        if self._check_treatment_time():
-            self._change_treatment()
+        return DiffCurrentData(
+            current_population=current_population, 
+            non_zero_clones=non_zero_clones, 
+            current_diff_cell_population=current_diff_cell_population
+        )
 
-        # Add a label (similar to a lineage tracing label) if requested
-        if self._check_label_time():
-            current_population, non_zero_clones = self._add_label(current_population,
-                                                                  non_zero_clones,
-                                                                  self.label_frequencies[self.label_count],
-                                                                  self.label_values[self.label_count],
-                                                                  self.label_fitness[self.label_count],
-                                                                  self.label_genes[self.label_count])
-
-        if self.progress:
-            print('Steps completed:')
-
-        while self.plot_idx < self.sim_length:
-            current_population, non_zero_clones, current_diff_cell_population = self._sim_step(self.i, current_population,
-                                                                                            non_zero_clones,
-                                                                                            current_diff_cell_population)  # Run step of the simulation
-            self.i += 1
-            self._record_results(self.i, current_population, non_zero_clones,
-                                 current_diff_cell_population)  # Record the current state
-            if self._check_label_time():
-                current_population, non_zero_clones = self._add_label(current_population,
-                                                                      non_zero_clones,
-                                                                      self.label_frequencies[self.label_count],
-                                                                      self.label_values[self.label_count],
-                                                                      self.label_fitness[self.label_count],
-                                                                      self.label_genes[self.label_count]
-                                                                      )
-
-            if self._check_treatment_time():
-                self._change_treatment()
-
-        if self.progress:
-            print('Finished', self.i, 'steps')
-
-        self._finish_up()
-        self.finished = True
-
-    def _take_sample(self, current_population, non_zero_clones, current_diff_cell_population):
+    def _take_sample(self, current_data: DiffCurrentData):
         """
         Record the results at the point the simulation is up to.
         :param current_population:
         :return:
         """
         if self.non_zero_calc:
-            self.population_array[non_zero_clones, self.plot_idx] = current_population
-            self.diff_cell_population[non_zero_clones, self.plot_idx] = current_diff_cell_population
+            self.population_array[current_data.non_zero_clones, self.plot_idx] = current_data.current_population
+            self.diff_cell_population[current_data.non_zero_clones, self.plot_idx] = current_data.current_diff_cell_population
         else:
-            full_clone_size = current_population + current_diff_cell_population
+            full_clone_size = current_data.current_population + current_data.current_diff_cell_population
             non_zero = np.where(full_clone_size > 0)[0]
-            self.population_array[non_zero, self.plot_idx] = current_population[non_zero]
-            self.diff_cell_population[non_zero, self.plot_idx] = current_diff_cell_population[non_zero]
+            self.population_array[non_zero, self.plot_idx] = current_data.current_population[non_zero]
+            self.diff_cell_population[non_zero, self.plot_idx] = current_data.current_diff_cell_population[non_zero]
         self.plot_idx += 1
         if self.tmp_store is not None:  # Store current state of the simulation.
             if self.store_rotation == 0:
@@ -156,19 +122,6 @@ class GeneralSimDiffCells(GeneralSimClass):
             else:
                 self.pickle_dump(self.tmp_store + '1')
                 self.store_rotation = 0
-
-    def _record_results(self, i, current_population, non_zero_clones, current_diff_cell_population):
-        """
-        Record the results at the point the simulation is up to.
-        Report progress if required
-        :return:
-        """
-        if i == self.sample_points[self.plot_idx]:  # Regularly take a sample for the plot
-            self._take_sample(current_population, non_zero_clones, current_diff_cell_population)
-
-        if self.progress:
-            if i % self.progress == 0:
-                print(i, end=', ', flush=True)
 
     def _switch_diff_cell_simulations_on_off(self, current_population, current_diff_population):
         self.diff_cell_switch_idx += 1
@@ -388,9 +341,15 @@ class MoranWithDiffCells(MoranSim, GeneralSimDiffCells):
     Assume we always start without any differentiated cells.
     """
 
-    def _sim_step(self, i, current_population, non_zero_clones, current_diff_cell_population):
+    def _sim_step(self, i, current_data: DiffCurrentData) -> DiffCurrentData:
         """One cell is selected to die at random. Another cell is selected to replicate and replace the dead cell
         with its offspring. The replicating cell is selected in proportion with its relative fitness"""
+
+        current_population, non_zero_clones, current_diff_cell_population = (
+            current_data.current_population, 
+            current_data.non_zero_clones, 
+            current_data.current_diff_cell_population
+        )
 
         if i > self.next_diff_cell_switch:
             current_diff_cell_population = self._switch_diff_cell_simulations_on_off(current_population,
@@ -439,12 +398,24 @@ class MoranWithDiffCells(MoranSim, GeneralSimDiffCells):
         current_population = current_population[gr_z]  # Only keep the currently alive clones in current pop
         current_diff_cell_population = current_diff_cell_population[gr_z]
 
-        return current_population, non_zero_clones, current_diff_cell_population
+        current_data.update(
+            current_population=current_population, 
+            non_zero_clones=non_zero_clones, 
+            current_diff_cell_population=current_diff_cell_population
+        )
+
+        return current_data
 
 
 class Moran2DWithDiffcells(Moran2D, GeneralSimDiffCells):
 
-    def _sim_step(self, i, current_population, non_zero_clones, current_diff_cell_population):
+    def _sim_step(self, i, current_data: DiffCurrentData) -> DiffCurrentData:
+
+        current_population, non_zero_clones, current_diff_cell_population = (
+            current_data.current_population, 
+            current_data.non_zero_clones, 
+            current_data.current_diff_cell_population
+        )
 
         if i > self.next_diff_cell_switch:
             current_diff_cell_population = self._switch_diff_cell_simulations_on_off(current_population,
@@ -476,7 +447,13 @@ class Moran2DWithDiffcells(Moran2D, GeneralSimDiffCells):
             grid = np.reshape(self.grid_array, self.grid_shape)
             self.grid_results.append(grid.copy())
 
-        return current_population, non_zero_clones, current_diff_cell_population
+        current_data.update(
+            current_population=current_population, 
+            non_zero_clones=non_zero_clones, 
+            current_diff_cell_population=current_diff_cell_population
+        )
+
+        return current_data
 
 
 class BranchingWithDiffCells(SimpleBranchingProcess, GeneralSimDiffCells):

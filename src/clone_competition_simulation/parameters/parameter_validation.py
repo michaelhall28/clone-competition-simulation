@@ -15,7 +15,7 @@ from pydantic_settings import (
     YamlConfigSettingsSource,
 )
 
-from .algorithm_validation import Algorithm
+from .algorithm_validation import Algorithm, AlgorithmClass
 from .differentiated_cells_validation import differentiated_cells_validation_type
 from .fitness_validation import fitness_validation_type
 from .label_validation import label_validation_type
@@ -30,7 +30,6 @@ from ..simulation_algorithms.general_differentiated_cell_class import (
 from ..simulation_algorithms.general_sim_class import GeneralSimClass
 from ..simulation_algorithms.moran import MoranSim
 from ..simulation_algorithms.moran2D import Moran2D
-from ..simulation_algorithms.stop_conditions import WFStop, WF2DStop, MoranStop, Moran2DStop
 from ..simulation_algorithms.wf import WrightFisherSim
 from ..simulation_algorithms.wf2D import WrightFisher2D
 
@@ -183,9 +182,9 @@ class Parameters(RunSettingsBase, ConfigFileSettings):
     def _select_simulator_class(self):
         sim_class = None
         if self.differentiated_cells.diff_cell_simulation:  # Simulations including B cells.
-            if self.end_condition_function is not None:
+            if self.algorithm.algorithm_class == AlgorithmClass.WF:
                 raise ValueError(
-                    'Cannot use an end_condition_function for the simulations including differentiated cells')
+                    'Cannot simulate differentiated cells for Wright-Fisher simulations')
             if self.algorithm == Algorithm.MORAN:
                 sim_class = MoranWithDiffCells
             elif self.algorithm == Algorithm.MORAN2D:
@@ -194,29 +193,18 @@ class Parameters(RunSettingsBase, ConfigFileSettings):
                 sim_class = BranchingWithDiffCells
         else:
             if self.algorithm == Algorithm.WF:
-                if self.end_condition_function is not None:
-                    sim_class = WFStop
-                else:
-                    sim_class = WrightFisherSim
+                sim_class = WrightFisherSim
+            elif self.algorithm == Algorithm.WF2D:
+                sim_class = WrightFisher2D
             elif self.algorithm == Algorithm.MORAN:
-                if self.end_condition_function is not None:
-                    sim_class = MoranStop
-                else:
-                    sim_class = MoranSim
+                sim_class = MoranSim
             elif self.algorithm == Algorithm.MORAN2D:
-                if self.end_condition_function is not None:
-                    sim_class = Moran2DStop
-                else:
-                    sim_class = Moran2D
+                sim_class = Moran2D
             elif self.algorithm == Algorithm.BRANCHING:
                 if self.end_condition_function is not None:
                     raise ValueError('Cannot use an end_condition_function for the branching algorithm')
                 sim_class = SimpleBranchingProcess
-            elif self.algorithm == Algorithm.WF2D:
-                if self.end_condition_function is not None:
-                    sim_class = WF2DStop
-                else:
-                    sim_class = WrightFisher2D
+            
 
         if sim_class is None:
             raise ValueError("No simulation class defined")
@@ -226,6 +214,6 @@ class Parameters(RunSettingsBase, ConfigFileSettings):
     def get_simulator(self):
         sim_class = self._select_simulator_class()
         if self.end_condition_function is not None:
-            return sim_class(self, self.end_condition_function)
+            return sim_class(self)
         else:
             return sim_class(self)

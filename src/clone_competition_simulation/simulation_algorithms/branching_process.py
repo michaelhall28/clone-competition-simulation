@@ -8,6 +8,7 @@ and gamma when setting up the Parameters).
 """
 
 import numpy as np
+from numpy.typing import ArrayLike
 from scipy.sparse import lil_matrix
 
 from .general_sim_class import GeneralSimClass
@@ -60,6 +61,14 @@ class SimpleBranchingProcess(GeneralSimClass):
             self.next_rate_change_time = np.inf
 
         self.new_mutations = {}  # Store clone_id and start time for each newly created clone.
+
+    def _precalculate_mutations(self) -> tuple[int, np.ndarray[tuple[int], np.dtype[np.int_]]]:
+        """
+        We can't pre-calculate the number of mutations for this simulation type since the cell population is not static. 
+        Just return 0 and an empty array
+        :return:
+        """
+        return 0, np.array([])
 
     def _reset_to_start(self, start_time):
         """
@@ -354,7 +363,7 @@ class SimpleBranchingProcess(GeneralSimClass):
             return True
         return False
 
-    def _adjust_raw_times(self, array):
+    def _adjust_raw_times(self, array: ArrayLike) -> np.ndarray[tuple[int], np.dtype[np.float64]]:
         if array is not None:
             array = np.array(array)
         return array

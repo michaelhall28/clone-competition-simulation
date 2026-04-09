@@ -1,7 +1,7 @@
 """
 A class to run Moran-style simulations on a 2D hexagonal grid
 """
-
+from .general_sim_class import CurrentData
 from .wf import WrightFisherSim
 from .general_2D_class import GeneralHexagonalGridSim, get_neighbour_map
 import numpy as np
@@ -29,7 +29,7 @@ class WrightFisher2D(GeneralHexagonalGridSim, WrightFisherSim):
 
         self.grid_results = [self.grid.copy()]
 
-    def _sim_step(self, i, current_population, non_zero_clones):
+    def _sim_step(self, i, current_data: CurrentData) -> CurrentData:
         """
         A single step of the 2D Wright-Fisher process.
         At each step, we add mutations and then draw the new generation.
@@ -46,6 +46,8 @@ class WrightFisher2D(GeneralHexagonalGridSim, WrightFisherSim):
         :param non_zero_clones: Not used as input. Kept for consistency with the other algorithms.
         :return:
         """
+        current_population, non_zero_clones = current_data.current_population, current_data.non_zero_clones
+
         # Get the number of mutations to add in this generation
         total_mutations = self.mutations_to_add[i]
         # Add those mutations and update the grid_array
@@ -62,7 +64,11 @@ class WrightFisher2D(GeneralHexagonalGridSim, WrightFisherSim):
             self.grid = np.reshape(self.grid_array, (self.grid_shape))
             self.grid_results.append(self.grid.copy())
 
-        return current_population, non_zero_clones
+        current_data.update(
+            current_population=current_population, 
+            non_zero_clones=non_zero_clones
+        )
+        return current_data
 
     def _assign_mutations(self, total_mutations):
         """

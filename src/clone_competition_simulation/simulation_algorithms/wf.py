@@ -2,8 +2,9 @@
 A class to run non-spatial Wright-Fisher-style simulations
 """
 
-from .general_sim_class import GeneralSimClass
+from .general_sim_class import GeneralSimClass, CurrentData
 import numpy as np
+from numpy.typing import ArrayLike
 
 
 class WrightFisherSim(GeneralSimClass):
@@ -15,14 +16,14 @@ class WrightFisherSim(GeneralSimClass):
         """
         super().__init__(parameters)
 
-    def _adjust_raw_times(self, array):
+    def _adjust_raw_times(self, array: ArrayLike) -> np.ndarray[tuple[int], np.dtype[np.float64]]:
         """Takes an array of time points and converts to number of simulation steps"""
         if array is not None:
             array = np.array(array) * self.division_rate
 
         return array
 
-    def _sim_step(self, i, current_population, non_zero_clones):
+    def _sim_step(self, i, current_data: CurrentData) -> CurrentData:
         """
         A single step of the Wright-Fisher process.
         At each step, we add mutations and then draw the new generation.
@@ -40,6 +41,8 @@ class WrightFisherSim(GeneralSimClass):
         :param non_zero_clones: Array of the clone numbers of the current clones that have at least 1 cell.
         :return:
         """
+        current_population, non_zero_clones = current_data.current_population, current_data.non_zero_clones
+
         # Get the number of mutations to add during this generation.
         total_mutations = self.mutations_to_add[i]
         # Update the cell population with these new mutations.
@@ -56,14 +59,20 @@ class WrightFisherSim(GeneralSimClass):
         gr_z = np.nonzero(current_population > 0)[0]  # The indices of clones alive at this point in the current pop
         non_zero_clones = non_zero_clones[gr_z]  # Convert those indices to the original clone numbers
         current_population = current_population[gr_z]  # Only keep the currently alive clones in current pop
-        return current_population, non_zero_clones
 
-    def _precalculate_mutations(self):
+        current_data.update(
+            current_population=current_population, 
+            non_zero_clones=non_zero_clones
+        )
+        return current_data
+
+    def _precalculate_mutations(self) -> tuple[int, np.ndarray[tuple[int], np.dtype[np.int_]]]:
         """Before the full simulation starts, we can simulation the number of mutations introduced in each generation
         We can then make the arrays the full size at the start."""
+
         generations = self.sample_points[-1]  # Length of the simulation
-        self.mutations_to_add = []
-        self.new_mutation_count = 0
+        mutations_to_add = []
+        new_mutation_count = 0
         # Convert the time in the mutation_rates array to a simulation step
         self.mutation_rates[:, 0] = self.mutation_rates[:, 0] * self.division_rate
         mut_rate_idx = 0
@@ -87,9 +96,11 @@ class WrightFisherSim(GeneralSimClass):
             # Randomly draw the number of mutations for this simulation step
             total_mutations = self._calc_num_mutations(mutation_rate)
             # Track the total amount of new mutations in the whole simulation (used to make the results arrays)
-            self.new_mutation_count += total_mutations
+            new_mutation_count += total_mutations
             # And store the number of mutations for this sim step.
-            self.mutations_to_add.append(total_mutations)
+            mutations_to_add.append(total_mutations)
+
+        return new_mutation_count, np.array(mutations_to_add)
 
     def _calc_num_mutations(self, mutation_rate):
         """
