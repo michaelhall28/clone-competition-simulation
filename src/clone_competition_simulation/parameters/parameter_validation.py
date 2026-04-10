@@ -28,9 +28,9 @@ from ..simulation_algorithms.branching_process import SimpleBranchingProcess
 from ..simulation_algorithms.general_differentiated_cell_class import (
     Moran2DWithDiffcells, MoranWithDiffCells, BranchingWithDiffCells)
 from ..simulation_algorithms.general_sim_class import GeneralSimClass
-from ..simulation_algorithms.moran import MoranSim
+from ..simulation_algorithms.moran import Moran
 from ..simulation_algorithms.moran2D import Moran2D
-from ..simulation_algorithms.wf import WrightFisherSim
+from ..simulation_algorithms.wf import WrightFisher
 from ..simulation_algorithms.wf2D import WrightFisher2D
 
 
@@ -193,11 +193,11 @@ class Parameters(RunSettingsBase, ConfigFileSettings):
                 sim_class = BranchingWithDiffCells
         else:
             if self.algorithm == Algorithm.WF:
-                sim_class = WrightFisherSim
+                sim_class = WrightFisher
             elif self.algorithm == Algorithm.WF2D:
                 sim_class = WrightFisher2D
             elif self.algorithm == Algorithm.MORAN:
-                sim_class = MoranSim
+                sim_class = Moran
             elif self.algorithm == Algorithm.MORAN2D:
                 sim_class = Moran2D
             elif self.algorithm == Algorithm.BRANCHING:
@@ -213,7 +213,4 @@ class Parameters(RunSettingsBase, ConfigFileSettings):
 
     def get_simulator(self):
         sim_class = self._select_simulator_class()
-        if self.end_condition_function is not None:
-            return sim_class(self)
-        else:
-            return sim_class(self)
+        return sim_class(self)

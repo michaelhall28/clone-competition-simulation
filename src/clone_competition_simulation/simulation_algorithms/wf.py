@@ -7,7 +7,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 
-class WrightFisherSim(GeneralSimClass):
+class WrightFisher(GeneralSimClass):
     """Runs a simulation of the clonal growth, mutation and competition"""
     def __init__(self, parameters):
         """

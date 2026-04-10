@@ -16,7 +16,7 @@ from scipy.sparse import lil_matrix
 import diff_cell_functions
 from .branching_process import SimpleBranchingProcess
 from .general_sim_class import GeneralSimClass, CurrentData
-from .moran import MoranSim
+from .moran import Moran
 from .moran2D import Moran2D
 from ..analysis.analysis import mean_clone_size, mean_clone_size_fit
 from ..parameters.algorithm_validation import AlgorithmClass
@@ -331,7 +331,7 @@ class GeneralSimDiffCells(GeneralSimClass):
         ax.scatter(times, means, label=legend_label, **plot_kwargs)
 
 
-class MoranWithDiffCells(MoranSim, GeneralSimDiffCells):
+class MoranWithDiffCells(Moran, GeneralSimDiffCells):
     """
     The fixed population refers to the number of progenitor cells.
     The number of differentiated cells is allowed to vary and does not effect the dynamics of the progenitor

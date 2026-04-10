@@ -2,12 +2,12 @@
 A class to run Moran-style simulations on a 2D hexagonal grid
 """
 from .general_sim_class import CurrentData
-from .wf import WrightFisherSim
+from .wf import WrightFisher
 from .general_2D_class import GeneralHexagonalGridSim, get_neighbour_map
 import numpy as np
 
 
-class WrightFisher2D(GeneralHexagonalGridSim, WrightFisherSim):
+class WrightFisher2D(GeneralHexagonalGridSim, WrightFisher):
     """
     Runs a simulation of the clonal growth, mutation and competition
     On a hexagonal grid with periodic boundary conditions

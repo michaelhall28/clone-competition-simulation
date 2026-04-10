@@ -8,7 +8,7 @@ from src.clone_competition_simulation import (
     DifferentiatedCellsParameters
 )
 from src.clone_competition_simulation.simulation_algorithms.general_differentiated_cell_class import MoranWithDiffCells
-from src.clone_competition_simulation.simulation_algorithms.moran import MoranSim
+from src.clone_competition_simulation.simulation_algorithms.moran import Moran
 
 
 def test_stop_condition(monkeypatch):
@@ -37,7 +37,7 @@ def test_stop_condition(monkeypatch):
         s = p.get_simulator()
         s.run_sim()
 
-        assert isinstance(s, MoranSim)
+        assert isinstance(s, Moran)
         assert s.stop_function is not None
         assert s.stop_time == 12.8
         assert s.stop_condition_result == {"My results": 10}
