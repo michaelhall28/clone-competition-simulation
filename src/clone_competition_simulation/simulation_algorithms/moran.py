@@ -51,9 +51,9 @@ class Moran(GeneralSimClass):
         """One cell is selected to die at random. Another cell is selected to replicate and replace the dead cell
         with its offspring. The replicating cell is selected in proportion with its relative fitness"""
 
-        birth_idx = self.get_dividing_clone(current_data=current_data) # Clone to add a cell
+        birth_idx = self.get_dividing_cell(current_data=current_data) # Clone to add a cell
 
-        death_idx = self.get_differentiating_clone(current_data=current_data)  # Clone to remove a cell
+        death_idx = self.get_differentiating_cell(current_data=current_data)  # Clone to remove a cell
 
         current_population, non_zero_clones = current_data.current_population, current_data.non_zero_clones
 
@@ -82,7 +82,7 @@ class Moran(GeneralSimClass):
         )
         return current_data
     
-    def get_dividing_clone(self, current_data: CurrentData) -> int:
+    def get_dividing_cell(self, current_data: CurrentData) -> int:
         """Selects the clone that will divide in this simulation step
 
         This selects the clone based on the clone fitness and the number of cells in the clone. 
@@ -108,7 +108,7 @@ class Moran(GeneralSimClass):
         birth_idx = find_ge(fitness_cumsum, birth_selector * fitness_cumsum[-1])
         return birth_idx
     
-    def get_differentiating_clone(self, current_data: CurrentData) -> int:
+    def get_differentiating_cell(self, current_data: CurrentData) -> int:
         """This selects the clone that will lose a cell in this simulation step 
 
         The cell is selected at random from the entire population (so the selection of the clone is proportional to the clone size)

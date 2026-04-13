@@ -30,12 +30,10 @@ class Moran2D(GeneralHexagonalGridSim, Moran):
         # Can therefore calculate the positions of all the dying cells in advance to save time.
         self.death_coords = np.random.randint(0, self.total_pop, size=self.parameters.times.simulation_steps)
 
-    def _sim_step(self, i, current_data: CurrentData) -> CurrentData:
+    def _sim_step(self, i: int, current_data: CurrentData) -> CurrentData:
 
-        current_population, non_zero_clones = current_data.current_population, current_data.non_zero_clones
-
-        death_idx, coord = self._random_death(i)
-        birth_idx = self._get_divider(coord)
+        death_idx, coord = self.get_differentiating_cell(i)
+        birth_idx = self.get_dividing_cell(coord)
         if self.mutations_to_add[i] > 0:  # If True, this division has been assigned at least one mutation
             new_muts = np.concatenate([[birth_idx],
                                        np.arange(self.next_mutation_index,
@@ -47,6 +45,8 @@ class Moran2D(GeneralHexagonalGridSim, Moran):
             new_cell = self.next_mutation_index - 1
         else:
             new_cell = birth_idx
+
+        current_population = current_data.current_population
 
         # Update the clone sizes
         current_population[new_cell] += 1
@@ -60,11 +60,11 @@ class Moran2D(GeneralHexagonalGridSim, Moran):
 
         current_data.update(
             current_population=current_population, 
-            non_zero_clones=non_zero_clones
+            non_zero_clones=None
         )
         return current_data
 
-    def _random_death(self, i):
+    def get_differentiating_cell(self, i: int) -> tuple[int, int]:
         """
         Returns the clone_id and coordinate of the cell to die at step i.
         These have been precalculated at the start of the simulation for efficiency.
@@ -72,10 +72,10 @@ class Moran2D(GeneralHexagonalGridSim, Moran):
         :return: Tuple. (clone_id (int), coordinate in 1-D map of grid (int))
         """
         coord = self.death_coords[i]
-        cell = self.grid_array[coord]
-        return cell, coord
+        clone_id = self.grid_array[coord]
+        return clone_id, coord
 
-    def _get_divider(self, coord):
+    def get_dividing_cell(self, coord: int) -> int:
         """
         Selects the cell that will divide to fill the gap left by self._random_death
         :param coord: Position of the dividing cell in the 1-D map of the grid.

@@ -424,8 +424,8 @@ class Moran2DWithDiffcells(Moran2D, GeneralSimDiffCells):
             current_diff_cell_population = diff_cell_functions.bcell_cy(current_population, current_diff_cell_population,
                                                                         self.time_step, self.asym_div_rate, self.gamma)
 
-        death_idx, coord = self._random_death(i)
-        birth_idx = self._get_divider(coord)
+        death_idx, coord = self.get_differentiating_cell(i)
+        birth_idx = self.get_dividing_cell(coord)
         if self.mutations_to_add[i] > 0:  # If True, this division has been assigned a mutation
             new_muts = np.concatenate([[birth_idx],
                                        np.arange(self.next_mutation_index,
