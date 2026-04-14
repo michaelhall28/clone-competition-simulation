@@ -258,7 +258,7 @@ class HexAnimator:
         :return:
         """
 
-        self.x, self.y = self.sim.grid.shape
+        self.x, self.y = self.sim.grid_shape
         if ax is None:
             ax_given = False
             self._get_figsize()

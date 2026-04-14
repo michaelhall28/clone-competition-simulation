@@ -13,8 +13,8 @@ import math
 import warnings
 from collections import Counter
 from functools import lru_cache
-from typing import TYPE_CHECKING, Iterable, Literal, Any
-from abc import ABC
+from typing import TYPE_CHECKING, Iterable, Literal, Any, ClassVar, Self
+from abc import ABC, abstractmethod
 
 import dill as pickle
 import matplotlib.cm as cm
@@ -40,14 +40,52 @@ class EndConditionError(Exception):
 
 
 @dataclass
-class CurrentData:
+class CurrentData(ABC):
     """Data passed to each sim step
     """
-    current_population: np.ndarray[tuple[int], np.dtype[np.int_]]  # Number of cells in each clone
-    non_zero_clones: np.ndarray[tuple[int], np.dtype[np.int_]] | None # indices of clones with living cells
+    @abstractmethod
+    def update_population_array(self, population_array: lil_matrix, 
+                                plot_idx: int) -> None:
+        """Update the simulation population array with the current clone cell counts 
+
+        Returns: 
+            None
+        """
+        ...
+
+    @classmethod
+    @abstractmethod
+    def from_sim(cls, sim: "GeneralSimClass") -> Self:
+        ...
+    
+    @abstractmethod
+    def update(self, **kwargs)-> None:
+        ... 
+        
+
+
+@dataclass
+class NonSpatialCurrentData(CurrentData):
+    """Tracks current cell populations for non-spatial algorithms
+
+    To increase efficiency, we only list the cell counts for living clones in the current population array. 
+    So we also need to keep track of which clones those cells belong to. 
+    """
+    current_population: np.ndarray[tuple[int], np.dtype[np.int_]]  # Number of cells in each *living* clone
+    non_zero_clones: np.ndarray[tuple[int], np.dtype[np.int_]]  # ids of clones with living cells
+
+    @classmethod
+    def from_sim(cls, sim: "GeneralSimClass") -> Self:
+        current_population = np.zeros(len(sim.clones_array), dtype=int)
+        current_population[:sim.initial_clones] = sim.initial_size_array
+
+        non_zero_clones = np.where(current_population > 0)[0]
+        current_population = current_population[non_zero_clones]
+
+        return cls(current_population=current_population, non_zero_clones=non_zero_clones)    
 
     def update(self, current_population: np.ndarray[tuple[int], np.dtype[np.int_]], 
-               non_zero_clones: np.ndarray[tuple[int], np.dtype[np.int_]] | None) -> None:
+               non_zero_clones: np.ndarray[tuple[int], np.dtype[np.int_]]) -> None:
         """Update the current data
 
         Using a function to ensure all attributes are updated
@@ -59,12 +97,24 @@ class CurrentData:
         self.current_population = current_population
         self.non_zero_clones = non_zero_clones
 
+    def update_population_array(self, population_array: lil_matrix, 
+                                plot_idx: int) -> None:
+        """Insert the current clone cell counts into the right rows and columns of the population array
+
+        Args:
+            population_array (lil_matrix): The array recording the clone sizes over time
+            plot_idx (int): The index of the current sample point
+        """
+        population_array[self.non_zero_clones, plot_idx] = self.current_population
+
 
 class GeneralSimClass(ABC):
     """
     Common functions for all simulation algorithms.
     Functions for setting up simulations and for plotting results
     """
+    current_data_cls: ClassVar[type[CurrentData]] = CurrentData
+
     # Indices of the columns in the clones array
     id_idx = 0  # Unique integer id for each clone. Int.
     label_idx = 1  # The type of the clone. Inherited label does not change. Int. Represents GFP or similar.
@@ -196,6 +246,7 @@ class GeneralSimClass(ABC):
         self.tree = Tree()
         self.tree.create_node(str(-1), -1)  # Make a root node that isn't a clone.
     
+    @abstractmethod
     def _adjust_raw_times(self, array: ArrayLike) -> np.ndarray[tuple[int], np.dtype[np.float64]]:
         """
         Takes an array of time points and converts to number of simulation steps
@@ -204,6 +255,7 @@ class GeneralSimClass(ABC):
         """
         raise NotImplementedError()
 
+    @abstractmethod
     def _precalculate_mutations(self) -> tuple[int, np.ndarray[tuple[int], np.dtype[np.int_]]]:
         """Calculates the number of mutations to add at each simulation step
 
@@ -264,19 +316,7 @@ class GeneralSimClass(ABC):
         for i in range(self.initial_clones):
             self.tree.create_node(str(i), i, parent=-1)  # Directly descended from the root node
 
-    ##### Functions for running the simulation
-
-    def _setup_current_data(self) -> CurrentData:
-        current_population = np.zeros(len(self.clones_array), dtype=int)
-        current_population[:self.initial_clones] = self.initial_size_array
-        if self.non_zero_calc:  # Faster for the non-spatial simulations to only track the current surviving clones
-            non_zero_clones = np.where(current_population > 0)[0]
-            current_population = current_population[non_zero_clones]
-        else:
-            non_zero_clones = None
-        return CurrentData(current_population=current_population, non_zero_clones=non_zero_clones)
-
-    
+    ##### Functions for running the simulation    
     def run_sim(self, continue_sim=False):
         # Functions which runs any of the simulation types.
         # self.sim_step will include the differences between the methods.
@@ -294,7 +334,7 @@ class GeneralSimClass(ABC):
 
         # Set up the data to hold the current state of the simulation.
         # The state of this data will be recorded at each sample point
-        current_data = self._setup_current_data()
+        current_data = self.current_data_cls.from_sim(self)
 
         # Change treatment if required (can change fitness of clones)
         if self._check_treatment_time():
@@ -379,11 +419,7 @@ class GeneralSimClass(ABC):
                 print(i, end=', ', flush=True)
 
     def _take_sample(self, current_data: CurrentData):
-        if self.non_zero_calc:
-            self.population_array[current_data.non_zero_clones, self.plot_idx] = current_data.current_population
-        else:
-            non_zero = np.where(current_data.current_population > 0)[0]
-            self.population_array[non_zero, self.plot_idx] = current_data.current_population[non_zero]
+        current_data.update_population_array(self.population_array, self.plot_idx)
         self.plot_idx += 1
         if self.tmp_store is not None:  # Store current state of the simulation.
             if self.store_rotation == 0:

@@ -3,7 +3,7 @@ A class to run Moran-style simulations.
 """
 import numpy as np
 from numpy.typing import ArrayLike
-from .general_sim_class import GeneralSimClass, CurrentData
+from .general_sim_class import GeneralSimClass, NonSpatialCurrentData
 from ..utils import find_ge
 
 
@@ -12,6 +12,7 @@ class Moran(GeneralSimClass):
     Runs a simulation of the clonal growth, mutation and competition.
     It inherits most functions from GeneralSimClass
     """
+    current_data_cls = NonSpatialCurrentData
 
     def __init__(self, parameters):
 
@@ -47,7 +48,7 @@ class Moran(GeneralSimClass):
         new_mutation_count = mutations_to_add.sum()
         return new_mutation_count, mutations_to_add
 
-    def _sim_step(self, i, current_data: CurrentData) -> CurrentData:
+    def _sim_step(self, i, current_data: NonSpatialCurrentData) -> NonSpatialCurrentData:
         """One cell is selected to die at random. Another cell is selected to replicate and replace the dead cell
         with its offspring. The replicating cell is selected in proportion with its relative fitness"""
 
@@ -82,7 +83,7 @@ class Moran(GeneralSimClass):
         )
         return current_data
     
-    def get_dividing_cell(self, current_data: CurrentData) -> int:
+    def get_dividing_cell(self, current_data: NonSpatialCurrentData) -> int:
         """Selects the clone that will divide in this simulation step
 
         This selects the clone based on the clone fitness and the number of cells in the clone. 
@@ -108,7 +109,7 @@ class Moran(GeneralSimClass):
         birth_idx = find_ge(fitness_cumsum, birth_selector * fitness_cumsum[-1])
         return birth_idx
     
-    def get_differentiating_cell(self, current_data: CurrentData) -> int:
+    def get_differentiating_cell(self, current_data: NonSpatialCurrentData) -> int:
         """This selects the clone that will lose a cell in this simulation step 
 
         The cell is selected at random from the entire population (so the selection of the clone is proportional to the clone size)

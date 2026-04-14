@@ -1,21 +1,22 @@
 import numpy as np
-from clone_competition_simulation import (
+from src.clone_competition_simulation import (
     Parameters, 
     TimeParameters, 
     PopulationParameters,
     Moran, 
     Moran2D
 )
-from clone_competition_simulation.simulation_algorithms.general_sim_class import CurrentData
+from src.clone_competition_simulation.simulation_algorithms.general_sim_class import NonSpatialCurrentData
+from src.clone_competition_simulation.simulation_algorithms.general_2D_class import SpatialCurrentData
 
 
 def test_custom_moran():
     class MyCustomMoran(Moran):
         """Always take from the lowest id clone and add to the highest"""
-        def get_dividing_cell(self, current_data: CurrentData) -> int:
+        def get_dividing_cell(self, current_data: NonSpatialCurrentData) -> int:
             return len(current_data.current_population) - 1
         
-        def get_differentiating_cell(self, current_data: CurrentData) -> int:
+        def get_differentiating_cell(self, current_data: NonSpatialCurrentData) -> int:
             return 0
         
     np.random.seed(0)
@@ -39,19 +40,17 @@ def test_custom_moran2d():
         def __init__(self, parameters: Parameters):
             super().__init__(parameters)
 
-        def get_differentiating_cell(self, i: int) -> tuple[int, int]:
+        def get_differentiating_cell(self, i: int, current_data: SpatialCurrentData) -> int:
             """
             If the dying cell depends on the current state of the simulation, this function needs to be overwritten
-            Should return theclone id and coordinate of the dying cell.
+            Should return coordinate of the dying cell.
             """
             coord = i % self.total_pop  # The dying cell goes in order across the grid
-            
-            # The current cell in that coordinate can be access from self.grid_array
-            clone_id = self.grid_array[coord]
+        
 
-            return clone_id, coord
+            return coord
 
-        def get_dividing_cell(self, coord: int) -> int:
+        def get_dividing_cell(self, coord: int, current_data: SpatialCurrentData) -> int:
             """
             This function determines which clone will divide.  
 
@@ -60,7 +59,7 @@ def test_custom_moran2d():
             This should return the clone_id of the clone that will divide.  
             """
             # get the clone ids in the neighbourhood using the grid array and the neighbour map
-            neighbour_clones = self.grid_array[self.neighbour_map[coord]]
+            neighbour_clones = current_data.grid_array[self.neighbour_map[coord]]
 
             # Select the highest clone in the neighbourhood
             return neighbour_clones.max()
