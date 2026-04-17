@@ -255,7 +255,7 @@ class SimpleBranchingProcess(GeneralSimClass):
         # If the draw is below the fitness, the cell will divide (and possibly mutate).
         # This means the higher the fitness, the more the clone will proliferate.
         # Fitnesses above 2 are essentially infinite, the clone will not die.
-        if np.random.uniform(0, 2) <= self.clones_array[clone_id, self.fitness_idx]:
+        if self.does_cell_divide(clone_id):
             # The cell divides.
             # Add any new mutations to the new cell.
             if self.current_mutation_rate > 0:
@@ -285,6 +285,23 @@ class SimpleBranchingProcess(GeneralSimClass):
             current_population -= 1
 
         return current_population
+    
+    def does_cell_divide(self, clone_id: int) -> bool:
+        """Determines whether the cell will divide or die. 
+
+        Args:
+            clone_id (int): The id of the clone the cell belongs to
+
+        Returns:
+            bool: True if the cell will divide, False if it will die
+        """
+        # Fitness=1 is balanced.
+        # If a random draw from [0,2) is taken.
+        # If the draw is above the fitness, the cell will die.
+        # If the draw is below the fitness, the cell will divide (and possibly mutate).
+        # This means the higher the fitness, the more the clone will proliferate.
+        # Fitnesses above 2 are essentially infinite, the clone will not die.
+        return np.random.uniform(0, 2) <= self.clones_array[clone_id, self.fitness_idx]
 
     def _record_results(self, clone_id, clone_sizes, clone_times):
         """

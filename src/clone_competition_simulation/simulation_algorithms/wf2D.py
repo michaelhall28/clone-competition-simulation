@@ -53,7 +53,8 @@ class WrightFisher2D(GeneralHexagonalGridSim, WrightFisher):
         current_data = self._assign_mutations(total_mutations, current_data=current_data)
 
         # Draw the new generation of cells from the old generation.
-        current_data = self._get_next_generation(current_data=current_data)
+        new_grid_array = self.get_next_generation(current_data=current_data)
+        current_data.update(grid_array=new_grid_array)
 
         # Update the results grids if this is one of the sample times.
         if i == self.sample_points[self.plot_idx] - 1:  # Must compare to -1 since increment is after this function
@@ -117,7 +118,7 @@ class WrightFisher2D(GeneralHexagonalGridSim, WrightFisher):
         k = (s < r).sum(axis=1)
         return neighbour_clones[np.arange(self.total_pop), k]
 
-    def _get_next_generation(self, current_data: SpatialCurrentData) -> SpatialCurrentData:
+    def get_next_generation(self, current_data: SpatialCurrentData) -> np.ndarray[tuple[int], np.dtype[np.int_]]:
         """
         Draw the new generation of cells.
         :return:
@@ -134,7 +135,5 @@ class WrightFisher2D(GeneralHexagonalGridSim, WrightFisher):
         # Draw the new grid array. 
         new_grid_array = self._select_dividors(rel_weights, neighbour_clones)
 
-        current_data.update(grid_array=new_grid_array)
-
-        return current_data
+        return new_grid_array
 

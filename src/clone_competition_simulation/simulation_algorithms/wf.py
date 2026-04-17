@@ -49,7 +49,7 @@ class WrightFisher(GeneralSimClass):
         # Update the cell population with these new mutations.
         current_data = self._assign_mutations(total_mutations, current_data)
 
-        new_population = self.draw_new_generation(current_data)
+        new_population = self.get_next_generation(current_data)
 
         # Remove the extinct clones from the current data
         gr_z = np.nonzero(new_population > 0)[0]  # The indices of clones alive at this point in the current pop
@@ -163,13 +163,13 @@ class WrightFisher(GeneralSimClass):
 
         return current_data
     
-    def draw_new_generation(self, current_data: NonSpatialCurrentData) -> np.ndarray[tuple[int], np.dtype[np.int_]]:
+    def get_next_generation(self, current_data: NonSpatialCurrentData) -> np.ndarray[tuple[int], np.dtype[np.int_]]:
         """Sample from the current cells to output the next generation of cells
 
         Draws from each clone in proportion to the clone size and the clone fitness
 
         Args:
-            current_data (CurrentData): ontains the current clone cell populations and the indices of the living clones
+            current_data (CurrentData): contains the current clone cell populations and the indices of the living clones
 
         Returns:
             np.ndarray[tuple[int], np.dtype[np.int_]]: _description_
