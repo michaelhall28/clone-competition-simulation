@@ -21,6 +21,7 @@ nav:
     - Mutations 1: Mutations.md
     - Mutations 2: Mutations2.md
     - Mutations 3: Mutations3.md
+    - Custom Rules: CustomRules.md
     - Simulating Biopsies: SimulatingBiopsies.md
     - Animation: Animation.md
     - Colours: Colours.md
@@ -29,3 +30,4 @@ nav:
     - Treatments: Treatments.md
     - Storing and Loading: StoringAndLoadingSimulations.md
     - Config Files: RunConfigFile.md
+

@@ -21,7 +21,8 @@ In general, custom cell competition rules can be implemented as follows:
 # Define the custom class
 class MyCustomAlgorithm([Inherit from an existing simulation class]): 
 
-    # Customise the init function if any additional data or objects need to be accessed by the custom functions
+    # Customise the init function if any additional data or objects need to be 
+    # accessed by the custom functions
     def __init__(self, parameters: Parameters, 
                 # ...any additional arguments needed for the custom code
                 ):
@@ -29,7 +30,8 @@ class MyCustomAlgorithm([Inherit from an existing simulation class]):
         # add any attributes here as needed
 
 
-    # Customise some class methods. These vary depending on which type of algorithm is being customised. See below. 
+    # Customise some class methods. 
+    # These vary depending on which type of algorithm is being customised. See below. 
 
 
 # Run the custom simulation
@@ -39,7 +41,8 @@ params = Parameters(
     algorithm="Whichever algorithm type was inherited from", 
     ...
 )
-# Instead of running params.get_simulator() to create the simulation object, pass the parameters to your custom class along with any extra arguments.
+# Instead of running params.get_simulator() to create the simulation object, 
+# pass the parameters to your custom class along with any extra arguments.
 sim = MyCustomAlgorithm(parameters=params)
 
 # Then run the simulation as normal. 
@@ -48,18 +51,18 @@ sim.run_sim()
 
 ## Custom Moran (non-spatial) simulations
 
-Every step in Moran algorithms (`Moran` and `Moran2D`) removes one cell (it differentiates/dies) and another cell duplicates (it divides). 
+At every step in Moran algorithms (`Moran` and `Moran2D`), one cell is removed (it differentiates/dies) and another cell duplicates (it divides). 
 There are two functions that can be overwriten to customise the algorithm: `get_differentiating_cell` and `get_dividing_cell`. 
 
 The input to these functions is `current_data`, a `NonSpatialCurrentData` object. 
 This represents the current cell population in a simulation and is an object with two attributes:
 
-- `current_data.current_population` is a 1D array of integers. It is the cell count of all non-extinct clones.  
+- `current_data.current_population` is a 1D array of integers. It is the cell count for all non-extinct clones.  
 - `current_data.non_zero_clones` is also a 1D array of integers. It is the clone ids of the non-extinct clones.  
 
 For example, if clones with ids 1, 3 and 5 have 10, 20 and 30 cells respectively, and all other clones have zero cells, then `current_data.current_population = [10, 20, 30]` and `current_data.non_zero_clones = [1, 3, 5]`.   
 
-Both functions also have access to any attributes of the simulation object, like the clone fitness. See [Other potential input data](#other-potential-input-data) and the more complex examples. 
+Both functions also have access to [any attributes of the simulation object](#other-potential-input-data), like the clone fitness. 
 
 ### get_differentiating_cell
 
@@ -67,7 +70,7 @@ This function selects the clone which will lose a cell. It returns the index of 
 
 ### get_dividing_cell
 
-This function selects the clone that will gain a cell. Same as `get_differentiating_cell`, tIt returns the index of the clone *relative to other surviving clones*. So if only clones 3, 5 and 8 are alive at the current time, and clone 8 is selected, then the function should return 2, i.e. the index of 8 in the list of clones [3, 5, 8]. 
+This function selects the clone that will gain a cell. Same as `get_differentiating_cell`, it returns the index of the clone *relative to other surviving clones*. So if only clones 3, 5 and 8 are alive at the current time, and clone 8 is selected, then the function should return 2, i.e. the index of 8 in the list of clones [3, 5, 8]. 
 
 ### Custom Moran example
 
@@ -91,7 +94,8 @@ class MyCustomMoran(Moran):  # Inherit from the Moran class
         This function determines which clone will divide.  
 
         This should return the index of the clone that will divide.  
-        NOTE: this is *not* the clone_id, this is the index of the clone in the current_data.current_population array.
+        NOTE: this is *not* the clone_id, this is the index of the 
+         clone in the current_data.current_population array.
         """
         # Select the last clone in the current_population array
         return len(current_data.current_population) - 1
@@ -101,7 +105,8 @@ class MyCustomMoran(Moran):  # Inherit from the Moran class
         This function determines which cell will die.  
 
         This should return the index of the clone that will lose a cell.  
-        NOTE: this is *not* the clone_id, this is the index of the clone in the current_data.current_population array.
+        NOTE: this is *not* the clone_id, this is the index of the 
+         clone in the current_data.current_population array.
         """
         # Select the first clone in the current_population array
         return 0
@@ -139,7 +144,7 @@ Just like the non-spatial `Moran` simulations, at each step in a `Moran2D` simul
 
 The current state of the cells in the grid is tracked by a `SpatialCurrentData` object. This has one attribute:
 
-`current_data.grid_array` is a 1D array of integers representing the 2D grid. Each index in the 1D array maps to a particular cell in the 2D grid. 
+- `current_data.grid_array` is a 1D array of integers representing the 2D grid. Each index in the 1D array maps to a particular cell in the 2D grid. 
 
 For example, for a 2x2 grid containing the cells from clones 1, 2, 3 and 4, in this hexagonal layout:
 
@@ -151,9 +156,7 @@ For example, for a 2x2 grid containing the cells from clones 1, 2, 3 and 4, in t
      \ / \ /
 ```
 
-`current_data.grid_array = [1, 2, 3, 4]`, with the first two values representing the top row, and the next two values representing the next row. 
-
-Essentially, each index in the 1D array corresponds to a particular cell in the 2D array.  
+`current_data.grid_array = [1, 2, 3, 4]`, with the first two values representing the top row, and the next two values representing the next row.  
 
 Normally the cell competition in the 2D simulations is based on immediate cell neighbours. Since the grid layout is rigid, all the indices for the cell neighbourhoods can be calculated just once, at the start of the simulation.   
 This is available through `self.neighbour_map`. 
@@ -167,20 +170,20 @@ This function returns the coordinate (in the 1D array representation) of the cel
 
 By default, every cell has an equal chance of dying. To implement this efficiently, the coordinates of the dying cells are all random selected at the start of the simulation in the init line `self.death_coords = np.random.randint(0, self.total_pop, size=self.parameters.times.simulation_steps)`. 
 
-The `get_differentiating_cell` function is passed the number of the current simulation step (`i`) and the current_data, and returns the coordinate of the dying cell (from `self.death_coords`).
+The `get_differentiating_cell` function is passed the current simulation step count (`i`) and the current_data, and returns the coordinate of the dying cell (from `self.death_coords`).
 
 To change the rules for dying, you could either: 
 
-- overwrite the calculation of `self.death_coords` in the init function of the custom class
-- overwrite `get_differentiating_cell`, probably ignoring `self.death_coords` and running new code to select the dying cell. 
+- overwrite the calculation of `self.death_coords` in the init function of the custom class, if the dying cell does not depend on the current simulation state. 
+- overwrite `get_differentiating_cell` 
 
 ### get_dividing_cell
 
-This function returns the clone id of the cell that will divide. Unlike the non-spatial `Moran`, `get_dividing_cell`returns the clone id directly, instead of the index of the clone within only surviving clones. So if clone 8 is selected to divide, then the function should return 8, regardless of any other surviving clones.
+This function gets given the coordinate of the dying cell and the `current_data`, and returns the clone id of the cell that will divide. Unlike in the non-spatial `Moran` simulations, here `get_dividing_cell`returns the clone id directly, instead of the index of the clone relative to only surviving clones. So if clone 8 is selected to divide, then the function should return 8, regardless of any other surviving clones.
 
 By default, the dividing cell is selected from the cells in the neighbourhood of the dying cell, with the division chance in proportion to the cell fitness.  
 
-`get_dividing_cell` gets given the coordinate of the dying cell, along with the `current_data`
+
 
 ### Custom Moran2D example
 
@@ -208,7 +211,8 @@ class MyCustomMoran2D(Moran2D):
 
     def get_differentiating_cell(self, i: int, current_data: SpatialCurrentData) -> int:
         """
-        If the dying cell depends on the current state of the simulation, this function needs to be overwritten
+        If the dying cell depends on the current state of the simulation, 
+        this function needs to be overwritten
         Needs to return coordinate of the dying cell.
         """
         coord = i % self.total_pop  # The dying cell goes in order across the grid
@@ -217,11 +221,9 @@ class MyCustomMoran2D(Moran2D):
 
     def get_dividing_cell(self, coord: int, current_data: SpatialCurrentData) -> int:
         """
-        This function determines which clone will divide.  
+        This function determines which clone will divide and should return the clone_id.
 
         For this custom class, it will return the highest clone id in the neighbourhood.
-
-        This should return the clone_id of the clone that will divide.  
         """
         # get the clone ids in the neighbourhood using the grid array and the neighbour map
         neighbour_clones = current_data.grid_array[self.neighbour_map[coord]]
@@ -236,7 +238,8 @@ params = Parameters(
     times=TimeParameters(max_time=1, division_rate=1, samples=16), 
     population=PopulationParameters(initial_grid=np.arange(16).reshape(4, 4), cell_in_own_neighbourhood=False)
 )
-# Instead of running params.get_simulator() to create the simulation object, pass the parameters to your custom class.
+# Instead of running params.get_simulator() to create the simulation object, 
+# pass the parameters to your custom class.
 sim = MyCustomMoran2D(parameters=params)
 
 # Then continue as normal. 
@@ -272,7 +275,7 @@ The cells are replaced from the top left onwards, with the largest clone id (15 
 Each step in the Wright-Fisher algorithms (`WF` and `WF2D`) replaces the entire cell population to produce a new cell generation. 
 It therefore has just one function to overwrite: `get_next_generation`.  
 
-This function is given the current cell count of each suriving clone (in the same format as for the [non-spatial Moran simulations](#custom-moran-non-spatial-simulations)), and returns an array of updated cell counts for those clones. Cell counts can drop to zero (and will be tidied up after this function), but new clones should not be added here - mutations are added prior to this function. 
+This function input is the current cell count of each suriving clone (in the same format as for the [non-spatial Moran simulations](#custom-moran-non-spatial-simulations)), and returns an array of updated cell counts for those clones. Cell counts can drop to zero (and will be tidied up after this function), but new clones should not be added here - mutations are added prior to this function. 
 
 ### Custom Wright-Fisher example
 
@@ -290,8 +293,9 @@ from clone_competition_simulation import (
 
 class MyCustomWF(WrightFisher):
     """Always take from the lowest id clone and add to the highest"""
+
     def get_next_generation(self, current_data: NonSpatialCurrentData) -> np.ndarray[tuple[int], np.dtype[np.int_]]:
-        """This function should return the cell counts for all new clone
+        """This function should return the cell counts for the new generation of clones
 
         Args:
             current_data (NonSpatialCurrentData): Current clone cell counts (an array of clone sizes and an array of clone ids)
@@ -342,7 +346,7 @@ The function `get_next_generation` is given the clone id of every cell in the gr
 
 ### Custom Wright-Fisher 2D example
 
-Here we just rotate the cells around the grid. 
+In this example we just rotate the cells around the grid. 
 
 ```python
 from clone_competition_simulation import (
@@ -405,13 +409,19 @@ print(sim.grid_results[3])
 
 ## Custom Branching simulations
 
-This algorithm works in an very different way to the other algorithms. Each clone and clone is simulated independently. At each step there is simply a decision as to whether the cell will divide or die. 
+This algorithm works in an very different way to the other algorithms. Each clone and cell is simulated independently. At each step there is a decision as to whether the cell will divide or die. 
 
 To change the rule, overwrite the function `does_cell_divide`, which takes the clone id as input, and returns True if the cell will divide and False if the cell will die. 
 
 ### Custom Branching example
 
 ```python
+from clone_competition_simulation import (
+    Branching, 
+    Parameters,
+    TimeParameters,
+    PopulationParameters
+)
 
 class MyCustomBranching(SimpleBranchingProcess):
         """The cell division probability depends on the clone id"""
@@ -420,15 +430,17 @@ class MyCustomBranching(SimpleBranchingProcess):
         # If the clone id is larger than 3 it divides, otherwise it dies
         return clone_id > 3
         
-np.random.seed(0)
+# Set up the parameters for a normal Branching simulation
 params = Parameters(
     algorithm="Branching", 
     times=TimeParameters(max_time=3, division_rate=1, samples=4), 
     population=PopulationParameters(initial_size_array=np.array([5, 4, 3, 2, 1]))
 )
 
+# Pass the parameters to the custom class
 sim = MyCustomBranching(parameters=params)
 
+# And run the simulation as normal
 sim.run_sim()
 
 print(sim.population_array.toarray())
@@ -452,12 +464,12 @@ As well as the current clone ids of all cells in the population, other data in t
 The simulation stores information about the clones in `self.clones_array`.  
 This is an array with one row per clone and the following columns:
 
-- id. Integer. The id of the clone. 
-- label. Integer. An inheritable label for the clone (set up using `LabelParameters`). E.g. GFP. 
-- fitness. Float. The fitness of the clone. This can change over time depending on any treatments. 
-- generation born. Integer. The index of the sample point the clone first appeared in. 
-- parent id. Integer. The id of the parent clone. 
-- gene mutated id. Integer. If there are multiple genes in the MutationGenerator, this records the index of the gene 
+- id. The id of the clone. 
+- label. An inheritable label for the clone (set up using `LabelParameters`). E.g. GFP. 
+- fitness. The fitness of the clone. This can change over time depending on any treatments. 
+- generation born. The index of the sample point the clone first appeared in. 
+- parent id. The id of the parent clone. 
+- gene mutated id. If there are multiple genes in the MutationGenerator, this records the index of the gene 
   mutated to create this new clone. 
 
 The array indices are recorded in the simulation class and can be accessed using `self.id_idx`, `self.label_idx`, 
@@ -492,9 +504,8 @@ To get the raw fitness values for an array of clone ids, use:
 
 This example has paper-scissors-rock style competition between cells. 
 
-It passes a new object when initialises the simulation, and makes use of the 
+It passes a new object during the simulation initialisation, and makes use of the 
 grid neighbours. 
-
 
 ```python
 
@@ -502,9 +513,12 @@ grid neighbours.
 class CompetitionRules:
     """
     These are rules for how clones change the fitness of other clones in their vicinity. 
+    The interaction_effects are a list of (clone A, clone B, fitness multiplier) tuples. 
+    If cells from clone A and clone B are both present in a cell neighbourhood, then the 
+    fitness of clone B will be multiplied by the fitness multiplier. 
     """
 
-    def __init__(self, interaction_effects: dict[tuple[int, int], float]):
+    def __init__(self, interaction_effects: list[tuple[int, int, float]]):
         self.interaction_effects = interaction_effects
 
     @staticmethod
@@ -542,7 +556,7 @@ class CompetitionRules:
             return neighbour_clones[0]
         
         # Update the cell fitness based on the clones in the neighbourhood
-        for (clone_a, clone_b), multiplier in self.interaction_effects.items():
+        for clone_a, clone_b, multiplier in self.interaction_effects:
             self.apply_interaction_effect(clone_a, clone_b, multiplier, 
                                             neighbour_clones, weights)
             
@@ -593,11 +607,11 @@ params = Parameters(
 # Define the rules object
 # 0 beats 1, 1 beats 2, 2 beats 0
 custom_rules = CompetitionRules(
-    interaction_effects={
-        (0, 1): 0.25,  # The presence of clone 0 will quarter the fitness of clone 1
-        (1, 2): 0.25,  # The presence of clone 1 will quarter the fitness of clone 2
-        (2, 0): 0.25,  # The presence of clone 2 will quarter the fitness of clone 0
-    }
+    interaction_effects=[
+        (0, 1, 0.25),  # The presence of clone 0 will quarter the fitness of clone 1
+        (1, 2, 0.25),  # The presence of clone 1 will quarter the fitness of clone 2
+        (2, 0, 0.25),  # The presence of clone 2 will quarter the fitness of clone 0
+    ]
 )
 
 # Initialise the custom algorithm class
