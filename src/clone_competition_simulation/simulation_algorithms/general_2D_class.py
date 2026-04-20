@@ -1,9 +1,47 @@
 """
 A class to set up the hexagonal grids and general functions that apply to both the Moran2D and WF2D simulations.
 """
+from dataclasses import dataclass
+from typing import Self
 import numpy as np
+from scipy.sparse import lil_matrix
 from ..plotting.animator import HexAnimator
-from .general_sim_class import CurrentData
+from .general_sim_class import CurrentData, GeneralSimClass
+
+
+@dataclass
+class SpatialCurrentData(CurrentData):
+    grid_array: np.ndarray[tuple[int], np.dtype[np.int_]]  # The clone id of each cell in the grid
+
+    @classmethod
+    def from_sim(cls, sim: GeneralSimClass) -> Self:
+        grid_array = np.ravel(sim.parameters.population.initial_grid)
+        return cls(
+            grid_array=grid_array, 
+        )
+
+    def update(self, grid_array: np.ndarray[tuple[int], np.dtype[np.int_]]) -> None:
+        """Update the current data
+
+        Using a function to ensure all attributes are updated
+
+        Args:
+            current_population (np.ndarray[tuple[int], np.dtype[np.int_]]): New cell count for each clone
+            grid_array (np.ndarray[tuple[int], np.dtype[np.int_]]): New layout of clones in the grid
+        """
+        self.grid_array = grid_array
+
+    def update_population_array(self, population_array: lil_matrix, 
+                                plot_idx: int) -> None:
+        """Insert the current clone cell counts into the right rows and columns of the population array
+
+        Args:
+            population_array (lil_matrix): The array recording the clone sizes over time
+            plot_idx (int): The index of the current sample point
+        """
+        current_population = np.bincount(self.grid_array)
+        non_zero = np.where(current_population > 0)[0]
+        population_array[non_zero, plot_idx] = current_population[non_zero]
 
 
 class GeneralHexagonalGridSim:
@@ -11,6 +49,7 @@ class GeneralHexagonalGridSim:
     Contains functions that can be used with any hexagonal grid.
     Should be inherited along with the GeneralSimClass (or a subclass of it) to create a 2D simulation class.
     """
+    current_data_cls = SpatialCurrentData
 
     def _add_label(self, current_data: CurrentData, label_frequency, label, label_fitness, label_gene) -> CurrentData:
         """
@@ -18,22 +57,19 @@ class GeneralHexagonalGridSim:
         The labelling is not exact, so each cell has same chance.
         Apply the mutants to the grid.
         """
-        current_population = current_data.current_population
+        grid_array = current_data.grid_array
+
         num_labels = np.random.binomial(self.total_pop, label_frequency)
 
         # Extend the arrays
         self._extend_arrays_fixed_amount(num_labels)
-        # Extend the current population with zeros
-        current_population = np.concatenate([current_population, np.zeros(num_labels, dtype=int)])
 
         mutant_locs = np.random.choice(self.total_pop, num_labels, replace=False)
 
         for m in mutant_locs:
             # Convert the random draws into array indices
-            parent = self.grid_array[m]
-            current_population[self.next_mutation_index] += 1
-            current_population[parent] -= 1
-            self.grid_array[m] = self.next_mutation_index
+            parent = grid_array[m]
+            grid_array[m] = self.next_mutation_index
             self._add_labelled_clone(parent, label, label_fitness, label_gene)
 
         self.label_count += 1
@@ -43,8 +79,7 @@ class GeneralHexagonalGridSim:
             self.next_label_time = np.inf
 
         current_data.update(
-            current_population=current_population, 
-            non_zero_clones=current_data.non_zero_clones
+            grid_array=grid_array
         )
         return current_data
 

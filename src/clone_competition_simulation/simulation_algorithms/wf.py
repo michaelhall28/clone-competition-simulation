@@ -2,13 +2,15 @@
 A class to run non-spatial Wright-Fisher-style simulations
 """
 
-from .general_sim_class import GeneralSimClass, CurrentData
+from .general_sim_class import GeneralSimClass, NonSpatialCurrentData
 import numpy as np
 from numpy.typing import ArrayLike
 
 
-class WrightFisherSim(GeneralSimClass):
+class WrightFisher(GeneralSimClass):
     """Runs a simulation of the clonal growth, mutation and competition"""
+    current_data_cls = NonSpatialCurrentData
+
     def __init__(self, parameters):
         """
 
@@ -23,7 +25,7 @@ class WrightFisherSim(GeneralSimClass):
 
         return array
 
-    def _sim_step(self, i, current_data: CurrentData) -> CurrentData:
+    def _sim_step(self, i, current_data: NonSpatialCurrentData) -> NonSpatialCurrentData:
         """
         A single step of the Wright-Fisher process.
         At each step, we add mutations and then draw the new generation.
@@ -41,28 +43,22 @@ class WrightFisherSim(GeneralSimClass):
         :param non_zero_clones: Array of the clone numbers of the current clones that have at least 1 cell.
         :return:
         """
-        current_population, non_zero_clones = current_data.current_population, current_data.non_zero_clones
 
         # Get the number of mutations to add during this generation.
         total_mutations = self.mutations_to_add[i]
         # Update the cell population with these new mutations.
-        current_population, non_zero_clones = self._assign_mutations(total_mutations,
-                                                                     current_population,
-                                                                     non_zero_clones)
+        current_data = self._assign_mutations(total_mutations, current_data)
 
-        # Draw the new generation of cells from the old generation.
-        # First, calculate the relative weight of each clone (population size multiplied by the fitness)
-        weights = current_population * self.clones_array[non_zero_clones, self.fitness_idx]
-        relative_weights = weights / weights.sum()
-        # Then draw the new population.
-        current_population = np.random.multinomial(self.total_pop, relative_weights)
-        gr_z = np.nonzero(current_population > 0)[0]  # The indices of clones alive at this point in the current pop
-        non_zero_clones = non_zero_clones[gr_z]  # Convert those indices to the original clone numbers
-        current_population = current_population[gr_z]  # Only keep the currently alive clones in current pop
+        new_population = self.get_next_generation(current_data)
+
+        # Remove the extinct clones from the current data
+        gr_z = np.nonzero(new_population > 0)[0]  # The indices of clones alive at this point in the current pop
+        new_non_zero_clones = current_data.non_zero_clones[gr_z]  # Convert those indices to the original clone numbers
+        new_population = new_population[gr_z]  # Only keep the currently alive clones in current pop
 
         current_data.update(
-            current_population=current_population, 
-            non_zero_clones=non_zero_clones
+            current_population=new_population, 
+            non_zero_clones=new_non_zero_clones
         )
         return current_data
 
@@ -111,7 +107,7 @@ class WrightFisherSim(GeneralSimClass):
         total_mutations = np.random.poisson(mutation_rate * self.total_pop)
         return total_mutations
 
-    def _assign_mutations(self, total_mutations, current_population, non_zero_clones):
+    def _assign_mutations(self, total_mutations, current_data: NonSpatialCurrentData) -> NonSpatialCurrentData:
         """
         Adds new mutations to cells.
 
@@ -120,6 +116,8 @@ class WrightFisherSim(GeneralSimClass):
         as soon as it is added, the only cell of the clone is mutated again and moved to a new clone.
         :return:
         """
+        current_population, non_zero_clones = current_data.current_population, current_data.non_zero_clones
+
         if total_mutations > 0:
             # List out all cells and the clone they belong to.
             flattened_pop = np.repeat(np.arange(current_population.size), current_population)
@@ -158,4 +156,30 @@ class WrightFisherSim(GeneralSimClass):
 
             non_zero_clones = np.concatenate([non_zero_clones, new_surviving_clone_numbers])
 
-        return current_population, non_zero_clones
+        current_data.update(
+            current_population=current_population, 
+            non_zero_clones=non_zero_clones
+        )
+
+        return current_data
+    
+    def get_next_generation(self, current_data: NonSpatialCurrentData) -> np.ndarray[tuple[int], np.dtype[np.int_]]:
+        """Sample from the current cells to output the next generation of cells
+
+        Draws from each clone in proportion to the clone size and the clone fitness
+
+        Args:
+            current_data (CurrentData): contains the current clone cell populations and the indices of the living clones
+
+        Returns:
+            np.ndarray[tuple[int], np.dtype[np.int_]]: _description_
+        """
+        # Draw the new generation of cells from the old generation.
+        # First, calculate the relative weight of each clone (population size multiplied by the fitness)
+        weights = current_data.current_population * self.clones_array[current_data.non_zero_clones, self.fitness_idx]
+        relative_weights = weights / weights.sum()
+
+        # Then draw the new population.
+        new_population = np.random.multinomial(self.total_pop, relative_weights)
+        return new_population
+        

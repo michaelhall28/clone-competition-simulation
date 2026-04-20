@@ -9,14 +9,16 @@ Uses Cython code (diff_cell_functions.pyx) to increase speed of the differentiat
 Not used or tested extensively, and not all functions will work well with these simulations.
 """
 from dataclasses import dataclass
+from typing import Self
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.sparse import lil_matrix
 
 import diff_cell_functions
 from .branching_process import SimpleBranchingProcess
-from .general_sim_class import GeneralSimClass, CurrentData
-from .moran import MoranSim
+from .general_sim_class import GeneralSimClass, NonSpatialCurrentData
+from .general_2D_class import SpatialCurrentData
+from .moran import Moran
 from .moran2D import Moran2D
 from ..analysis.analysis import mean_clone_size, mean_clone_size_fit
 from ..parameters.algorithm_validation import AlgorithmClass
@@ -24,14 +26,61 @@ from ..utils import find_ge
 
 
 @dataclass
-class DiffCurrentData(CurrentData):
+class DiffNonSpatialCurrentData(NonSpatialCurrentData):
     current_diff_cell_population: np.ndarray[tuple[int], np.dtype[np.int_]]
 
+    @classmethod
+    def from_sim(cls, sim: GeneralSimClass) -> Self:
+        current_population = np.zeros(len(sim.clones_array), dtype=int)
+        current_population[:sim.initial_clones] = sim.initial_size_array
+        
+        non_zero_clones = np.where(current_population > 0)[0]
+        current_population = current_population[non_zero_clones]
+        current_diff_cell_population = np.zeros_like(current_population)
+
+        return cls(
+            current_population=current_population, 
+            non_zero_clones=non_zero_clones, 
+            current_diff_cell_population=current_diff_cell_population
+        )
+
     def update(self, current_population: np.ndarray[tuple[int], np.dtype[np.int_]], 
-               non_zero_clones: np.ndarray[tuple[int], np.dtype[np.int_]] | None, 
+               non_zero_clones: np.ndarray[tuple[int], np.dtype[np.int_]], 
                current_diff_cell_population: np.ndarray[tuple[int], np.dtype[np.int_]]) -> None:
         super().update(current_population=current_population, non_zero_clones=non_zero_clones)
         self.current_diff_cell_population = current_diff_cell_population
+
+    def update_diff_cell_population_array(self, diff_cell_population_array: lil_matrix, plot_idx: int) -> None:
+        diff_cell_population_array[self.non_zero_clones, plot_idx] = self.current_diff_cell_population
+
+
+@dataclass
+class DiffSpatialCurrentData(SpatialCurrentData):
+    current_diff_cell_population: np.ndarray[tuple[int], np.dtype[np.int_]]
+
+    @classmethod
+    def from_sim(cls, sim: GeneralSimClass) -> Self:
+        grid_array = np.ravel(sim.parameters.population.initial_grid)
+
+        current_diff_cell_population = np.zeros(shape=len(sim.clones_array), dtype=np.int_)
+
+        return cls(
+            grid_array=grid_array, 
+            current_diff_cell_population=current_diff_cell_population
+        )
+
+    def update(self, grid_array: np.ndarray[tuple[int], np.dtype[np.int_]], 
+               current_diff_cell_population: np.ndarray[tuple[int], np.dtype[np.int_]]) -> None:
+        super().update(grid_array=grid_array)
+        self.current_diff_cell_population = current_diff_cell_population
+
+    @property
+    def current_population(self) -> np.ndarray[tuple[int], np.dtype[np.int_]]:
+        return np.bincount(self.grid_array)
+    
+    def update_diff_cell_population_array(self, diff_cell_population_array: lil_matrix, plot_idx: int) -> None:
+        non_zero = np.where(self.current_diff_cell_population > 0)[0]
+        diff_cell_population_array[non_zero, plot_idx] = self.current_diff_cell_population[non_zero]
 
 
 class GeneralSimDiffCells(GeneralSimClass):
@@ -83,37 +132,15 @@ class GeneralSimDiffCells(GeneralSimClass):
 
     ############ Functions for running simulations ############
 
-    def _setup_current_data(self) -> CurrentData:
-        current_population = np.zeros(len(self.clones_array), dtype=int)
-        current_population[:self.initial_clones] = self.initial_size_array
-        if self.non_zero_calc:  # Faster for the non-spatial simulations to only track the current surviving clones
-            non_zero_clones = np.where(current_population > 0)[0]
-            current_population = current_population[non_zero_clones]
-        else:
-            non_zero_clones = None
-
-        current_diff_cell_population = np.zeros_like(current_population)
-
-        return DiffCurrentData(
-            current_population=current_population, 
-            non_zero_clones=non_zero_clones, 
-            current_diff_cell_population=current_diff_cell_population
-        )
-
-    def _take_sample(self, current_data: DiffCurrentData):
+    def _take_sample(self, current_data: DiffNonSpatialCurrentData | DiffSpatialCurrentData) -> None:
         """
         Record the results at the point the simulation is up to.
         :param current_population:
         :return:
         """
-        if self.non_zero_calc:
-            self.population_array[current_data.non_zero_clones, self.plot_idx] = current_data.current_population
-            self.diff_cell_population[current_data.non_zero_clones, self.plot_idx] = current_data.current_diff_cell_population
-        else:
-            full_clone_size = current_data.current_population + current_data.current_diff_cell_population
-            non_zero = np.where(full_clone_size > 0)[0]
-            self.population_array[non_zero, self.plot_idx] = current_data.current_population[non_zero]
-            self.diff_cell_population[non_zero, self.plot_idx] = current_data.current_diff_cell_population[non_zero]
+        current_data.update_population_array(self.population_array, self.plot_idx)
+        current_data.update_diff_cell_population_array(self.diff_cell_population, self.plot_idx)
+
         self.plot_idx += 1
         if self.tmp_store is not None:  # Store current state of the simulation.
             if self.store_rotation == 0:
@@ -331,7 +358,7 @@ class GeneralSimDiffCells(GeneralSimClass):
         ax.scatter(times, means, label=legend_label, **plot_kwargs)
 
 
-class MoranWithDiffCells(MoranSim, GeneralSimDiffCells):
+class MoranWithDiffCells(Moran, GeneralSimDiffCells):
     """
     The fixed population refers to the number of progenitor cells.
     The number of differentiated cells is allowed to vary and does not effect the dynamics of the progenitor
@@ -340,8 +367,9 @@ class MoranWithDiffCells(MoranSim, GeneralSimDiffCells):
 
     Assume we always start without any differentiated cells.
     """
+    current_data_cls = DiffNonSpatialCurrentData
 
-    def _sim_step(self, i, current_data: DiffCurrentData) -> DiffCurrentData:
+    def _sim_step(self, i, current_data: DiffNonSpatialCurrentData) -> DiffNonSpatialCurrentData:
         """One cell is selected to die at random. Another cell is selected to replicate and replace the dead cell
         with its offspring. The replicating cell is selected in proportion with its relative fitness"""
 
@@ -408,14 +436,15 @@ class MoranWithDiffCells(MoranSim, GeneralSimDiffCells):
 
 
 class Moran2DWithDiffcells(Moran2D, GeneralSimDiffCells):
+    current_data_cls = DiffSpatialCurrentData
 
-    def _sim_step(self, i, current_data: DiffCurrentData) -> DiffCurrentData:
+    def _sim_step(self, i, current_data: DiffSpatialCurrentData) -> DiffSpatialCurrentData:
 
-        current_population, non_zero_clones, current_diff_cell_population = (
-            current_data.current_population, 
-            current_data.non_zero_clones, 
+        grid_array, current_diff_cell_population = (
+            current_data.grid_array, 
             current_data.current_diff_cell_population
         )
+        current_population = current_data.current_population
 
         if i > self.next_diff_cell_switch:
             current_diff_cell_population = self._switch_diff_cell_simulations_on_off(current_population,
@@ -424,8 +453,9 @@ class Moran2DWithDiffcells(Moran2D, GeneralSimDiffCells):
             current_diff_cell_population = diff_cell_functions.bcell_cy(current_population, current_diff_cell_population,
                                                                         self.time_step, self.asym_div_rate, self.gamma)
 
-        death_idx, coord = self._random_death(i)
-        birth_idx = self._get_divider(coord)
+        coord = self.get_differentiating_cell(i, current_data)
+        death_idx = grid_array[coord]
+        birth_idx = self.get_dividing_cell(coord, current_data)
         if self.mutations_to_add[i] > 0:  # If True, this division has been assigned a mutation
             new_muts = np.concatenate([[birth_idx],
                                        np.arange(self.next_mutation_index,
@@ -438,18 +468,15 @@ class Moran2DWithDiffcells(Moran2D, GeneralSimDiffCells):
         else:
             new_cell = birth_idx
 
-        current_population[new_cell] += 1
-        current_population[death_idx] -= 1
         current_diff_cell_population[death_idx] += 2  # Two differentiated cells created if progenitor cell 'dies'
-        self.grid_array[coord] = new_cell
+        grid_array[coord] = new_cell
 
         if i == self.sample_points[self.plot_idx] - 1:  # Must compare to -1 since increment is after this function
-            grid = np.reshape(self.grid_array, self.grid_shape)
+            grid = np.reshape(grid_array, self.grid_shape)
             self.grid_results.append(grid.copy())
 
         current_data.update(
-            current_population=current_population, 
-            non_zero_clones=non_zero_clones, 
+            grid_array=grid_array,
             current_diff_cell_population=current_diff_cell_population
         )
 

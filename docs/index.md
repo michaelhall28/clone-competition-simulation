@@ -3,11 +3,9 @@
 Python3 simulations of clone competition during ongoing mutagenesis.
 
 This documentation contains a series of guides demonstrating how to run
-the simulations in this repository and view the results.
+the simulations with various options and view the results.
 
 ### Guides
-
-These are roughly in order of simple to complicated, and useful to less useful.
 
 #### [Installation](Installation.md)
 - Requirements and installation
@@ -48,6 +46,9 @@ These are roughly in order of simple to complicated, and useful to less useful.
 - How the fitness effects of multiple mutations are combined
 - Multiple genes and epistatic effects
 - Diminishing returns
+
+#### [Custom Rules](CustomRules.md)
+- How to insert custom rules for cell competition into the simulation algorithms
 
 #### [Simulating Biopsies](SimulatingBiopsies.md)
 - Counting clone sizes in biopsies taken from 2D simulations

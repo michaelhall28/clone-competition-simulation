@@ -3,39 +3,37 @@ A class to run Moran-style simulations on a 2D hexagonal grid
 """
 
 import numpy as np
-from .general_sim_class import CurrentData
-from .moran import MoranSim
-from .general_2D_class import GeneralHexagonalGridSim, get_neighbour_map
+from .moran import Moran
+from .general_2D_class import GeneralHexagonalGridSim, get_neighbour_map, SpatialCurrentData
 
 
-class Moran2D(GeneralHexagonalGridSim, MoranSim):
+class Moran2D(GeneralHexagonalGridSim, Moran):
     """
     Runs a simulation of the clonal growth, mutation and competition.
     It inherits most functions from GeneralSimClass and MoranSim
     """
+    current_data_cls = SpatialCurrentData
+
     def __init__(self, parameters):
 
         super().__init__(parameters)
-        self.grid = parameters.population.initial_grid.copy()  # The 2D grid for the simulation.
+        initial_grid = parameters.population.initial_grid.copy()  # The 2D grid for the simulation.
                                                     # Copy in case same grid used for other simulations.
         self.grid_shape = parameters.population.grid_shape
-        self.grid_array = np.ravel(self.grid)
         self.neighbour_map = get_neighbour_map(
             grid_shape=self.grid_shape,
             cell_in_own_neighbourhood=parameters.population.cell_in_own_neighbourhood
         )
-        self.grid_results = [self.grid.copy()]
+        self.grid_results = [initial_grid]
 
         # Cell death is not dependent on fitness in this version of the Moran algorithm.
         # Can therefore calculate the positions of all the dying cells in advance to save time.
         self.death_coords = np.random.randint(0, self.total_pop, size=self.parameters.times.simulation_steps)
 
-    def _sim_step(self, i, current_data: CurrentData) -> CurrentData:
+    def _sim_step(self, i: int, current_data: SpatialCurrentData) -> SpatialCurrentData:
 
-        current_population, non_zero_clones = current_data.current_population, current_data.non_zero_clones
-
-        death_idx, coord = self._random_death(i)
-        birth_idx = self._get_divider(coord)
+        coord = self.get_differentiating_cell(i, current_data=current_data)
+        birth_idx = self.get_dividing_cell(coord, current_data=current_data)
         if self.mutations_to_add[i] > 0:  # If True, this division has been assigned at least one mutation
             new_muts = np.concatenate([[birth_idx],
                                        np.arange(self.next_mutation_index,
@@ -48,41 +46,44 @@ class Moran2D(GeneralHexagonalGridSim, MoranSim):
         else:
             new_cell = birth_idx
 
-        # Update the clone sizes
-        current_population[new_cell] += 1
-        current_population[death_idx] -= 1
+        grid_array = current_data.grid_array
+
         # Update the grid
-        self.grid_array[coord] = new_cell
+        grid_array[coord] = new_cell
 
         if i == self.sample_points[self.plot_idx] - 1:  # Must compare to -1 since increment is after this function
-            grid = np.reshape(self.grid_array, self.grid_shape)
+            grid = np.reshape(grid_array, self.grid_shape)
             self.grid_results.append(grid.copy())
 
         current_data.update(
-            current_population=current_population, 
-            non_zero_clones=non_zero_clones
+            grid_array=grid_array
         )
         return current_data
 
-    def _random_death(self, i):
-        """
-        Returns the clone_id and coordinate of the cell to die at step i.
-        These have been precalculated at the start of the simulation for efficiency.
-        :param i: Int. the simulation step
-        :return: Tuple. (clone_id (int), coordinate in 1-D map of grid (int))
-        """
-        coord = self.death_coords[i]
-        cell = self.grid_array[coord]
-        return cell, coord
+    def get_differentiating_cell(self, i: int, current_data: SpatialCurrentData) -> int:
+        """Selects the position of the cell to differentiate at step i
 
-    def _get_divider(self, coord):
+        These have been precalculated at the start of the simulation for efficiency.
+
+        Args:
+            i (int): The simulation step
+            current_data (SpatialCurrentData): Contains the current grid array. (Not used here, 
+              but made available for any custom functions)
+
+        Returns:
+            int: the coordinate of the differentiating cell
+        """        
+        coord = self.death_coords[i]
+        return coord
+
+    def get_dividing_cell(self, coord: int, current_data: SpatialCurrentData) -> int:
         """
         Selects the cell that will divide to fill the gap left by self._random_death
         :param coord: Position of the dividing cell in the 1-D map of the grid.
         :return: coord of the neighbouring dividing cell (int).
         """
         # Get the indices of the neighbouring cells.
-        neighbour_clones = self.grid_array[self.neighbour_map[coord]]
+        neighbour_clones = current_data.grid_array[self.neighbour_map[coord]]
 
         # Get the fitness of those neighbouring cells
         weights = self.clones_array[neighbour_clones, self.fitness_idx]
