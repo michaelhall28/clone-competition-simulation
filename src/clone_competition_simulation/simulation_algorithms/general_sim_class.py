@@ -28,6 +28,7 @@ from treelib import Tree
 
 from ..analysis.analysis import mean_clone_size, mean_clone_size_fit, surviving_clones_fit, \
     incomplete_moment, add_incom_to_plot
+from ..plotting import PlotColourMaps
 from ..plotting.animator import NonSpatialToGridAnimator, HexAnimator, HexFitnessAnimator
 
 if TYPE_CHECKING:
@@ -169,7 +170,7 @@ class GeneralSimClass(ABC):
         # Details for plotting
         self.figsize = parameters.plotting.figsize
         self.descendant_counts = {}
-        self.colourscales = parameters.plotting.colourscales
+        self.plot_colour_maps = parameters.plotting.plot_colour_maps
         self.progress = parameters.progress  # Prints update every n samples
         self.i = 0
         self.colours = None
@@ -429,12 +430,12 @@ class GeneralSimClass(ABC):
                 self.pickle_dump(str(self.tmp_store) + '1')
                 self.store_rotation = 0
 
-    def set_colourscale(self, colourscale, regenerate_colours=True):
+    def set_colour_maps(self, plot_colour_maps: PlotColourMaps, regenerate_colours=True):
         """
-        For changing a ColourScale
+        For changing the PlotColourMaps
         :return: None
         """
-        self.colourscales = colourscale
+        self.plot_colour_maps = plot_colour_maps
         if regenerate_colours:
             self._get_colours(self.clones_array, force_regenerate=True)
 
@@ -1039,25 +1040,6 @@ class GeneralSimClass(ABC):
         return global_average_fitness
 
     ############ Plotting functions ############
-    def _assign_colour(self, scaled_fitness, clone_label, ns, initial, last_mutated_gene, genes_mutated):
-        """
-        Gets the colour for a clone to be plotted in.
-        The colour will depend on the chosen colourscale and the attributes of the clone.
-        :param scaled_fitness: The growth_rate/fitness of the clone
-        :param clone_label: The type of the clone
-        :param ns: Whether the (last) mutation is non-synonymous
-        :param initial: Whether the clone is one from the start of the simuation (True), or whether it was created by
-         a mutation during the simulation (False)
-        :param last_mutated_gene:
-        :param genes_mutated: all genes mutated in the clone
-        :return:
-        """
-        if self.colourscales is not None:
-            return self.colourscales._get_colour(scaled_fitness, clone_label, ns, initial, last_mutated_gene,
-                                                 genes_mutated)
-        else:
-            return cm.YlOrBr(scaled_fitness / 2)  # Range of yellow/brown/orange
-
     def _get_colours(self, clones_array, force_regenerate=False):
         # Generate the colours for the clones plot. Colour depends on type (wild type/A), relative fitness and s/ns
         if not self.colours or force_regenerate:
@@ -1075,9 +1057,32 @@ class GeneralSimClass(ABC):
                     initial = True
                 else:
                     initial = False
-                self.colours[clone[self.id_idx]] = self._assign_colour(scaled_fitness, clone[self.label_idx], ns, initial,
-                                                                       clone[self.gene_mutated_idx],
-                                                                       tuple(np.where(~np.isnan(self.raw_fitness_array[i]))[0]))
+                self.colours[clone[self.id_idx]] = self.plot_colour_maps._get_colour(
+                    fitness=scaled_fitness, label=clone[self.label_idx], 
+                    ns=ns, initial=initial,
+                    last_mutated_gene=self.mutation_generator.get_gene_name(int(clone[self.gene_mutated_idx])),
+                    genes_mutated=self._get_mutated_gene_names(i)
+                )
+
+    def _get_mutated_gene_names(self, clone_id: int) -> set[str]:
+        """Get the mutated genes in a clone and convert to the gene names
+
+        Args:
+            clone_id (int): Id of the clone
+
+        Returns:
+            set[str]: Set of names of the mutated genes. 
+        """
+        # Get the non-nan entries in the raw fitness array for this clone. 
+        # Skip the first column (the WT fitness). 
+        # Then the index from np.where equals the gene number in the Mutation generator and 
+        # we can get the gene name
+        mutated_gene_numbers= np.where(~np.isnan(self.raw_fitness_array[clone_id, 1:]))[0]
+        gene_names = {self.mutation_generator.get_gene_name(gene_number) for 
+                      gene_number in mutated_gene_numbers}
+        if None in gene_names:
+            gene_names.remove(None)
+        return gene_names
 
     def get_colour(self, clone_id):
         """
@@ -1097,10 +1102,10 @@ class GeneralSimClass(ABC):
                 # Generate a new colour for this clone. Store for later.
                 # This will ignore any complex rules for colouring. To do that, add a row to the clones_array and
                 # generated the colours dictionary.
-                if type(self.colourscales.colourmaps) == dict:
-                    colourmap = self.colourscales.colourmaps[self.colourscales.colourmaps.keys()[0]]
+                if type(self.plot_colour_maps.colourmaps) == dict:
+                    colourmap = self.plot_colour_maps.colourmaps[self.plot_colour_maps.colourmaps.keys()[0]]
                 else:
-                    colourmap = self.colourscales.colourmaps
+                    colourmap = self.plot_colour_maps.colourmaps
                 self.colours[clone_id] = colourmap(np.random.random())
 
         return self.colours[clone_id]
@@ -1186,7 +1191,7 @@ class GeneralSimClass(ABC):
             plt.xlim([0, self.sim_length - 1])
 
         if plot_file:
-            plt.savefig('{0}'.format(plot_file))
+            plt.savefig(plot_file)
 
         return ax
 

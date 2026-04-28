@@ -521,13 +521,13 @@ class MutationGenerator(BaseModel):
 
         return self.mutation_combination_class.fitness(combined_fitness), full_fitness_arrays
 
-    def get_gene_number(self, gene_name: str) -> int:
+    def get_gene_number(self, gene_name: str) -> int | None:
         if gene_name is None:
             return None
-        return self.gene_indices[gene_name]
+        return self.gene_indices.get(gene_name, None)
 
-    def get_gene_name(self, gene_number: int) -> str:
-        if gene_number is None or gene_number == -1:
+    def get_gene_name(self, gene_number: int) -> str | None:
+        if gene_number is None or gene_number == -1 or gene_number > len(self.genes):
             return None
         return self.genes[gene_number].name
 
