@@ -85,6 +85,8 @@ p = Parameters(
 ```
 * A yml file can be used to supply parameters. These can be combined with `__init__` parameters.  
 * Biopsies are now Pydantic classes (`from clone_competition import Biopsy`) instead of dictionaries
+* Plot colours are specified in a new way
+* Custom cell competition rules are now easier to implement
 
 See the [docs](https://michaelhall28.github.io/clone-competition-simulation/) for more details. 
 
@@ -99,3 +101,5 @@ Non-spatial algorithms:
 2D algorithms:
 - "Moran2D". A Moran-style model constrained to a 2D hexagonal grid. At each simulation step, one cell dies and a *cell from an adjacent location in the grid* divides, maintaining the overall population.
 - "WF2D". A Wright-Fisher style model constrained to a 2D hexagonal grid. At each simulation step an entire generation of cells is produced from the previous generation, where cell parents must be from the local neighbourhood in the grid.
+
+These algorithms can also be used as a framework for custom cell competition rules. 
