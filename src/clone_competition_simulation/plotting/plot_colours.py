@@ -93,10 +93,6 @@ DEFAULT_BACKGROUND_COLOUR_RULE = ColourRule(
 )
 
 
-class ColourMapError(Exception):
-    pass
-
-
 def default_noise_fn() -> float:
     return np.random.uniform(-0.1, 0.1)
 
@@ -165,3 +161,23 @@ class PlotColourMaps:
         
         # Should not get here! The defaults should pick up all clones. 
         raise ValueError("Failed to find a colour map matching the clone features")
+    
+
+# An example colourscale which plots label 0 cells as beige, label 1 cells as yellow/green, and label 2 cells as purple
+PLOT_COLOURS_EXAMPLE1 = PlotColourMaps(
+    all_clones_noisy=True,
+    colour_rules=[
+        ColourRule(
+            rule_filter=[FeatureValue(clone_feature=CloneFeature.LABEL, value=0)],
+            colourmap=cm.ScalarMappable(norm=Normalize(vmin=0, vmax=2), cmap=cm.YlOrBr).to_rgba
+        ), 
+        ColourRule(
+            rule_filter=[FeatureValue(clone_feature=CloneFeature.LABEL, value=1)],
+            colourmap=cm.Greens
+        ),
+        ColourRule(
+            rule_filter=[FeatureValue(clone_feature=CloneFeature.LABEL, value=2)],
+            colourmap=cm.Purples
+        )
+    ]
+)

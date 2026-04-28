@@ -2,5 +2,6 @@ from .plot_colours import (
     PlotColourMaps,
     FeatureValue, 
     CloneFeature, 
-    ColourRule
+    ColourRule, 
+    PLOT_COLOURS_EXAMPLE1,
 )

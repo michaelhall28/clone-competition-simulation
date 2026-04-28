@@ -212,6 +212,7 @@ A colourscale where the clones born from mutations are blue. Any other clones (i
 the initial clones, will be given a beige colour from the default background colour map. 
 
 ```python
+import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from clone_competition_simulation import (
@@ -360,7 +361,7 @@ Initial clones are blue, cells with label 1 are red, cells with label 2 are yell
 
 ```python
 from matplotlib.colors import Normalize
-from clone_competition_simulation import LabelParameters
+from clone_competition_simulation import LabelParameters, FitnessParameters, MutationGenerator
 
 # Define the list of rules
 rules = [
@@ -410,6 +411,8 @@ p = Parameters(
         label_values=[1, 2], 
         label_fitness=[1.5, 1.5],
     ),
+    # We are combining label fitness, so need to supply a MutationGenerator which defines how the fitnesses will be combined.
+    fitness=FitnessParameters(mutation_generator=MutationGenerator(genes=[])),   
     plotting=PlottingParameters(plot_colour_maps=plot_colour_maps)
 )
 s = p.get_simulator()
@@ -439,7 +442,7 @@ rules = [
         rule_filter=[ 
                 FeatureValue(  
                     clone_feature=CloneFeature.GENES_MUTATED,   
-                    value={}  # Empty set for "no genes mutated"
+                    value=set()  # Empty set for "no genes mutated"
             )
         ], 
         colourmap=cm.ScalarMappable(norm=Normalize(vmin=0, vmax=2), cmap=cm.Blues).to_rgba
@@ -589,6 +592,8 @@ If you change your mind about the colours or forget to define the colours when s
 
 
 ```python
+from clone_competition_simulation import NormalDist
+
 # Run without setting a colour map. It will use the default one (random colours)
 
 mut_gen = MutationGenerator(

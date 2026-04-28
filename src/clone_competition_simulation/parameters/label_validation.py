@@ -63,6 +63,12 @@ class LabelValidator(LabelParameters, ValidationBase):
                 self.label_frequencies = [self.label_frequencies]
             if isinstance(self.label_values, (int, float)):
                 self.label_values = [self.label_values]
+
+            if self.label_fitness is not None and len(self.label_frequencies) > 1 and self.fitness.mutation_generator is None:
+                raise ValueError(
+                    'Applying multiple labels with fitness effects requires a mutation generator to define ' \
+                    'how fitness combines across labels and mutations.')
+
             if self.label_fitness is None:
                 self.label_fitness = [None]*len(self.label_times)
             elif isinstance(self.label_fitness, (int, float)):
