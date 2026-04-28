@@ -4,7 +4,7 @@ It contains the common function to setup, run and plot results from simulations.
 
 The subclasses have to define the sim_step and any other functions required for the specific algorithm
 """
-
+import sys
 import bisect
 from dataclasses import dataclass
 import gzip
@@ -16,6 +16,8 @@ from functools import lru_cache
 from typing import TYPE_CHECKING, Iterable, Literal, Any, ClassVar, Self
 from abc import ABC, abstractmethod
 
+from rich.progress import Progress
+from rich.console import Console
 import dill as pickle
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
@@ -35,6 +37,11 @@ if TYPE_CHECKING:
     from ..parameters.parameter_validation import Parameters
 warnings.simplefilter('ignore',SparseEfficiencyWarning)
 
+
+logger.remove()
+logger.add(sys.stderr, format="{time:HH:mm:ss} | {level} | {message}", enqueue=True)
+
+console = Console()
 
 class EndConditionError(Exception):
     pass
@@ -171,7 +178,6 @@ class GeneralSimClass(ABC):
         self.figsize = parameters.plotting.figsize
         self.descendant_counts = {}
         self.plot_colour_maps = parameters.plotting.plot_colour_maps
-        self.progress = parameters.progress  # Prints update every n samples
         self.i = 0
         self.colours = None
 
@@ -194,9 +200,6 @@ class GeneralSimClass(ABC):
         self.new_mutation_count, self.mutations_to_add = self._precalculate_mutations()  # Faster to pre-calculate mutations for long, mutation heavy simulations
         self.total_clone_count = self.initial_clones + self.new_mutation_count
         self.next_mutation_index = self.initial_clones  # Keeping track of how many mutations added
-        
-        if parameters.progress:
-            print(self.new_mutation_count, 'mutations to add', flush=True)
 
         self._init_arrays(parameters.labels.label_array, parameters.fitness.initial_mutant_gene_array, parameters.fitness.fitness_array)
         
@@ -348,37 +351,39 @@ class GeneralSimClass(ABC):
                                            self.label_values[self.label_count],
                                            self.label_fitness[self.label_count],
                                            self.label_genes[self.label_count])
-        if self.progress:
-            print('Steps completed:')
 
-        try:
-            while self.plot_idx < self.sim_length:
-                # Run step of the simulation
-                # Each step can be a generation (Wright-Fisher), a single birth-death-mutation event (Moran) or
-                # a single birth or death event (Branching)
-                current_data = self._sim_step(self.i, current_data)
-                self.i += 1
-                self._record_results(self.i, current_data)  # Record the current state
+        with Progress(console=console, redirect_stdout=True, redirect_stderr=True) as progress:
+            task = progress.add_task("Running simulation...", total=self.sim_length)
+            try:
+                while self.plot_idx < self.sim_length:
+                    # Run step of the simulation
+                    # Each step can be a generation (Wright-Fisher), a single birth-death-mutation event (Moran) or
+                    # a single birth or death event (Branching)
+                    current_data = self._sim_step(self.i, current_data)
+                    self.i += 1
+                    self._record_results(self.i, current_data, progress, task)  # Record the current state
 
-                # Add a label (similar to a lineage tracing label) if requested
-                if self._check_label_time():
-                    current_data = self._add_label(current_data,
-                                                   self.label_frequencies[self.label_count],
-                                                   self.label_values[self.label_count],
-                                                   self.label_fitness[self.label_count],
-                                                   self.label_genes[self.label_count])
+                    # Add a label (similar to a lineage tracing label) if requested
+                    if self._check_label_time():
+                        current_data = self._add_label(current_data,
+                                                       self.label_frequencies[self.label_count],
+                                                       self.label_values[self.label_count],
+                                                       self.label_fitness[self.label_count],
+                                                       self.label_genes[self.label_count])
 
-                # Change treatment if required (can change fitness of clones)
-                if self._check_treatment_time():
-                    self._change_treatment()
-        except EndConditionError:
-            # The simulation has stopped early because the end condition has been met
-            # Record the stop time
-            self.stop_time = self.times[self.plot_idx-1]
-            pass
+                    # Change treatment if required (can change fitness of clones)
+                    if self._check_treatment_time():
+                        self._change_treatment()
 
-        if self.progress:
-            print('Finished', self.i, 'steps')
+            except EndConditionError:
+                # The simulation has stopped early because the end condition has been met
+                # Record the stop time
+                self.stop_time = self.times[self.plot_idx-1]
+                progress.update(task, completed=self.plot_idx)
+                logger.info(f'Simulation stopped early at time {self.stop_time} as end condition met')
+                pass
+            else:
+                progress.update(task, completed=self.sim_length)
 
         # Clean up the results arrays
         self._finish_up()
@@ -401,23 +406,22 @@ class GeneralSimClass(ABC):
         pass
 
     ##### Functions for storing population counts.
-    def _record_results(self, i, current_data: CurrentData):
+    def _record_results(self, i, current_data: CurrentData, progress: Progress, task: int) -> None:
         """
         Check if the current step is one of the sample points
         Record the results at the point the simulation is up to.
-        Report progress if required
+        Update the progress bar.
         :param i:
         :param current_population:
+        :param progress: The progress object for the progress bar. 
+        :param task: The task number for the progress bar.
         :return:
         """
         if i == self.sample_points[self.plot_idx]:  # Regularly take a sample for the plot
             self._take_sample(current_data)
             if self.stop_function is not None:
                 self.stop_function(self)
-
-        if self.progress:
-            if i % self.progress == 0:
-                print(i, end=', ', flush=True)
+            progress.update(task, advance=1)
 
     def _take_sample(self, current_data: CurrentData):
         current_data.update_population_array(self.population_array, self.plot_idx)
