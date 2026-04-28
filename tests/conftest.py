@@ -4,7 +4,7 @@ import pytest
 
 from src.clone_competition_simulation.fitness import MutationGenerator, Gene, UnboundedFitness, NormalDist
 from src.clone_competition_simulation.parameters.algorithm_validation import Algorithm
-from src.clone_competition_simulation.plotting.colourscales import ColourScale
+from src.clone_competition_simulation.plotting.plot_colours import PlotColourMaps, ColourRule, CloneFeature, FeatureValue
 
 
 
@@ -46,16 +46,48 @@ def cs_label():
     def red(rate):
         return "#C62619"
 
-    cs_label = ColourScale(
-            name='4 labels',
-            all_clones_noisy=False,
-            colourmaps={KEY1(label=0): init_colour,
-                        KEY1(label=1): green,
-                        KEY1(label=2): blue,
-                        KEY1(label=3): red
-                 },
-            use_fitness=True
-        )
+    cs_label = PlotColourMaps(
+        all_clones_noisy=False,
+        colour_rules=[
+            ColourRule(
+                rule_filter=[
+                    FeatureValue(
+                        clone_feature=CloneFeature.LABEL,
+                        value=0
+                    )
+                ], 
+                colourmap=init_colour
+            ), 
+            ColourRule(
+                rule_filter=[
+                    FeatureValue(
+                        clone_feature=CloneFeature.LABEL,
+                        value=1
+                    )
+                ], 
+                colourmap=green
+            ), 
+            ColourRule(
+                rule_filter=[
+                    FeatureValue(
+                        clone_feature=CloneFeature.LABEL,
+                        value=2
+                    )
+                ], 
+                colourmap=blue
+            ), 
+            ColourRule(
+                rule_filter=[
+                    FeatureValue(
+                        clone_feature=CloneFeature.LABEL,
+                        value=3
+                    )
+                ], 
+                colourmap=red
+            )
+        ],
+        use_fitness=True
+    )
     return cs_label
 
 

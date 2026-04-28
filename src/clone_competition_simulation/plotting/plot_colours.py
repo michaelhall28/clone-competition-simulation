@@ -153,7 +153,7 @@ class PlotColourMaps:
         return cs(value)
     
     def _get_colourmap(self, label: int, ns: bool, 
-                       initial: bool, last_mutated_gene: float, 
+                       initial: bool, last_mutated_gene: str | None, 
                        genes_mutated: set[str]) -> Callable[[float], Any]:
         
         # Select the colour rule that applies to this clone

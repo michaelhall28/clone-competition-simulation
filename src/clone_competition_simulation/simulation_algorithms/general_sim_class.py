@@ -1057,10 +1057,14 @@ class GeneralSimClass(ABC):
                     initial = True
                 else:
                     initial = False
+                if self.mutation_generator is not None:
+                    last_mutated_gene = self.mutation_generator.get_gene_name(int(clone[self.gene_mutated_idx]))
+                else:
+                    last_mutated_gene = None
                 self.colours[clone[self.id_idx]] = self.plot_colour_maps._get_colour(
                     fitness=scaled_fitness, label=clone[self.label_idx], 
                     ns=ns, initial=initial,
-                    last_mutated_gene=self.mutation_generator.get_gene_name(int(clone[self.gene_mutated_idx])),
+                    last_mutated_gene=last_mutated_gene,
                     genes_mutated=self._get_mutated_gene_names(i)
                 )
 
@@ -1073,6 +1077,9 @@ class GeneralSimClass(ABC):
         Returns:
             set[str]: Set of names of the mutated genes. 
         """
+        if self.mutation_generator is None:
+            return set()
+        
         # Get the non-nan entries in the raw fitness array for this clone. 
         # Skip the first column (the WT fitness). 
         # Then the index from np.where equals the gene number in the Mutation generator and 

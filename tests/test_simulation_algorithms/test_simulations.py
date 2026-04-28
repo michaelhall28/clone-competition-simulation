@@ -12,7 +12,7 @@ from scipy.sparse import SparseEfficiencyWarning
 from src.clone_competition_simulation.fitness.fitness_classes import FixedValue, NormalDist, ExponentialDist, UniformDist, Gene, MutationGenerator, \
     BoundedLogisticFitness
 from src.clone_competition_simulation.parameters.algorithm_validation import AlgorithmClass
-from src.clone_competition_simulation.plotting.colourscales import ColourScale
+from src.clone_competition_simulation.plotting.plot_colours import PlotColourMaps, ColourRule, CloneFeature, FeatureValue
 from src.clone_competition_simulation.simulation_algorithms.general_differentiated_cell_class import set_gsl_random_seed
 from src.clone_competition_simulation.parameters import (
     Parameters,
@@ -675,7 +675,7 @@ def test_labels(mock_random, cs_label, axes, algorithm, overwrite_results=False)
     p = Parameters(
         algorithm=algorithm,
         times=TimeParameters(max_time=MAX_TIME, division_rate=1),
-        plotting=PlottingParameters(colourscales=cs_label),
+        plotting=PlottingParameters(plot_colour_maps=cs_label),
         fitness=FitnessParameters(mutation_generator=mut_gen, fitness_array=[1.05, 1, 0.9, 1.02], mutation_rates=0.01),
         population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
                                         cell_in_own_neighbourhood=False),
@@ -695,7 +695,7 @@ def test_labels(mock_random, cs_label, axes, algorithm, overwrite_results=False)
     p = Parameters(
         algorithm=algorithm,
         times=TimeParameters(max_time=MAX_TIME, division_rate=1),
-        plotting=PlottingParameters(colourscales=cs_label),
+        plotting=PlottingParameters(plot_colour_maps=cs_label),
         fitness=FitnessParameters(mutation_generator=mut_gen, fitness_array=[1.05, 1, 0.9, 1.02]),
         population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
                                         cell_in_own_neighbourhood=False),
@@ -842,13 +842,37 @@ def test_induction_of_label_and_mutant(mock_random, axes, algorithm, overwrite_r
              Gene(name='Notch1', mutation_distribution=FixedValue(4), synonymous_proportion=0)]
     mutation_generator = MutationGenerator(genes=genes, combine_mutations='replace', multi_gene_array=True)
     Key1 = namedtuple('Key1', ['label'])
-    green_clones = ColourScale(
-        name='Single Green Mutant',
+    green_clones = PlotColourMaps(
         all_clones_noisy=False,
-        colourmaps={Key1(label=0): lambda x: (0, 0, 0, 1),
-                    Key1(label=1): lambda x: (0.05, 0.75, 0.05, 1),
-                    Key1(label=2): lambda x: (0.75, 0.05, 0.05, 1)
-                    },
+        colour_rules=[
+            ColourRule(
+                rule_filter=[
+                    FeatureValue(
+                        clone_feature=CloneFeature.LABEL, 
+                        value=0
+                    )
+                ], 
+                colourmap=lambda x: (0, 0, 0, 1)
+            ), 
+            ColourRule(
+                rule_filter=[
+                    FeatureValue(
+                        clone_feature=CloneFeature.LABEL, 
+                        value=1
+                    )
+                ], 
+                colourmap=lambda x: (0.05, 0.75, 0.05, 1)
+            ), 
+            ColourRule(
+                rule_filter=[
+                    FeatureValue(
+                        clone_feature=CloneFeature.LABEL, 
+                        value=2
+                    )
+                ], 
+                colourmap=lambda x: (0.75, 0.05, 0.05, 1)
+            )
+        ],
         use_fitness=True
     )
 
@@ -877,7 +901,7 @@ def test_induction_of_label_and_mutant(mock_random, axes, algorithm, overwrite_r
         fitness=FitnessParameters(mutation_generator=mutation_generator),
         labels=LabelParameters(label_times=label_time, label_values=label_value, label_frequencies=label_freq,
                                label_fitness=label_fitness),
-        plotting=PlottingParameters(colourscales=green_clones)
+        plotting=PlottingParameters(plot_colour_maps=green_clones)
     )
     sim = p.get_simulator()
     sim.run_sim()
@@ -905,7 +929,7 @@ def test_induction_of_label_and_mutant(mock_random, axes, algorithm, overwrite_r
         labels=LabelParameters(
             label_times=label_time, label_values=label_value, label_frequencies=label_freq,
             label_fitness=label_fitness, label_genes=label_genes),
-        plotting=PlottingParameters(colourscales=green_clones)
+        plotting=PlottingParameters(plot_colour_maps=green_clones)
     )
     sim = p.get_simulator()
     sim.run_sim()
@@ -922,7 +946,7 @@ def test_seven_cell_neighbourhood(mock_random, cs_label, axes, algorithm, overwr
             algorithm=algorithm,
             times=TimeParameters(max_time=MAX_TIME, division_rate=1),
             population=PopulationParameters(initial_grid=initial_grid, cell_in_own_neighbourhood=True),
-            plotting=PlottingParameters(colourscales=cs_label),
+            plotting=PlottingParameters(plot_colour_maps=cs_label),
         )
         sim = p.get_simulator()
         sim.run_sim()
