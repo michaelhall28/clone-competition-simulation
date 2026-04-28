@@ -139,22 +139,34 @@ Instead, we can use the early stopping conditions to halt the simulation as soon
 -----
 
 ```python
-
-from collections import namedtuple
 import matplotlib.cm as cm
 from matplotlib.colors import Normalize
-from clone_competition_simulation import ColourScale
+from clone_competition_simulation import PlotColourMaps, CloneFeature, FeatureValue, ColourRule
 
 # I'll set up a colour scale here to plot the wild type (initial clones) and mutant clones in different colours
 # See the Colours guide for an explanation
 
-Key1 = namedtuple('key1', ['initial', ])
-
-cs1 = ColourScale(
-    colourmaps={
-        Key1(initial=True): cm.Blues,  # Initial clones are blue
-        Key1(initial=False): cm.Reds   # Later clones are red
-    }, 
+cm1 = PlotColourMaps(
+    colour_rules=[
+        ColourRule(  # Initial clones are blue
+            rule_filter=[ 
+                FeatureValue(  
+                    clone_feature=CloneFeature.INITIAL,   
+                    value=True
+                )
+            ], 
+            colourmap=cm.Blues 
+        ), 
+        ColourRule(  # Mutant clones are red
+            rule_filter=[ 
+                FeatureValue(  
+                    clone_feature=CloneFeature.INITIAL,   
+                    value=False
+                )
+            ], 
+            colourmap=cm.Reds
+        ), 
+    ], 
     use_fitness=False
 )
 
@@ -182,7 +194,7 @@ p = Parameters(
         mutation_generator=mutation_generator, 
         mutation_rates=0.2
     ),
-    plotting=PlottingParameters(colourscales=cs1),
+    plotting=PlottingParameters(plot_colour_maps=cm1),
     progress=100000
 )
 s = p.get_simulator()
@@ -243,7 +255,7 @@ p = Parameters(
         mutation_generator=mutation_generator, 
         mutation_rates=0.2
     ),
-    plotting=PlottingParameters(colourscales=cs1),
+    plotting=PlottingParameters(plot_colour_maps=cm1),
     end_condition_function=stop_when_fully_mutant,
     progress=100000
 )
@@ -322,26 +334,53 @@ def stop_when_both_genes_mutated(sim):
 ```
 
 -------
-Set up a colourscale to highlight the double mutants
+Set up plot colours to highlight the double mutants
 
 ```python
-Key2 = namedtuple('key1', ['genes_mutated', ])
+from clone_competition_simulation import ColourRule, FeatureValue, CloneFeature, PlotColourMaps
 
-cs2 = ColourScale(
-    colourmaps={
-        # No genes mutated, light blue colour
-        Key2(genes_mutated=(0,)): cm.ScalarMappable(norm=Normalize(vmin=0, vmax=2), cmap=cm.Blues).to_rgba,  
-        
-        # First gene mutated, Red
-        Key2(genes_mutated=(0, 1,)): cm.ScalarMappable(norm=Normalize(vmin=-2, vmax=2), cmap=cm.Reds).to_rgba, 
-        
-        # Second gene mutated, yellow
-        Key2(genes_mutated=(0, 2,)): cm.ScalarMappable(norm=Normalize(vmin=-20, vmax=2), cmap=cm.inferno).to_rgba,
-        
-        # Both genes mutated, purple
-        Key2(genes_mutated=(0, 1, 2)): cm.ScalarMappable(norm=Normalize(vmin=-5, vmax=1), cmap=cm.Purples).to_rgba
-    }, 
-    use_fitness=False
+rules = [
+    ColourRule(  # No genes mutated, light blue colour
+        rule_filter=[ 
+                FeatureValue(  
+                    clone_feature=CloneFeature.GENES_MUTATED,   
+                    value=set()  # Empty set for "no genes mutated"
+            )
+        ], 
+        colourmap=cm.ScalarMappable(norm=Normalize(vmin=0, vmax=2), cmap=cm.Blues).to_rgba
+    ), 
+    ColourRule(  # First gene mutated, dark Red
+        rule_filter=[ 
+                FeatureValue(  
+                    clone_feature=CloneFeature.GENES_MUTATED,   
+                    value="Gene1"   # This will not match clones if other genes are mutated too! 
+            )
+        ], 
+        colourmap=cm.ScalarMappable(norm=Normalize(vmin=-2, vmax=1), cmap=cm.Reds).to_rgba,
+    ),
+    ColourRule(  # Second gene mutated, yellow
+        rule_filter=[ 
+                FeatureValue(  
+                    clone_feature=CloneFeature.GENES_MUTATED,   
+                    value="Gene2"
+            )
+        ], 
+        colourmap=cm.ScalarMappable(norm=Normalize(vmin=-20, vmax=2), cmap=cm.inferno).to_rgba,
+    ), 
+    ColourRule(  # Both genes mutated, purple
+        rule_filter=[ 
+                FeatureValue(  
+                    clone_feature=CloneFeature.GENES_MUTATED,   
+                    value={"Gene1", "Gene2"}  # This will match clones with both Gene1 and Gene2 mutated
+            )
+        ], 
+        colourmap=cm.ScalarMappable(norm=Normalize(vmin=-5, vmax=1), cmap=cm.Purples).to_rgba
+    )
+]
+
+
+cm2 = PlotColourMaps(
+    colour_rules=rules
 )
 ```
 -------
@@ -357,7 +396,7 @@ p = Parameters(
         mutation_generator=mut_gen, 
         mutation_rates=0.001
     ),
-    plotting=PlottingParameters(colourscales=cs2),
+    plotting=PlottingParameters(plot_colour_maps=cm2),
     end_condition_function=stop_when_both_genes_mutated,
     progress=100000
 )

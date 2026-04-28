@@ -226,12 +226,11 @@ To apply treatments to mutations that appear after the start of the simulation, 
 
 
 ```python
-from collections import namedtuple
 import matplotlib.cm as cm
 from matplotlib.colors import Normalize
-from clone_competition_simulation import ColourScale, PlottingParameters
+from clone_competition_simulation import PlottingParameters, ColourRule, FeatureValue, CloneFeature, PlotColourMaps
 
-# Setting up a MutationGenerator and a ColourScale for two genes. 
+# Setting up a MutationGenerator and plotting colours for two genes. 
 mut_gen = MutationGenerator(
     genes=[
         Gene(name='Gene1', mutation_distribution=FixedValue(1), synonymous_proportion=0),
@@ -242,23 +241,46 @@ mut_gen = MutationGenerator(
     combine_array='add'   # Add the fitness values from different genes
 )
 
-Key = namedtuple('key', ['genes_mutated', ])
-
-cs = ColourScale(
-    colourmaps={
-        # No genes mutated, light blue colour
-        Key(genes_mutated=(0,)): cm.ScalarMappable(norm=Normalize(vmin=0, vmax=2), cmap=cm.Blues).to_rgba,  
-        
-        # First gene mutated, Red
-        Key(genes_mutated=(0, 1,)): cm.ScalarMappable(norm=Normalize(vmin=-2, vmax=2), cmap=cm.Reds).to_rgba, 
-        
-        # Second gene mutated, yellow
-        Key(genes_mutated=(0, 2,)): cm.ScalarMappable(norm=Normalize(vmin=-20, vmax=2), cmap=cm.inferno).to_rgba,
-        
-        # Both genes mutated, purple
-        Key(genes_mutated=(0, 1, 2)): cm.ScalarMappable(norm=Normalize(vmin=-5, vmax=1), cmap=cm.Purples).to_rgba
-    }, 
-    use_fitness=False
+# See the Colours guide for more details of how to set up plotting colours
+cm2 = PlotColourMaps(
+    colour_rules=[
+        ColourRule(  # No genes mutated, light blue colour
+            rule_filter=[ 
+                    FeatureValue(  
+                        clone_feature=CloneFeature.GENES_MUTATED,   
+                        value=set()  # Empty set for "no genes mutated"
+                )
+            ], 
+            colourmap=cm.ScalarMappable(norm=Normalize(vmin=0, vmax=2), cmap=cm.Blues).to_rgba
+        ), 
+        ColourRule(  # First gene mutated, dark Red
+            rule_filter=[ 
+                    FeatureValue(  
+                        clone_feature=CloneFeature.GENES_MUTATED,   
+                        value="Gene1"   # This will not match clones if other genes are mutated too! 
+                )
+            ], 
+            colourmap=cm.ScalarMappable(norm=Normalize(vmin=-2, vmax=1), cmap=cm.Reds).to_rgba,
+        ),
+        ColourRule(  # Second gene mutated, yellow
+            rule_filter=[ 
+                    FeatureValue(  
+                        clone_feature=CloneFeature.GENES_MUTATED,   
+                        value="Gene2"
+                )
+            ], 
+            colourmap=cm.ScalarMappable(norm=Normalize(vmin=-20, vmax=2), cmap=cm.inferno).to_rgba,
+        ), 
+        ColourRule(  # Both genes mutated, purple
+            rule_filter=[ 
+                    FeatureValue(  
+                        clone_feature=CloneFeature.GENES_MUTATED,   
+                        value={"Gene1", "Gene2"}  # This will match clones with both Gene1 and Gene2 mutated
+                )
+            ], 
+            colourmap=cm.ScalarMappable(norm=Normalize(vmin=-5, vmax=1), cmap=cm.Purples).to_rgba
+        )
+    ]
 )
 
 # Now start from a single wild type clone and introduce mutations at random.  
@@ -279,7 +301,7 @@ p = Parameters(
         ],  
         treatment_replace_fitness=True   # The `treatment_effects` will replace the previous fitness
     ), 
-    plotting=PlottingParameters(colourscales=cs)
+    plotting=PlottingParameters(plot_colour_maps=cm)
 )
 s = p.get_simulator()
 s.run_sim()

@@ -245,7 +245,7 @@ from clone_competition_simulation import (
     MutationGenerator, 
     NormalDist, 
     PlottingParameters,
-    COLOURSCALE_EXAMPLE1
+    PLOT_COLOURS_EXAMPLE1
 )
 
 # We'll add some mutations, so we have to define the fitness of the mutated cells
@@ -268,7 +268,7 @@ p = Parameters(
         label_values=1,  # Use the value 1 for the label
     ),
     plotting=PlottingParameters(
-        colourscales=COLOURSCALE_EXAMPLE1  # Set the colours (see Colourscales tutorial)
+        plot_colour_maps=PLOT_COLOURS_EXAMPLE1  # Set the colours (see Colours guide)
     )
 )
 moran_label = p.get_simulator()
@@ -326,7 +326,7 @@ p = Parameters(
         label_fitness=[1.2, 1],  # The first label event increases cell fitness
     ),
     plotting=PlottingParameters(
-        colourscales=COLOURSCALE_EXAMPLE1  # Set the colours (see Colourscales tutorial)
+        plot_colour_maps=PLOT_COLOURS_EXAMPLE1  # Set the colours (see Colours guide)
     )
 )
 moran_label2 = p.get_simulator()

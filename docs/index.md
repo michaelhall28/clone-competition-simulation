@@ -60,7 +60,7 @@ the simulations with various options and view the results.
 - Creating videos of the simulations
 - Colouring using the fitness of cells instead of the clone
 
-#### [Colours](Colours.md)
+#### [Plot and Animation Colours](Colours.md)
 - How to define colours for the Muller plots and animations
 - Setting colours based on clone properties, such as fitness, genes mutated and labels
 - Changing colour schemes

@@ -1,3 +1,4 @@
+from typing import Self
 from enum import Enum, auto
 
 class AlgorithmClass(str, Enum):
@@ -13,7 +14,7 @@ class Algorithm(Enum):
     MORAN2D = "Moran2D", True, AlgorithmClass.MORAN
     BRANCHING = "Branching", False, AlgorithmClass.BRANCHING
 
-    def __new__(cls, value, two_dimensional: bool, algorithm_class: AlgorithmClass):
+    def __new__(cls, value, two_dimensional: bool, algorithm_class: AlgorithmClass) -> Self:
         obj = object.__new__(cls)
         obj._value_ = value
         obj.two_dimensional = two_dimensional
