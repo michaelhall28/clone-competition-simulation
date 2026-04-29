@@ -696,7 +696,6 @@ class BranchingWithDiffCells(SimpleBranchingProcess, GeneralSimDiffCells):
     def _record_results(self, clone_id, clone_sizes, clone_sizes_diff, clone_times):
         """
         Record the results at the point the simulation is up to.
-        Report progress if required
         :param i:
         :param current_population:
         :return:

@@ -19,7 +19,6 @@ the simulations with various options and view the results.
 #### [Simulation Length](SimulationLength.md)
 
 - Altering division rate, simulation length and sampling times
-- Printing simulation progress
 
 #### [Defining Initial Clone Sizes](DefiningInitialCloneSizes.md)
 - A guide to the various methods of defining the initial clones in a simulation

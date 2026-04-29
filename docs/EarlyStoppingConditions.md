@@ -42,15 +42,13 @@ p = Parameters(
     algorithm='Moran',
     times=TimeParameters(max_time=20, division_rate=1),
     population=PopulationParameters(initial_size_array=np.ones(100)),
-    progress=100, 
 )
 s = p.get_simulator()
 s.run_sim()
 s.plot_surviving_clones_for_non_mutation()
 plt.show()
 ```
-    Steps completed:
-    100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 2000, Finished 2000 steps
+    Running simulation... ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00
  
 ![png](13.EarlyStoppingConditions_files/13.EarlyStoppingConditions_5_1.png)
 
@@ -90,15 +88,13 @@ p = Parameters(
     algorithm='Moran',
     times=TimeParameters(max_time=20, division_rate=1),
     population=PopulationParameters(initial_size_array=np.ones(100)),
-    progress=100, 
     end_condition_function=stop_when_10_clones_left  # Pass the stop function in
 )
 s = p.get_simulator()
 s.run_sim()
 ```
-    0 mutations to add
-    Steps completed:
-    100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200, 
+    Running simulation... ━━━━━━━━━━━━━━━━━━━━━━━━━╸━━━━━━━━━━━━━━  64% 0:00:01
+    13:36:28 | INFO | Simulation stopped early at time 12.8 as end condition met
 
 The simulation has stopped early. 
 
@@ -194,16 +190,12 @@ p = Parameters(
         mutation_generator=mutation_generator, 
         mutation_rates=0.2
     ),
-    plotting=PlottingParameters(plot_colour_maps=cm1),
-    progress=100000
+    plotting=PlottingParameters(plot_colour_maps=cm1)
 )
 s = p.get_simulator()
 s.run_sim()
 ```
-
-    100184 mutations to add
-    Steps completed:
-    100000, 200000, 300000, 400000, 500000, Finished 500000 steps
+    Running simulation... ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00
 
 -----
 At the end of the simulation, t=50, there are no wild type (blue) cells left in the grid.  
@@ -256,8 +248,7 @@ p = Parameters(
         mutation_rates=0.2
     ),
     plotting=PlottingParameters(plot_colour_maps=cm1),
-    end_condition_function=stop_when_fully_mutant,
-    progress=100000
+    end_condition_function=stop_when_fully_mutant
 )
 s = p.get_simulator()
 s.run_sim()
@@ -265,10 +256,10 @@ s.run_sim()
 print(f"\nEnd time: {s.stop_time}")
 ```
 
-    100184 mutations to add
-    Steps completed:
-    100000, 200000, 300000, 
-    End time: 33.5
+    Running simulation... ━━━━━━━━━━━━━━━━━━━━━━━━━╺━━━━━━━━━━━━━━  63% 0:00:03
+
+    End time: 31.5
+    13:39:27 | INFO | Simulation stopped early at time 31.5 as end condition met
 
 
 At the last recorded time point, there are no wild type cells left. 
@@ -398,7 +389,6 @@ p = Parameters(
     ),
     plotting=PlottingParameters(plot_colour_maps=cm2),
     end_condition_function=stop_when_both_genes_mutated,
-    progress=100000
 )
 s = p.get_simulator()
 s.run_sim()
@@ -406,10 +396,9 @@ s.run_sim()
 print('\nEnd time:', s.stop_time)
 ```
 
-    468 mutations to add
-    Steps completed:
-    100000, 200000, 300000, 
+    Running simulation... ━━━━━━━━━━━━━━━━━━━━━━━━━━╺━━━━━━━━━━━━━  65% 0:00:01
     End time: 32.5
+    13:41:16 | INFO | Simulation stopped early at time 32.5 as end condition met
 
 
 -----

@@ -45,7 +45,6 @@ class RunSettingsBase(BaseSettings):
     plotting: plotting_validation_type = ValidationModelField
 
     end_condition_function: Callable[[GeneralSimClass], None] | None = None
-    progress: int | None = None
     tmp_store: Path | None = None
 
 

@@ -10,6 +10,7 @@ and gamma when setting up the Parameters).
 import numpy as np
 from numpy.typing import ArrayLike
 from scipy.sparse import lil_matrix
+from rich.progress import Progress
 
 from .general_sim_class import GeneralSimClass
 
@@ -141,34 +142,38 @@ class SimpleBranchingProcess(GeneralSimClass):
         # Set up the initial treatment, if any
         self._change_treatment()
 
-        # Simulate the clones that exist at the initiation of the simulation.
-        for clone_id in range(len(self.clones_array)):
-            self._run_for_clone(clone_id=clone_id, start_time=0)
+        with Progress() as progress:
+            task = progress.add_task("Simulating initial clones", total=len(self.clones_array))
+            # Simulate the clones that exist at the initiation of the simulation.
+            for clone_id in range(len(self.clones_array)):
+                self._run_for_clone(clone_id=clone_id, start_time=0)
 
-            # Stop early if the population size has got too big.
-            if self.population_limit is not None:
-                total_pop = self.population_array[:, -1].sum()
-                if total_pop > self.population_limit:
-                    self.finished = True
-                    raise OverPopulationError('Ending early as population limit exceeded')
-
-        # Simulated of the clones that have been created by mutations during the simulation of the original clones.
-        # Continue until all mutant clones have been simulated of the population limit has been exceeded.
-        while self.new_mutations:
-            clone_id += 1
-            start_time = self.new_mutations.pop(clone_id, None)
-            if start_time is not None:
-                self._run_for_clone(clone_id, start_time)
+                # Stop early if the population size has got too big.
                 if self.population_limit is not None:
                     total_pop = self.population_array[:, -1].sum()
                     if total_pop > self.population_limit:
                         self.finished = True
                         raise OverPopulationError('Ending early as population limit exceeded')
+                progress.update(task, advance=1)
 
-        if self.progress:
-            self.i = 1
-            print('Finished')
-
+        # Simulated of the clones that have been created by mutations during the simulation of the original clones.
+        # Continue until all mutant clones have been simulated of the population limit has been exceeded.
+        with Progress() as progress:
+            task = progress.add_task("Simulating mutant clones", total=len(self.clones_array) + len(self.new_mutations))
+            while self.new_mutations:
+                clone_id += 1
+                start_time = self.new_mutations.pop(clone_id, None)
+                if start_time is not None:
+                    self._run_for_clone(clone_id, start_time)
+                    if self.population_limit is not None:
+                        total_pop = self.population_array[:, -1].sum()
+                        if total_pop > self.population_limit:
+                            self.finished = True
+                            raise OverPopulationError('Ending early as population limit exceeded')
+                        
+                progress.update(task, completed=len(self.clones_array), 
+                                total=len(self.clones_array) + len(self.new_mutations))
+        
         # Tidy up the results arrays.
         self._finish_up()
         self.finished = True
@@ -306,7 +311,6 @@ class SimpleBranchingProcess(GeneralSimClass):
     def _record_results(self, clone_id, clone_sizes, clone_times):
         """
         Record the results at the point the simulation is up to.
-        Report progress if required
         :param clone_id: Int.
         :param clone_sizes: List of clone sizes (integers)
         :param clone_times: List of times associated with the changes in clone size.
