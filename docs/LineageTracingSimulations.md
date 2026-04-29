@@ -242,14 +242,14 @@ to the end of the simulation.
 from clone_competition_simulation import (
     FitnessParameters, 
     Gene, 
-    MutationGenerator, 
+    FitnessCalculator, 
     NormalDist, 
     PlottingParameters,
     PLOT_COLOURS_EXAMPLE1
 )
 
 # We'll add some mutations, so we have to define the fitness of the mutated cells
-mutation_generator = MutationGenerator(
+mutation_generator = FitnessCalculator(
     genes=[Gene(name="Gene1", mutation_distribution=NormalDist(mean=1.1, var=0.1), 
                 synonymous_proportion=0.5)]
 )

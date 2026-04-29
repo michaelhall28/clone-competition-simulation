@@ -2,7 +2,7 @@ from collections import namedtuple
 
 import pytest
 
-from src.clone_competition_simulation.fitness import MutationGenerator, Gene, UnboundedFitness, NormalDist
+from src.clone_competition_simulation.fitness import FitnessCalculator, Gene, UnboundedFitness, NormalDist
 from src.clone_competition_simulation.parameters.algorithm_validation import Algorithm
 from src.clone_competition_simulation.plotting.plot_colours import PlotColourMaps, ColourRule, CloneFeature, FeatureValue
 
@@ -93,7 +93,7 @@ def cs_label():
 
 @pytest.fixture()
 def mutation_generator():
-    return MutationGenerator(
+    return FitnessCalculator(
         combine_mutations='multiply',
         multi_gene_array=False,
         genes=(Gene(name='all', mutation_distribution=NormalDist(0.1),

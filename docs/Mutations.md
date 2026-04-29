@@ -49,12 +49,12 @@ is explained further in **Controlling the mutation effects** below.
 from clone_competition_simulation import (
     FitnessParameters, 
     Gene, 
-    MutationGenerator, 
+    FitnessCalculator, 
     NormalDist
 )
 
 # We'll add some mutations, so we have to define the fitness of the mutated cells
-mutation_generator = MutationGenerator(
+mutation_generator = FitnessCalculator(
     genes=[Gene(name="Gene1", mutation_distribution=NormalDist(mean=1.1, var=0.1), 
                 synonymous_proportion=0.5)]
 )
@@ -115,15 +115,15 @@ Can see the higher density of mutations between times 1 and 4.
 
 # Controlling the mutation effects
 
-The fitness effects of mutations are defined in two classes: Gene and MutationGenerator.  
+The fitness effects of mutations are defined in two classes: Gene and FitnessCalculator.  
 
 Gene is used to define the proportion of non-synonymous and synonymous mutations and the distribution of fitness effects
 of the non-synonymous mutations. 
 
-The MutationGenerator is used to define how multiple mutations (which can be from multiple genes) combine to form the 
+The FitnessCalculator is used to define how multiple mutations (which can be from multiple genes) combine to form the 
 overall cell fitness.   
 
-In this guide, we will only use the default parameters from the MutationGenerator, which is that all fitness effects 
+In this guide, we will only use the default parameters from the FitnessCalculator, which is that all fitness effects 
 are multiplied together.  
 More options are described in other guides. 
 
@@ -145,10 +145,10 @@ gene1 = Gene(
 and use that gene in a simulation
 
 ```python
-from clone_competition_simulation import MutationGenerator
+from clone_competition_simulation import FitnessCalculator
 import numpy as np
 
-mut_gen = MutationGenerator(genes=[gene1])
+mut_gen = FitnessCalculator(genes=[gene1])
 np.random.seed(0)
 p = Parameters(
     algorithm='Moran2D',
@@ -298,7 +298,7 @@ gene_exp = Gene(name='GeneExp', mutation_distribution=ExponentialDist(mean=1.05,
 # One where every non-synonymous mutation has the same fixed value of fitness
 gene_fix = Gene(name='GeneFix', mutation_distribution=FixedValue(value=1.01), synonymous_proportion=0.3)
 
-mut_gen = MutationGenerator(genes=[gene1, gene_norm, gene_exp, gene_fix])
+mut_gen = FitnessCalculator(genes=[gene1, gene_norm, gene_exp, gene_fix])
 np.random.seed(0)
 p = Parameters(
     algorithm='Moran2D',
@@ -636,7 +636,7 @@ By default weight=1, so all genes will have the same mutation rate.
 gene1 = Gene(name='Gene1', mutation_distribution=UniformDist(0.5, 1.1), synonymous_proportion=0.4, weight=3)
 gene2 = Gene(name='Gene2', mutation_distribution=UniformDist(1.1, 1.5), synonymous_proportion=0.4, weight=1)
 
-mut_gen = MutationGenerator(genes=[gene1, gene2])
+mut_gen = FitnessCalculator(genes=[gene1, gene2])
 p = Parameters(
     algorithm='Moran2D',
     times=TimeParameters(max_time=10, division_rate=1),
@@ -667,7 +667,7 @@ This can be done for the entire simulation or for each gene.
 gene1 = Gene(name='Gene1', mutation_distribution=UniformDist(0.5, 1.1), synonymous_proportion=0.4, weight=3)
 gene2 = Gene(name='Gene2', mutation_distribution=UniformDist(1.1, 1.5), synonymous_proportion=0.5, weight=1)
 
-mut_gen = MutationGenerator(genes=[gene1, gene2])
+mut_gen = FitnessCalculator(genes=[gene1, gene2])
 p = Parameters(
     algorithm='Moran2D',
     times=TimeParameters(max_time=10, division_rate=1),

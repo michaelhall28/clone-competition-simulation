@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 from pydantic import ValidationError
 from src.clone_competition_simulation.fitness import (
-    MutationGenerator,
+    FitnessCalculator,
     Gene,
     FixedValue,
     NormalDist,
@@ -167,7 +167,7 @@ def test_mutation_combination(method, expected):
 
 
 def test_mutation_generation_validation(genes, epistatics):
-    mut_gen = MutationGenerator(
+    mut_gen = FitnessCalculator(
         genes=genes, epistatics=epistatics,
         combine_mutations=MutationCombination.ADD,
         combine_array=ArrayCombination.MULTIPLY
@@ -195,7 +195,7 @@ def test_mutation_generation_validation(genes, epistatics):
 
 @pytest.fixture
 def mut_gen(genes, epistatics):
-    return MutationGenerator(
+    return FitnessCalculator(
         genes=genes, epistatics=epistatics,
         combine_mutations=MutationCombination.ADD,
         combine_array=ArrayCombination.MULTIPLY
@@ -204,7 +204,7 @@ def mut_gen(genes, epistatics):
 
 @pytest.fixture
 def mut_gen_non_multi_gene(genes):
-    return MutationGenerator(
+    return FitnessCalculator(
         genes=genes,
         multi_gene_array=False,
         combine_mutations=MutationCombination.ADD,

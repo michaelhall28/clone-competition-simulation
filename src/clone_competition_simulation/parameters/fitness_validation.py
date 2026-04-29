@@ -15,7 +15,7 @@ from .validation_utils import (
 )
 from .times_validation import TimeValidator
 from .population_validation import PopulationValidator
-from ..fitness import MutationGenerator
+from ..fitness import FitnessCalculator
 
 
 class FitnessParameters(ParameterBase):
@@ -23,14 +23,14 @@ class FitnessParameters(ParameterBase):
 
     Fields:
         mutation_generator:
-            A MutationGenerator object that defines how mutations affect fitness.
+            A FitnessCalculator object that defines how mutations affect fitness.
             This is required if mutations are to occur during the simulation or if 
             multiple fitness values need to be combined (e.g. if two labels with 
             fitness effects are applied). The generator specifies fitness distributions
             for different genes and defines how fitness values are combined.
 
             Example:
-                mutation_generator = MutationGenerator(...)  # Complex object, see docs
+                mutation_generator = FitnessCalculator(...)  # Complex object, see docs
 
         mutation_rates:
             The rate at which mutations occur, specified as a float or array.
@@ -88,7 +88,7 @@ class FitnessParameters(ParameterBase):
     _field_name = "fitness"
     tag: Literal['Base'] = 'Base'
     model_config = ConfigDict(arbitrary_types_allowed=True)
-    mutation_generator: MutationGenerator | None = AlwaysValidateNoneField
+    mutation_generator: FitnessCalculator | None = AlwaysValidateNoneField
     mutation_rates: FloatOrArrayParameter = AlwaysValidateNoneField
     initial_fitness_array: FloatOrArrayParameter = AlwaysValidateNoneField
     initial_mutant_gene_array: IntOrArrayParameter = AlwaysValidateNoneField

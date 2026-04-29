@@ -21,10 +21,10 @@ from clone_competition_simulation import (
     FitnessParameters, 
     NormalDist,
     Gene, 
-    MutationGenerator
+    FitnessCalculator
 )
 
-mut_gen = MutationGenerator(
+mut_gen = FitnessCalculator(
     genes=[Gene(name="Gene1", mutation_distribution=NormalDist(0.1), synonymous_proportion=0.5)],
 )
 
@@ -60,7 +60,7 @@ from clone_competition_simulation import (
     FitnessParameters, 
     NormalDist,
     Gene, 
-    MutationGenerator, 
+    FitnessCalculator, 
     PlottingParameters, 
     ColourRule, 
     PlotColourMaps
@@ -74,7 +74,7 @@ colour_rule = ColourRule(
 # And create a PlotColourMaps object using the colour rule
 plot_colour_maps = PlotColourMaps(colour_rules=[colour_rule])
 
-mut_gen = MutationGenerator(
+mut_gen = FitnessCalculator(
     genes=[Gene(name="Gene1", mutation_distribution=NormalDist(0.1), synonymous_proportion=0.5)],
 )
 # Plot using the viridis colormap
@@ -110,7 +110,7 @@ from clone_competition_simulation import (
     FitnessParameters, 
     NormalDist,
     Gene, 
-    MutationGenerator, 
+    FitnessCalculator, 
     PlottingParameters, 
     ColourRule, 
     PlotColourMaps
@@ -127,7 +127,7 @@ plot_colour_maps = PlotColourMaps(
     use_fitness=True
 )
 
-mut_gen = MutationGenerator(
+mut_gen = FitnessCalculator(
     genes=[Gene(name="Gene1", mutation_distribution=NormalDist(0.1), synonymous_proportion=0.5)],
 )
 # Plot using the viridis colormap
@@ -222,7 +222,7 @@ from clone_competition_simulation import (
     FitnessParameters, 
     NormalDist,
     Gene, 
-    MutationGenerator, 
+    FitnessCalculator, 
     PlottingParameters, 
     ColourRule, 
     PlotColourMaps, 
@@ -246,7 +246,7 @@ plot_colour_maps = PlotColourMaps(
     colour_rules=[colour_rule], 
 )
 
-mut_gen = MutationGenerator(
+mut_gen = FitnessCalculator(
     genes=[Gene(name="Gene1", mutation_distribution=NormalDist(0.1), synonymous_proportion=0.5)],
 )
 
@@ -361,7 +361,7 @@ Initial clones are blue, cells with label 1 are red, cells with label 2 are yell
 
 ```python
 from matplotlib.colors import Normalize
-from clone_competition_simulation import LabelParameters, FitnessParameters, MutationGenerator
+from clone_competition_simulation import LabelParameters, FitnessParameters, FitnessCalculator
 
 # Define the list of rules
 rules = [
@@ -411,8 +411,8 @@ p = Parameters(
         label_values=[1, 2], 
         label_fitness=[1.5, 1.5],
     ),
-    # We are combining label fitness, so need to supply a MutationGenerator which defines how the fitnesses will be combined.
-    fitness=FitnessParameters(mutation_generator=MutationGenerator(genes=[])),   
+    # We are combining label fitness, so need to supply a FitnessCalculator which defines how the fitnesses will be combined.
+    fitness=FitnessParameters(mutation_generator=FitnessCalculator(genes=[])),   
     plotting=PlottingParameters(plot_colour_maps=plot_colour_maps)
 )
 s = p.get_simulator()
@@ -429,7 +429,7 @@ Colouring based on the combination of genes mutated in the clone.
 
 ```python
 # Define two genes
-mut_gen = MutationGenerator(
+mut_gen = FitnessCalculator(
     genes=[
         Gene(name='Gene1', mutation_distribution=FixedValue(1.1), synonymous_proportion=0),
         Gene(name='Gene2', mutation_distribution=FixedValue(1.2), synonymous_proportion=0)
@@ -506,7 +506,7 @@ For example, here we colour clones based on the label and the last gene mutated.
 
 ```python
 # Define the genes
-mut_gen = MutationGenerator(
+mut_gen = FitnessCalculator(
     genes=[
         Gene(name='Gene1', mutation_distribution=FixedValue(1.1), synonymous_proportion=0),
         Gene(name='Gene2', mutation_distribution=FixedValue(1.2), synonymous_proportion=0)
@@ -596,7 +596,7 @@ from clone_competition_simulation import NormalDist
 
 # Run without setting a colour map. It will use the default one (random colours)
 
-mut_gen = MutationGenerator(
+mut_gen = FitnessCalculator(
     genes=[Gene(name="Gene1", mutation_distribution=NormalDist(0.1), synonymous_proportion=0.5)],
 )
 

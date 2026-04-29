@@ -31,7 +31,7 @@ plotting:
   figsize: [10, 10]
 ```
 
-Currently, it is not possible to define Genes or MutationGenerators using the config file. 
+Currently, it is not possible to define Genes or FitnessCalculators using the config file. 
 
 ## Specifying the config file
 

@@ -15,7 +15,7 @@ from src.clone_competition_simulation.parameters import (
     FitnessParameters,
     LabelParameters,
 )
-from src.clone_competition_simulation.fitness import MutationGenerator, Gene, NormalDist, FixedValue, EpistaticEffect
+from src.clone_competition_simulation.fitness import FitnessCalculator, Gene, NormalDist, FixedValue, EpistaticEffect
 
 
 @pytest.fixture
@@ -48,7 +48,7 @@ def mutating_sim(monkeypatch):
                                             cell_in_own_neighbourhood=False),
             times=TimeParameters(max_time=10, division_rate=1),
             fitness=FitnessParameters(
-                mutation_generator=MutationGenerator(
+                mutation_generator=FitnessCalculator(
                     genes=[Gene(name="A",
                                 mutation_distribution=NormalDist(mean=1, var=0.1),
                                 synonymous_proportion=0.5)],
@@ -74,7 +74,7 @@ def mutating_sim2(monkeypatch):
                                             cell_in_own_neighbourhood=False),
             times=TimeParameters(max_time=10, division_rate=1),
             fitness=FitnessParameters(
-                mutation_generator=MutationGenerator(
+                mutation_generator=FitnessCalculator(
                     genes=[Gene(name="A",
                                 mutation_distribution=NormalDist(mean=1, var=0.1),
                                 synonymous_proportion=0.5)],
@@ -166,7 +166,7 @@ def test_view_clone_info4(monkeypatch):
         rng = np.random.RandomState()
         monkeypatch.setattr('numpy.random', rng)
         np.random.seed(0)
-        mut_gen = MutationGenerator(
+        mut_gen = FitnessCalculator(
             genes=[
                 Gene(name='Gene1', mutation_distribution=FixedValue(1.1), synonymous_proportion=0),
                 Gene(name='Gene2', mutation_distribution=FixedValue(1.05), synonymous_proportion=0)

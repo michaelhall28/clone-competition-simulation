@@ -469,7 +469,7 @@ This is an array with one row per clone and the following columns:
 - fitness. The fitness of the clone. This can change over time depending on any treatments. 
 - generation born. The index of the sample point the clone first appeared in. 
 - parent id. The id of the parent clone. 
-- gene mutated id. If there are multiple genes in the MutationGenerator, this records the index of the gene 
+- gene mutated id. If there are multiple genes in the FitnessCalculator, this records the index of the gene 
   mutated to create this new clone. 
 
 The array indices are recorded in the simulation class and can be accessed using `self.id_idx`, `self.label_idx`, 

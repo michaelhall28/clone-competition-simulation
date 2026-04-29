@@ -108,9 +108,9 @@ the `biopsy_sample` function becomes more useful.
 Run a simulation with some ongoing mutation
 
 ```python
-from clone_competition_simulation import Gene, MutationGenerator, NormalDist, FitnessParameters
+from clone_competition_simulation import Gene, FitnessCalculator, NormalDist, FitnessParameters
 
-mut_gen = MutationGenerator(
+mut_gen = FitnessCalculator(
     genes=[Gene(name="Gene1", mutation_distribution=NormalDist(0.1), synonymous_proportion=0.5)],
 )
 
@@ -219,7 +219,7 @@ Get the exact mutant cell counts from the end of the simulation.
 ```python
 from clone_competition_simulation import FixedValue
 
-mut_gen = MutationGenerator(
+mut_gen = FitnessCalculator(
     genes=[
         Gene(name='Gene1', mutation_distribution=FixedValue(1.2), synonymous_proportion=0.5), 
         Gene(name='Gene2', mutation_distribution=FixedValue(1.4), synonymous_proportion=0.5), 

@@ -15,14 +15,14 @@ from clone_competition_simulation import (
     PopulationParameters,
     FitnessParameters,
     Gene, 
-    MutationGenerator, 
+    FitnessCalculator, 
     FixedValue
 )
 
 
 # Setting up a simulation with a few mutations
 gene = Gene(name='Gene1', mutation_distribution=FixedValue(2), synonymous_proportion=0)
-mut_gen = MutationGenerator(genes=[gene])
+mut_gen = FitnessCalculator(genes=[gene])
 
 np.random.seed(0)
 p = Parameters(
@@ -235,7 +235,7 @@ To reduce the time taken, or to make the plots clearer, you can hide small clone
 
 ```python
 gene = Gene(name='Gene1', mutation_distribution=FixedValue(1.5), synonymous_proportion=0.5)
-mut_gen = MutationGenerator(genes=[gene])
+mut_gen = FitnessCalculator(genes=[gene])
 
 np.random.seed(0)
 p = Parameters(
@@ -296,7 +296,7 @@ and here for a neutral simulation
 
 ```python
 gene = Gene(name='Gene1', mutation_distribution=FixedValue(1), synonymous_proportion=0.5)
-mut_gen = MutationGenerator(genes=[gene])
+mut_gen = FitnessCalculator(genes=[gene])
 
 np.random.seed(0)
 p = Parameters(

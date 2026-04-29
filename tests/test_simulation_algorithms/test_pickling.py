@@ -5,7 +5,7 @@ from src.clone_competition_simulation import (
     PopulationParameters,
     FitnessParameters,
     Gene,
-    MutationGenerator,
+    FitnessCalculator,
     FixedValue,
     NormalDist,
     pickle_load,
@@ -20,7 +20,7 @@ def test_pickling():
              Gene(name='random_driver', mutation_distribution=NormalDist(mean=1.01, var=0.05),
                   synonymous_proportion=0.8),
     ]
-    mut_gen1 = MutationGenerator(multi_gene_array=False, genes=genes, combine_mutations='add')
+    mut_gen1 = FitnessCalculator(multi_gene_array=False, genes=genes, combine_mutations='add')
 
     np.random.seed(0)
     p = Parameters(

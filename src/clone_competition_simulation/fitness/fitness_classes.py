@@ -185,7 +185,7 @@ class Gene(BaseModel):
         :param synonymous_proportion: The proportion of mutations in this gene which are synonymous. These will have no
         impact on cell fitness, but are used in dN/dS calculations.
         :param weight: Along with the mutations_rates, this determines the rate of mutation in this gene. The
-        total mutation rate of all genes passed to the MutationGenerator will equal the mutation_rates defined in
+        total mutation rate of all genes passed to the FitnessCalculator will equal the mutation_rates defined in
         Parameters. The relative weights of the genes are used. E.g. if Gene1 has a weight of 3 and Gene2 has a
         weight of 7, then 30% of the mutations will be drawn from Gene1 and 70% from Gene2.
 
@@ -282,7 +282,7 @@ class EpistaticEffect(BaseModel):
 ##################
 # Class to put it all together
 
-class MutationGenerator(BaseModel):
+class FitnessCalculator(BaseModel):
     """
     This class determines the effects of mutations and how they are combined to define the fitness of a clone.
 
@@ -320,7 +320,7 @@ class MutationGenerator(BaseModel):
     Any effects due to treatment are applied elsewhere.
     There are many options here and when applying treatment and labels, so be careful that the clone fitnesses are
     combining as intended, especially if defining epistatic effects.
-    Can use MutationGenerator.plot_fitness_combinations to check the fitness combinations are as intended.
+    Can use FitnessCalculator.plot_fitness_combinations to check the fitness combinations are as intended.
     """
     model_config = ConfigDict(arbitrary_types_allowed=True)
 

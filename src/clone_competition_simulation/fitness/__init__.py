@@ -1,5 +1,5 @@
 from .fitness_classes import (
-    MutationGenerator,
+    FitnessCalculator,
     Gene,
     UnboundedFitness,
     BoundedLogisticFitness,

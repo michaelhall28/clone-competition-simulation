@@ -89,11 +89,11 @@ To make the simulation more interesting, we'll add a non-zero mutation rate. Lat
 explain in more detail how to define mutation fitness.  
 
 ```python
-from clone_competition_simulation import FitnessParameters, Gene, MutationGenerator, NormalDist
+from clone_competition_simulation import FitnessParameters, Gene, FitnessCalculator, NormalDist
 import matplotlib.pyplot as plt
 
 # Define the fitness effects of the mutations
-mutation_generator = MutationGenerator(
+mutation_generator = FitnessCalculator(
     genes=[Gene(name="Gene1", mutation_distribution=NormalDist(mean=1.1, var=0.1), 
                 synonymous_proportion=0.5)]
 )

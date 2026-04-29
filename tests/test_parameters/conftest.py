@@ -5,7 +5,7 @@ from src.clone_competition_simulation import (
     TimeParameters,
     DifferentiatedCellsParameters,
     FitnessParameters, Gene, FixedValue,
-    MutationGenerator
+    FitnessCalculator
 )
 from src.clone_competition_simulation.parameters.fitness_validation import FitnessValidator
 from src.clone_competition_simulation.parameters.population_validation import PopulationValidator
@@ -65,7 +65,7 @@ def gene():
 
 @pytest.fixture
 def mutation_generator(gene):
-    return MutationGenerator(
+    return FitnessCalculator(
         genes=[gene],
         multi_gene_array=False
     )
@@ -87,7 +87,7 @@ def validated_fitness_parameters(empty_fitness_params, validated_time_parameters
 
 @pytest.fixture
 def mutation_generator_multi_gene(gene):
-    return MutationGenerator(
+    return FitnessCalculator(
         genes=[gene],
         multi_gene_array=True
     )

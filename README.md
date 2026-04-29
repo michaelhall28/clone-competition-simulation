@@ -29,10 +29,10 @@ First, the parameters for the simulation are defined. The Parameters class check
 e.g.
 ```python
 from clone_competition_simulation.parameters import Parameters, TimeParameters, PopulationParmaters, FitnessParameters
-from clone_competition_simulation.fitness_classes import Gene, UniformDist, MutationGenerator
+from clone_competition_simulation.fitness_classes import Gene, UniformDist, FitnessCalculator
 
 # Define the effect of mutations that appear during the simulation
-mutation_generator = MutationGenerator(genes=[Gene(name='example_gene', UniformDist(1, 2), synonymous_proportion=0.5)],
+mutation_generator = FitnessCalculator(genes=[Gene(name='example_gene', UniformDist(1, 2), synonymous_proportion=0.5)],
                                         combine_mutations='multiply')
 
 p = Parameters(

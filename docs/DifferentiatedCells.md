@@ -139,11 +139,11 @@ Same goes for simulations with ongoing mutations.
 from clone_competition_simulation import (
     FitnessParameters, 
     Gene, 
-    MutationGenerator, 
+    FitnessCalculator, 
     NormalDist
 )
 
-mutation_generator = MutationGenerator(
+mutation_generator = FitnessCalculator(
     genes=[Gene(name="Gene1", mutation_distribution=NormalDist(mean=1.1, var=0.1), 
                 synonymous_proportion=0.5)]
 )
