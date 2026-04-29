@@ -99,7 +99,7 @@ def test_multiple_clones(mock_random, axes, algorithm, overwrite_results=False):
                                   initial_grid=initial_grid,
                                   cell_in_own_neighbourhood=False
                               ),
-                   fitness=FitnessParameters(fitness_array=[1, 1.1, 0.9]),
+                   fitness=FitnessParameters(initial_fitness_array=[1, 1.1, 0.9]),
                    times=TimeParameters(max_time=MAX_TIME, division_rate=DIVISION_RATE)
                    )
     sim = p.get_simulator()
@@ -430,7 +430,7 @@ def test_imbalance(mock_random, axes, algorithm, overwrite_results=False):
         population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
                                         cell_in_own_neighbourhood=False),
         times=TimeParameters(max_time=MAX_TIME, division_rate=DIVISION_RATE),
-        fitness=FitnessParameters(fitness_array=fitness_array)
+        fitness=FitnessParameters(initial_fitness_array=fitness_array)
     )
     sim = p.get_simulator()
     sim.run_sim()
@@ -507,7 +507,7 @@ def test_treatment_with_fixed_clones(mock_random, axes, algorithm, overwrite_res
         times=TimeParameters(max_time=12, division_rate=DIVISION_RATE),
         population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
                                         cell_in_own_neighbourhood=False),
-        fitness=FitnessParameters(fitness_array=[1.05, 1, 0.9]),
+        fitness=FitnessParameters(initial_fitness_array=[1.05, 1, 0.9]),
         treatment=TreatmentParameters(treatment_timings=timings, treatment_effects=treatment_arrays,
                                       treatment_replace_fitness=False),
     )
@@ -537,7 +537,7 @@ def test_treatment_replace_with_fixed_clones(mock_random, axes, algorithm, overw
         times=TimeParameters(max_time=12, division_rate=DIVISION_RATE),
         population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
                                         cell_in_own_neighbourhood=False),
-        fitness=FitnessParameters(fitness_array=[1.05, 1, 0.9]),
+        fitness=FitnessParameters(initial_fitness_array=[1.05, 1, 0.9]),
         treatment=TreatmentParameters(treatment_timings=timings, treatment_effects=treatment_arrays,
                                       treatment_replace_fitness=True),
     )
@@ -574,7 +574,7 @@ def test_treatment_with_multiple_genes(mock_random, axes, algorithm, overwrite_r
                                         cell_in_own_neighbourhood=False),
         times=TimeParameters(max_time=12, division_rate=DIVISION_RATE),
         fitness=FitnessParameters(initial_mutant_gene_array=[0, 1], mutation_generator=mut_gen,
-                                  fitness_array=[1.05, 1]),
+                                  initial_fitness_array=[1.05, 1]),
         treatment=TreatmentParameters(treatment_timings=timings, treatment_effects=treatment_arrays),
     )
     sim = p.get_simulator()
@@ -591,7 +591,7 @@ def test_treatment_with_multiple_genes(mock_random, axes, algorithm, overwrite_r
                                         cell_in_own_neighbourhood=False),
         times=TimeParameters(max_time=12, division_rate=DIVISION_RATE),
         fitness=FitnessParameters(initial_mutant_gene_array=[0, 1], mutation_generator=mut_gen,
-                                  fitness_array=[1.05, 1], mutation_rates=0.005),
+                                  initial_fitness_array=[1.05, 1], mutation_rates=0.005),
         treatment=TreatmentParameters(treatment_timings=timings, treatment_effects=treatment_arrays),
     )
     sim = p.get_simulator()
@@ -626,7 +626,7 @@ def test_treatment_replace_with_multiple_genes(mock_random, axes, algorithm, ove
         times=TimeParameters(max_time=12, division_rate=DIVISION_RATE),
         population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
                                         cell_in_own_neighbourhood=False),
-        fitness=FitnessParameters(initial_mutant_gene_array=[0, 1], mutation_generator=mut_gen, fitness_array=[1.05, 1]),
+        fitness=FitnessParameters(initial_mutant_gene_array=[0, 1], mutation_generator=mut_gen, initial_fitness_array=[1.05, 1]),
         treatment=TreatmentParameters(treatment_timings=timings, treatment_effects=treatment_arrays,
                                       treatment_replace_fitness=True),
     )
@@ -644,7 +644,7 @@ def test_treatment_replace_with_multiple_genes(mock_random, axes, algorithm, ove
         population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
                                         cell_in_own_neighbourhood=False),
         fitness=FitnessParameters(initial_mutant_gene_array=[0, 1], mutation_generator=mut_gen, mutation_rates=0.005,
-                                  fitness_array=[1.05, 1]),
+                                  initial_fitness_array=[1.05, 1]),
         treatment=TreatmentParameters(treatment_timings=timings, treatment_effects=treatment_arrays,
                                       treatment_replace_fitness=False)
     )
@@ -676,7 +676,7 @@ def test_labels(mock_random, cs_label, axes, algorithm, overwrite_results=False)
         algorithm=algorithm,
         times=TimeParameters(max_time=MAX_TIME, division_rate=1),
         plotting=PlottingParameters(plot_colour_maps=cs_label),
-        fitness=FitnessParameters(mutation_generator=mut_gen, fitness_array=[1.05, 1, 0.9, 1.02], mutation_rates=0.01),
+        fitness=FitnessParameters(mutation_generator=mut_gen, initial_fitness_array=[1.05, 1, 0.9, 1.02], mutation_rates=0.01),
         population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
                                         cell_in_own_neighbourhood=False),
         labels=LabelParameters(initial_label_array=[0, 1, 2, 1])
@@ -696,7 +696,7 @@ def test_labels(mock_random, cs_label, axes, algorithm, overwrite_results=False)
         algorithm=algorithm,
         times=TimeParameters(max_time=MAX_TIME, division_rate=1),
         plotting=PlottingParameters(plot_colour_maps=cs_label),
-        fitness=FitnessParameters(mutation_generator=mut_gen, fitness_array=[1.05, 1, 0.9, 1.02]),
+        fitness=FitnessParameters(mutation_generator=mut_gen, initial_fitness_array=[1.05, 1, 0.9, 1.02]),
         population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
                                         cell_in_own_neighbourhood=False),
         labels=LabelParameters(initial_label_array=[0, 1, 0, 1], label_times=label_times,

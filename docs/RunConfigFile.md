@@ -18,7 +18,7 @@ times:
 population:
   initial_cells: 100
 fitness:
-  fitness_array: 1  # For initial clones. Integers be converted to a list
+  initial_fitness_array: 1  # For initial clones. Integers be converted to a list
   mutation_rates: 0
   initial_mutant_gene_array: -1  # For the genes of initial clones. Integers be converted to a list. -1 means not associated with a gene.
 labels:

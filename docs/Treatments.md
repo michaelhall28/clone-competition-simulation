@@ -33,7 +33,7 @@ p = Parameters(
     algorithm='Moran', 
     times=TimeParameters(max_time=10, division_rate=1), 
     population=PopulationParameters(initial_size_array=[500, 500]),  # Start with equal clone sizes
-    fitness=FitnessParameters(fitness_array=[1, 1.5])  # The second clone is fitter than the first
+    fitness=FitnessParameters(initial_fitness_array=[1, 1.5])  # The second clone is fitter than the first
 )
 s = p.get_simulator()
 s.run_sim()
@@ -55,7 +55,7 @@ p = Parameters(
     algorithm='Moran', 
     times=TimeParameters(max_time=10, division_rate=1), 
     population=PopulationParameters(initial_size_array=[500, 500]),  # Start with equal clone sizes
-    fitness=FitnessParameters(fitness_array=[1, 1.5]),  # The second clone is fitter than the first (at the start)
+    fitness=FitnessParameters(initial_fitness_array=[1, 1.5]),  # The second clone is fitter than the first (at the start)
     treatment=TreatmentParameters(
         # Define the treatment. 
         treatment_timings=[4],  # Start the treatment at time 4
@@ -88,7 +88,7 @@ p = Parameters(
     algorithm='Moran',
     times=TimeParameters(max_time=10, division_rate=1), 
     population=PopulationParameters(initial_size_array=[500, 500]),  # Start with equal clone sizes
-    fitness=FitnessParameters(fitness_array=[1, 1.5]),  # The second clone is fitter than the first (at the start)
+    fitness=FitnessParameters(initial_fitness_array=[1, 1.5]),  # The second clone is fitter than the first (at the start)
     treatment=TreatmentParameters(
         # Define the treatment. 
         treatment_timings=[3, 5, 8],  # Change the treatments at these times
@@ -120,7 +120,7 @@ p = Parameters(
     algorithm='Moran', 
     times=TimeParameters(max_time=10, division_rate=1), 
     population=PopulationParameters(initial_size_array=[500, 500]),  # Start with equal clone sizes
-    fitness=FitnessParameters(fitness_array=[1, 1.5]),  # The second clone is fitter than the first (at the start)
+    fitness=FitnessParameters(initial_fitness_array=[1, 1.5]),  # The second clone is fitter than the first (at the start)
     treatment=TreatmentParameters(
         # Define the treatment. 
         treatment_timings=[3, 6],  # Change the treatments at these times
@@ -171,7 +171,7 @@ p = Parameters(
     times=TimeParameters(max_time=10, division_rate=1), 
     population=PopulationParameters(initial_size_array=[300, 300, 300]),  # Start with equal clone sizes
     fitness=FitnessParameters(
-        fitness_array=[1, 2, 3],  # Have to define the initial fitness values
+        initial_fitness_array=[1, 2, 3],  # Have to define the initial fitness values
         initial_mutant_gene_array=[0, 1, 2],   # And define the genes mutated for each clone
         mutation_generator=mut_gen
     )
@@ -196,7 +196,7 @@ p = Parameters(
     times=TimeParameters(max_time=10, division_rate=1), 
     population=PopulationParameters(initial_size_array=[300, 300, 300]),  # Start with equal clone sizes
     fitness=FitnessParameters(
-        fitness_array=[1, 2, 3],  # Have to define the initial fitness values
+        initial_fitness_array=[1, 2, 3],  # Have to define the initial fitness values
         initial_mutant_gene_array=[0, 1, 2],   # And define the genes mutated for each clone
         mutation_generator=mut_gen
     ), 

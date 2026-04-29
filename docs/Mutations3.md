@@ -35,7 +35,7 @@ p = Parameters(
     times=TimeParameters(max_time=10, division_rate=1),
     population=PopulationParameters(initial_size_array=np.ones(4)),
     fitness=FitnessParameters(
-        fitness_array=np.linspace(1, 1.3, 4),  # Giving the initial clones some different fitness values
+        initial_fitness_array=np.linspace(1, 1.3, 4),  # Giving the initial clones some different fitness values
         mutation_rates=0.1, 
         mutation_generator=mut_gen,     
     )
@@ -181,7 +181,7 @@ p = Parameters(
     times=TimeParameters(max_time=10, division_rate=1),
     population=PopulationParameters(initial_size_array=np.ones(4)),
     fitness=FitnessParameters(
-        fitness_array=np.linspace(1, 1.3, 4),  # Giving the initial clones some different fitness values
+        initial_fitness_array=np.linspace(1, 1.3, 4),  # Giving the initial clones some different fitness values
         mutation_rates=0.1, 
         mutation_generator=mut_gen,     
     )
@@ -307,7 +307,7 @@ p = Parameters(
     times=TimeParameters(max_time=10, division_rate=1),
     population=PopulationParameters(initial_size_array=np.ones(4)),
     fitness=FitnessParameters(
-        fitness_array=np.linspace(1, 1.3, 4),  # Giving the initial clones some different fitness values
+        initial_fitness_array=np.linspace(1, 1.3, 4),  # Giving the initial clones some different fitness values
         mutation_rates=0.1, 
         mutation_generator=mut_gen,     
     )
@@ -981,7 +981,7 @@ p = Parameters(
         
         # Also need to define the fitness array or all initial clones will have a fitness=1
         # These fitness values do not have to equal the fitness values from the Gene assigned. 
-        fitness_array=[1, 1.1, 1.1, 1.1, 1.1],
+        initial_fitness_array=[1, 1.1, 1.1, 1.1, 1.1],
     )
 )
 s = p.get_simulator()

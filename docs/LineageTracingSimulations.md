@@ -196,7 +196,7 @@ p = Parameters(
             np.ones(50)]   # 50 single-cell clones
     )),
     fitness=FitnessParameters(
-        fitness_array=np.concatenate([
+        initial_fitness_array=np.concatenate([
             [1],   # Wild type cells with fitness 1
             np.full(50, 1.3)  # The next 50 clones given fitness 1.3
             ])

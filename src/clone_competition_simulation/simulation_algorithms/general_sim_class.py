@@ -201,7 +201,7 @@ class GeneralSimClass(ABC):
         self.total_clone_count = self.initial_clones + self.new_mutation_count
         self.next_mutation_index = self.initial_clones  # Keeping track of how many mutations added
 
-        self._init_arrays(parameters.labels.initial_label_array, parameters.fitness.initial_mutant_gene_array, parameters.fitness.fitness_array)
+        self._init_arrays(parameters.labels.initial_label_array, parameters.fitness.initial_mutant_gene_array, parameters.fitness.initial_fitness_array)
         
         # Attributes for early stopping
         self.stop_time: float | None = None
