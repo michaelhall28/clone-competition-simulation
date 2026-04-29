@@ -1,4 +1,4 @@
-from tests.conftest import mutation_generator
+from tests.conftest import fitness_calculator
 
 # Treatments 
 
@@ -156,7 +156,7 @@ instead of the clone_id.
 ```python
 from clone_competition_simulation import FitnessCalculator, Gene, FixedValue
 # Define a FitnessCalculator with a few genes
-mut_gen = FitnessCalculator(
+fit_calc = FitnessCalculator(
     genes=[
         Gene(name='Gene1', mutation_distribution=FixedValue(1), synonymous_proportion=0), 
         Gene(name='Gene2', mutation_distribution=FixedValue(2), synonymous_proportion=0), 
@@ -173,7 +173,7 @@ p = Parameters(
     fitness=FitnessParameters(
         initial_fitness_array=[1, 2, 3],  # Have to define the initial fitness values
         initial_mutant_gene_array=[0, 1, 2],   # And define the genes mutated for each clone
-        mutation_generator=mut_gen
+        fitness_calculator=fit_calc
     )
 )
 s = p.get_simulator()
@@ -198,7 +198,7 @@ p = Parameters(
     fitness=FitnessParameters(
         initial_fitness_array=[1, 2, 3],  # Have to define the initial fitness values
         initial_mutant_gene_array=[0, 1, 2],   # And define the genes mutated for each clone
-        mutation_generator=mut_gen
+        fitness_calculator=fit_calc
     ), 
     treatment=TreatmentParameters(
         # Define the treatment. 
@@ -231,7 +231,7 @@ from matplotlib.colors import Normalize
 from clone_competition_simulation import PlottingParameters, ColourRule, FeatureValue, CloneFeature, PlotColourMaps
 
 # Setting up a FitnessCalculator and plotting colours for two genes. 
-mut_gen = FitnessCalculator(
+fit_calc = FitnessCalculator(
     genes=[
         Gene(name='Gene1', mutation_distribution=FixedValue(1), synonymous_proportion=0),
         Gene(name='Gene2', mutation_distribution=FixedValue(3), synonymous_proportion=0)
@@ -290,7 +290,7 @@ p = Parameters(
     times=TimeParameters(max_time=10, division_rate=1), 
     population=PopulationParameters(initial_cells=1000), 
     fitness=FitnessParameters(
-        mutation_generator=mut_gen, 
+        fitness_calculator=fit_calc, 
         mutation_rates=0.01
     ), 
     treatment=TreatmentParameters(

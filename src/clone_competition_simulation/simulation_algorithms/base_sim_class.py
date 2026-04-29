@@ -141,7 +141,7 @@ class BaseSimClass(ABC):
         self.total_pop = parameters.population.initial_cells
         self.initial_size_array = parameters.population.initial_size_array
         self.mutation_rates = parameters.fitness.mutation_rates
-        self.mutation_generator = parameters.fitness.mutation_generator
+        self.fitness_calculator = parameters.fitness.fitness_calculator
         self.division_rate = parameters.times.division_rate
         self.max_time = parameters.times.max_time
         self.times = parameters.times.times
@@ -282,8 +282,8 @@ class BaseSimClass(ABC):
         self.clones_array[:self.initial_clones, self.label_idx] = labels_array  # Give each intial cell a type
 
         if initial_mutant_gene_array is None:
-            initial_mutant_gene_array = -1
-        # Give each initial cell mutation type. -1 if no mutation
+            initial_mutant_gene_array = np.nan
+        # Give each initial cell mutation type. np.nan if no mutation
         self.clones_array[:self.initial_clones, self.gene_mutated_idx] = initial_mutant_gene_array
 
         self.clones_array[:self.initial_clones, self.generation_born_idx] = 0
@@ -291,10 +291,10 @@ class BaseSimClass(ABC):
 
         # For each clone, need an raw fitness array as long as the number of genes
         # Needs to be dtype=float, which is the default of np.zeros
-        if self.mutation_generator and self.mutation_generator.multi_gene_array:
-            num_cols_genes = len(self.mutation_generator.genes)+1
-            if self.mutation_generator.epistatics is not None:
-                num_cols = num_cols_genes + len(self.mutation_generator.epistatics)
+        if self.fitness_calculator and self.fitness_calculator.multi_gene_array:
+            num_cols_genes = len(self.fitness_calculator.genes)+1
+            if self.fitness_calculator.epistatics is not None:
+                num_cols = num_cols_genes + len(self.fitness_calculator.epistatics)
             else:
                 num_cols = num_cols_genes
             blank_fitness_array = np.full((self.total_clone_count, num_cols),
@@ -459,12 +459,12 @@ class BaseSimClass(ABC):
         self.current_fitness_multiplier = self.treatment_effects[self.treatment_count]
         self.next_treatment_time = self.treatment_timings[self.treatment_count+1]
         if initial:
-            if self.mutation_generator and self.mutation_generator.multi_gene_array:
+            if self.fitness_calculator and self.fitness_calculator.multi_gene_array:
                 self.clones_array[:self.initial_clones, self.fitness_idx] = self._apply_treatment(fitness_arrays=self.raw_fitness_array[:self.initial_clones])
             else:
                 self.clones_array[:self.initial_clones, self.fitness_idx] = self._apply_treatment(fitness_values=self.raw_fitness_array[:self.initial_clones])
         else:
-            if self.mutation_generator and self.mutation_generator.multi_gene_array:
+            if self.fitness_calculator and self.fitness_calculator.multi_gene_array:
                 self.clones_array[:, self.fitness_idx] = self._apply_treatment(fitness_arrays=self.raw_fitness_array)
             else:
                 self.clones_array[:, self.fitness_idx] = self._apply_treatment(fitness_values=self.raw_fitness_array)
@@ -473,11 +473,11 @@ class BaseSimClass(ABC):
         # Apply the treatment affects to an array of fitnesses
         # fitness_values is 1D array of overall fitness for each clone
         # fitness_arrays is a 2D array with one row per clone and one column per gene plus a column for wild type
-        if self.mutation_generator and self.mutation_generator.multi_gene_array:
+        if self.fitness_calculator and self.fitness_calculator.multi_gene_array:
             # Apply the treatment to the genes, then calculate the overall fitness.
             if not self.treatment_replace_fitness:  # Multiply the fitness by the treatment effect
                 adjusted_fitness_array = fitness_arrays * self.current_fitness_multiplier
-                combined_fitness_array, _ = self.mutation_generator.combine_vectors(adjusted_fitness_array)
+                combined_fitness_array, _ = self.fitness_calculator.combine_vectors(adjusted_fitness_array)
             else:
                 # Replace the fitness with the new fitness effect
                 adjusted_fitness_array = np.tile(self.current_fitness_multiplier, (len(fitness_arrays), 1))
@@ -487,7 +487,7 @@ class BaseSimClass(ABC):
                 adjusted_fitness_array[:,
                     np.isnan(self.current_fitness_multiplier)] = fitness_arrays[:,
                                                                     np.isnan(self.current_fitness_multiplier)]
-                combined_fitness_array, _ = self.mutation_generator.combine_vectors(adjusted_fitness_array)
+                combined_fitness_array, _ = self.fitness_calculator.combine_vectors(adjusted_fitness_array)
             return combined_fitness_array
         else:
             # Applies per clone.
@@ -553,14 +553,14 @@ class BaseSimClass(ABC):
         old_mutation_array = self.raw_fitness_array[parent_idx]
         new_fitness_array = old_mutation_array.copy()
         if label_gene is None:
-            gene_mutated = -1  # Not a gene mutation. Any fitness change will be on wild type
+            gene_mutated = np.nan  # Not a gene mutation. Any fitness change will be on wild type
             label_gene = 0
         else:
             gene_mutated = label_gene
         if label_fitness is not None:  # Fitness will replace what went before for that gene/wild type
             new_fitness_array[label_gene] = label_fitness
             new_fitness, self.raw_fitness_array[self.next_mutation_index] \
-                = self.mutation_generator.combine_vectors(np.atleast_2d(new_fitness_array))
+                = self.fitness_calculator.combine_vectors(np.atleast_2d(new_fitness_array))
             new_fitness = new_fitness[0]  # We are only adding one clone at a time.
         else:
             new_fitness = old_fitness
@@ -619,7 +619,7 @@ class BaseSimClass(ABC):
 
         # Get a fitness value for the new clone.
         new_fitness_values, new_fitness_arrays, \
-        synonymous, genes_mutated = self.mutation_generator.get_new_fitnesses(old_fitnesses, old_mutation_arrays)
+        synonymous, genes_mutated = self.fitness_calculator.get_new_fitnesses(old_fitnesses, old_mutation_arrays)
 
         mutation_indices = np.arange(self.next_mutation_index, self.next_mutation_index + len(parent_idxs))
 
@@ -661,18 +661,18 @@ class BaseSimClass(ABC):
             'generation born': pd.Series(self.clones_array[:, self.generation_born_idx], dtype=int),
             'parent clone id': pd.Series(self.clones_array[:, self.parent_idx], dtype=int),
         })
-        if self.mutation_generator is not None:
+        if self.fitness_calculator is not None:
             df['last gene mutated'] = pd.Series(
-                [self.mutation_generator.get_gene_name(int(g)) for g in self.clones_array[:, self.gene_mutated_idx]],
+                [self.fitness_calculator.get_gene_name(g) for g in self.clones_array[:, self.gene_mutated_idx]],
                 dtype=object)
 
-        if include_raw_fitness and self.mutation_generator is not None:
+        if include_raw_fitness and self.fitness_calculator is not None:
             cols = []
-            if self.mutation_generator.multi_gene_array:
+            if self.fitness_calculator.multi_gene_array:
                 cols += ['Initial clone fitness']
-            cols += [g.name for g in self.mutation_generator.genes]
-            if self.mutation_generator.epistatics is not None:
-                cols += [e.name for e in self.mutation_generator.epistatics]
+            cols += [g.name for g in self.fitness_calculator.genes]
+            if self.fitness_calculator.epistatics is not None:
+                cols += [e.name for e in self.fitness_calculator.epistatics]
             raw_df = pd.DataFrame(self.raw_fitness_array, columns=cols)
             df = pd.concat([df, raw_df], axis=1)
 
@@ -864,7 +864,7 @@ class BaseSimClass(ABC):
         Returns a set of all clones with gene_mutated given
         :param gene_mutated: The name of the gene mutated.
         """
-        gene_num = self.mutation_generator.get_gene_number(gene_mutated)
+        gene_num = self.fitness_calculator.get_gene_number(gene_mutated)
         return set(np.where(self.clones_array[:, self.gene_mutated_idx] == gene_num)[0])
 
     def get_mutant_clone_sizes(self, t: float | int | None=None,
@@ -972,8 +972,11 @@ class BaseSimClass(ABC):
         s_mut_measured = s_mut[s_mut >= min_size]
         total_s = len(s_mut_measured)
 
-        gene_num = self.mutation_generator.get_gene_number(gene)  # If gene is None, will get the overall ns
-        expected_ns = total_s * (1 / self.mutation_generator.get_synonymous_proportion(gene_num) - 1)
+        # If gene is None, will get the overall ns
+        if gene is not None:
+            # Convert gene name to gene number for the fitness calculator
+            gene = self.fitness_calculator.get_gene_number(gene)  
+        expected_ns = total_s * (1 / self.fitness_calculator.get_synonymous_proportion(gene) - 1)
         try:
             dnds = total_ns / expected_ns
             return dnds
@@ -1061,8 +1064,8 @@ class BaseSimClass(ABC):
                     initial = True
                 else:
                     initial = False
-                if self.mutation_generator is not None:
-                    last_mutated_gene = self.mutation_generator.get_gene_name(int(clone[self.gene_mutated_idx]))
+                if self.fitness_calculator is not None:
+                    last_mutated_gene = self.fitness_calculator.get_gene_name(clone[self.gene_mutated_idx])
                 else:
                     last_mutated_gene = None
                 self.colours[clone[self.id_idx]] = self.plot_colour_maps._get_colour(
@@ -1081,7 +1084,7 @@ class BaseSimClass(ABC):
         Returns:
             set[str]: Set of names of the mutated genes. 
         """
-        if self.mutation_generator is None:
+        if self.fitness_calculator is None:
             return set()
         
         # Get the non-nan entries in the raw fitness array for this clone. 
@@ -1089,7 +1092,7 @@ class BaseSimClass(ABC):
         # Then the index from np.where equals the gene number in the Mutation generator and 
         # we can get the gene name
         mutated_gene_numbers= np.where(~np.isnan(self.raw_fitness_array[clone_id, 1:]))[0]
-        gene_names = {self.mutation_generator.get_gene_name(gene_number) for 
+        gene_names = {self.fitness_calculator.get_gene_name(gene_number) for 
                       gene_number in mutated_gene_numbers}
         if None in gene_names:
             gene_names.remove(None)

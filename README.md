@@ -32,14 +32,14 @@ from clone_competition_simulation.parameters import Parameters, TimeParameters, 
 from clone_competition_simulation.fitness_classes import Gene, UniformDist, FitnessCalculator
 
 # Define the effect of mutations that appear during the simulation
-mutation_generator = FitnessCalculator(genes=[Gene(name='example_gene', UniformDist(1, 2), synonymous_proportion=0.5)],
+fitness_calculator = FitnessCalculator(genes=[Gene(name='example_gene', UniformDist(1, 2), synonymous_proportion=0.5)],
                                         combine_mutations='multiply')
 
 p = Parameters(
         algorithm=algorithm,
         population=PopulationParameters(grid_shape=(100, 100), cell_in_own_neighbourhood=True),
         times=TimeParameters(max_time=20, division_rate=1),
-        fitness=FitnessParameters(mutation_rates=0.01, mutation_generator=mutation_generator)
+        fitness=FitnessParameters(mutation_rates=0.01, fitness_calculator=fitness_calculator)
     )
 
 ```
@@ -61,7 +61,7 @@ See the [docs](https://michaelhall28.github.io/clone-competition-simulation/) fo
 * The parameters are grouped by theme (timing, cell population, mutation fitness etc). Can be grouped using the 
   parameter classes or using dictionaries. 
 * Some parameters have to be explicitly given instead of using default values (max_time, division_rate, 
-  mutation_generator, cell_in_own_neighbourhood)
+  fitness_calculator, cell_in_own_neighbourhood)
 ```python
 ####  Old 
 p = Parameters(
@@ -75,14 +75,14 @@ p = Parameters(
     algorithm='WF2D',
     population=PopulationParameters(grid_shape=(100, 100), cell_in_own_neighbourhood=False),
     times=TimeParameters(max_time=10, division_rate=1),
-    fitness=FitnessParameters(mutation_rates=0.01, mutation_generator=mutation_generator)
+    fitness=FitnessParameters(mutation_rates=0.01, fitness_calculator=fitness_calculator)
 )
 # or
 p = Parameters(
     algorithm='WF2D',
     population=dict(grid_shape=(100, 100), cell_in_own_neighbourhood=False),
     times=dict(max_time=10, division_rate=1),
-    fitness=dict(mutation_rates=0.01, mutation_generator=mutation_generator)
+    fitness=dict(mutation_rates=0.01, fitness_calculator=fitness_calculator)
 )
 ```
 * A yml file can be used to supply parameters. These can be combined with `__init__` parameters.  

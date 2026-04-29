@@ -24,7 +24,7 @@ from clone_competition_simulation import (
     FixedValue 
 )
 
-mut_gen = FitnessCalculator(
+fit_calc = FitnessCalculator(
     genes=[Gene(name='Gene1', mutation_distribution=FixedValue(1.1), synonymous_proportion=0)], 
     combine_mutations='multiply'  # This is also the default option
 )
@@ -37,7 +37,7 @@ p = Parameters(
     fitness=FitnessParameters(
         initial_fitness_array=np.linspace(1, 1.3, 4),  # Giving the initial clones some different fitness values
         mutation_rates=0.1, 
-        mutation_generator=mut_gen,     
+        fitness_calculator=fit_calc,     
     )
 )
 s = p.get_simulator()
@@ -167,7 +167,7 @@ For example, to add fitness values
 
 ```python
 
-mut_gen = FitnessCalculator(
+fit_calc = FitnessCalculator(
     genes=[
         Gene(name='Gene1', mutation_distribution=FixedValue(1.1), synonymous_proportion=0)
     ], 
@@ -183,7 +183,7 @@ p = Parameters(
     fitness=FitnessParameters(
         initial_fitness_array=np.linspace(1, 1.3, 4),  # Giving the initial clones some different fitness values
         mutation_rates=0.1, 
-        mutation_generator=mut_gen,     
+        fitness_calculator=fit_calc,     
     )
 )
 s = p.get_simulator()
@@ -292,7 +292,7 @@ Running a simulation where all new mutations have a fitness of 1.1.  These multi
 
 ```python
 
-mut_gen = FitnessCalculator(
+fit_calc = FitnessCalculator(
     genes=[
         Gene(name='Gene1', mutation_distribution=FixedValue(1.1), synonymous_proportion=0)
     ], 
@@ -309,7 +309,7 @@ p = Parameters(
     fitness=FitnessParameters(
         initial_fitness_array=np.linspace(1, 1.3, 4),  # Giving the initial clones some different fitness values
         mutation_rates=0.1, 
-        mutation_generator=mut_gen,     
+        fitness_calculator=fit_calc,     
     )
 )
 s = p.get_simulator()
@@ -540,7 +540,7 @@ For example, if further mutations in the same gene have no further effect, we ca
 But then you can still add the fitness effects from different genes. 
 
 ```python
-mut_gen = FitnessCalculator(
+fit_calc = FitnessCalculator(
     genes=[
         Gene(name='Gene1', mutation_distribution=FixedValue(1.1), synonymous_proportion=0), 
         Gene(name='Gene2', mutation_distribution=FixedValue(1.05), synonymous_proportion=0)
@@ -557,7 +557,7 @@ p = Parameters(
     population=PopulationParameters(initial_cells=6),
     fitness=FitnessParameters(
         mutation_rates=0.15, 
-        mutation_generator=mut_gen,     
+        fitness_calculator=fit_calc,     
     )
 )
 s = p.get_simulator()
@@ -699,7 +699,7 @@ For example, this can be used for haplosufficient or haploinsufficient genes by 
 ```python
 from clone_competition_simulation import EpistaticEffect
 
-mut_gen = FitnessCalculator(
+fit_calc = FitnessCalculator(
     genes=[
         Gene(name='Gene1', mutation_distribution=FixedValue(1.1), synonymous_proportion=0), 
         Gene(name='Gene2', mutation_distribution=FixedValue(1.05), synonymous_proportion=0)
@@ -725,7 +725,7 @@ p = Parameters(
     population=PopulationParameters(initial_cells=6),
     fitness=FitnessParameters(
         mutation_rates=0.15, 
-        mutation_generator=mut_gen,     
+        fitness_calculator=fit_calc,     
     )
 )
 s = p.get_simulator()
@@ -862,7 +862,7 @@ This is for the epistatic example above.
 ```python
 import matplotlib.pyplot as plt
 
-fitness_combinations = mut_gen.plot_fitness_combinations()
+fitness_combinations = fit_calc.plot_fitness_combinations()
 print(f"Fitness combinations:  {fitness_combinations}")
 plt.show()
 ```
@@ -881,7 +881,7 @@ For any non-FixedValue distributions of fitness effects, the mean value is used.
 ```python
 from clone_competition_simulation import UniformDist
 
-mut_gen2 = FitnessCalculator(
+fit_calc2 = FitnessCalculator(
     genes=[
         Gene(name='Gene1', mutation_distribution=FixedValue(1.1), synonymous_proportion=0), 
         Gene(name='Gene2', mutation_distribution=FixedValue(1.05), synonymous_proportion=0),
@@ -896,7 +896,7 @@ mut_gen2 = FitnessCalculator(
     multi_gene_array=True,
     combine_array='multiply'
 )
-fitness_combinations = mut_gen2.plot_fitness_combinations()
+fitness_combinations = fit_calc2.plot_fitness_combinations()
 print(f"Fitness combinations:  {fitness_combinations}")
 plt.show()
 ```
@@ -910,7 +910,7 @@ plt.show()
 Can see the difference using `combine_array='max'` instead of `combine_array='multiply'`
 
 ```python
-mut_gen2 = FitnessCalculator(
+fit_calc2 = FitnessCalculator(
     genes=[
         Gene(name='Gene1', mutation_distribution=FixedValue(1.1), synonymous_proportion=0), 
         Gene(name='Gene2', mutation_distribution=FixedValue(1.05), synonymous_proportion=0),
@@ -925,7 +925,7 @@ mut_gen2 = FitnessCalculator(
     multi_gene_array=True,
     combine_array='max'
 )
-fitness_combinations = mut_gen2.plot_fitness_combinations()
+fitness_combinations = fit_calc2.plot_fitness_combinations()
 print(f"Fitness combinations:  {fitness_combinations}")
 plt.show()
 ```
@@ -945,7 +945,7 @@ This may be useful for lineage tracing style simulations in which a mutant is in
 ```python
 # Have similar epistatic rules as above
 # But stop Gene1 from mutating at random by setting weight=0
-mut_gen = FitnessCalculator(
+fit_calc = FitnessCalculator(
     genes=[
         Gene(name='Gene1', mutation_distribution=FixedValue(1.1), synonymous_proportion=0, weight=0), 
         Gene(name='Gene2', mutation_distribution=FixedValue(1.05), synonymous_proportion=0)
@@ -972,7 +972,7 @@ p = Parameters(
     ),
     fitness=FitnessParameters(
         mutation_rates=0.08, 
-        mutation_generator=mut_gen,     
+        fitness_calculator=fit_calc,     
         
         # The initial_mutant_gene_array defines the genes to be associated with the gene
         # The value is the index of the Gene in FitnessCalculator.genes
@@ -1180,7 +1180,7 @@ You can apply a transformation of the combined fitness effects of all mutations 
 
 ```python
 # Run a simulation with loads of mutations that multiply in fitness
-mut_gen = FitnessCalculator(
+fit_calc = FitnessCalculator(
     genes=[Gene(name='Gene1', mutation_distribution=FixedValue(1.4), synonymous_proportion=0)], 
     combine_mutations='multiply' 
 )
@@ -1194,7 +1194,7 @@ p = Parameters(
     ),
     fitness=FitnessParameters(
         mutation_rates=0.1, 
-        mutation_generator=mut_gen
+        fitness_calculator=fit_calc
     )
 )
 s = p.get_simulator()
@@ -1369,7 +1369,7 @@ plt.show()
 Running a simulation again, but limiting the max fitness. 
 
 ```python
-mut_gen = FitnessCalculator(
+fit_calc = FitnessCalculator(
     genes=[Gene(name='Gene1', mutation_distribution=FixedValue(1.4), synonymous_proportion=0)], 
     combine_mutations='multiply', 
     mutation_combination_class=BoundedLogisticFitness(3)   # This limits fitness to 3
@@ -1384,7 +1384,7 @@ p = Parameters(
     ),
     fitness=FitnessParameters(
         mutation_rates=0.1, 
-        mutation_generator=mut_gen
+        fitness_calculator=fit_calc
     )
 )
 s = p.get_simulator()

@@ -54,7 +54,7 @@ from clone_competition_simulation import (
 )
 
 # We'll add some mutations, so we have to define the fitness of the mutated cells
-mutation_generator = FitnessCalculator(
+fitness_calculator = FitnessCalculator(
     genes=[Gene(name="Gene1", mutation_distribution=NormalDist(mean=1.1, var=0.1), 
                 synonymous_proportion=0.5)]
 )
@@ -65,7 +65,7 @@ p = Parameters(
     population=PopulationParameters(initial_cells=1000),
     fitness=FitnessParameters(
         mutation_rates=0.01, 
-        mutation_generator=mutation_generator
+        fitness_calculator=fitness_calculator
     ),
 )
 s = p.get_simulator()
@@ -98,7 +98,7 @@ p = Parameters(
             [1, 0.1],  # At time 1, start a mutation rate of 0.1 per cell division
             [4, 0.01]  # At time 4, start a mutation rate of 0.01 per cell division. This continues until the end.
         ], 
-        mutation_generator=mutation_generator
+        fitness_calculator=fitness_calculator
     ),
 )
 s = p.get_simulator()
@@ -148,7 +148,7 @@ and use that gene in a simulation
 from clone_competition_simulation import FitnessCalculator
 import numpy as np
 
-mut_gen = FitnessCalculator(genes=[gene1])
+fit_calc = FitnessCalculator(genes=[gene1])
 np.random.seed(0)
 p = Parameters(
     algorithm='Moran2D',
@@ -156,7 +156,7 @@ p = Parameters(
     population=PopulationParameters(initial_cells=100, cell_in_own_neighbourhood=False),
     fitness=FitnessParameters(
         mutation_rates=0.01,
-        mutation_generator=mut_gen
+        fitness_calculator=fit_calc
     )
 )
 s = p.get_simulator()
@@ -298,7 +298,7 @@ gene_exp = Gene(name='GeneExp', mutation_distribution=ExponentialDist(mean=1.05,
 # One where every non-synonymous mutation has the same fixed value of fitness
 gene_fix = Gene(name='GeneFix', mutation_distribution=FixedValue(value=1.01), synonymous_proportion=0.3)
 
-mut_gen = FitnessCalculator(genes=[gene1, gene_norm, gene_exp, gene_fix])
+fit_calc = FitnessCalculator(genes=[gene1, gene_norm, gene_exp, gene_fix])
 np.random.seed(0)
 p = Parameters(
     algorithm='Moran2D',
@@ -306,7 +306,7 @@ p = Parameters(
     population=PopulationParameters(initial_cells=100, cell_in_own_neighbourhood=False),
     fitness=FitnessParameters(
         mutation_rates=0.03,
-        mutation_generator=mut_gen
+        fitness_calculator=fit_calc
     )
 )
 s = p.get_simulator()
@@ -636,14 +636,14 @@ By default weight=1, so all genes will have the same mutation rate.
 gene1 = Gene(name='Gene1', mutation_distribution=UniformDist(0.5, 1.1), synonymous_proportion=0.4, weight=3)
 gene2 = Gene(name='Gene2', mutation_distribution=UniformDist(1.1, 1.5), synonymous_proportion=0.4, weight=1)
 
-mut_gen = FitnessCalculator(genes=[gene1, gene2])
+fit_calc = FitnessCalculator(genes=[gene1, gene2])
 p = Parameters(
     algorithm='Moran2D',
     times=TimeParameters(max_time=10, division_rate=1),
     population=PopulationParameters(initial_cells=100, cell_in_own_neighbourhood=False),
     fitness=FitnessParameters(
         mutation_rates=0.1,
-        mutation_generator=mut_gen
+        fitness_calculator=fit_calc
     )
 )
 s = p.get_simulator()
@@ -667,14 +667,14 @@ This can be done for the entire simulation or for each gene.
 gene1 = Gene(name='Gene1', mutation_distribution=UniformDist(0.5, 1.1), synonymous_proportion=0.4, weight=3)
 gene2 = Gene(name='Gene2', mutation_distribution=UniformDist(1.1, 1.5), synonymous_proportion=0.5, weight=1)
 
-mut_gen = FitnessCalculator(genes=[gene1, gene2])
+fit_calc = FitnessCalculator(genes=[gene1, gene2])
 p = Parameters(
     algorithm='Moran2D',
     times=TimeParameters(max_time=10, division_rate=1),
     population=PopulationParameters(initial_cells=62500, cell_in_own_neighbourhood=False),
     fitness=FitnessParameters(
         mutation_rates=0.01,
-        mutation_generator=mut_gen
+        fitness_calculator=fit_calc
     )
 )
 s = p.get_simulator()

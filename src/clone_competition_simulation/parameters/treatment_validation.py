@@ -79,9 +79,9 @@ class TreatmentValidator(TreatmentParameters, ValidationBase):
             self.treatment_timings = None
             self.treatment_replace_fitness = False
         else:
-            mutation_generator = self.fitness.mutation_generator
-            if mutation_generator and not isinstance(mutation_generator.mutation_combination_class, UnboundedFitness):
-                if self.fitness.mutation_generator.multi_gene_array:
+            fitness_calculator = self.fitness.fitness_calculator
+            if fitness_calculator and not isinstance(fitness_calculator.mutation_combination_class, UnboundedFitness):
+                if self.fitness.fitness_calculator.multi_gene_array:
                     logger.debug('Treatment effects will be applied prior to the diminishing returns')
                 else:
                     logger.debug('Treatment effects will be applied after the diminishing returns')
@@ -90,20 +90,20 @@ class TreatmentValidator(TreatmentParameters, ValidationBase):
                 raise ValueError('treatment_timings and treatment_effects must be lists or arrays')
             elif len(self.treatment_timings) != len(self.treatment_effects):  # One time for each treatment
                 raise ValueError('treatment_timings and treatment_effects must be same length')
-            elif mutation_generator and mutation_generator.multi_gene_array:
+            elif fitness_calculator and fitness_calculator.multi_gene_array:
                 # Fitness changes apply to each gene
                 logger.debug('Treatment effects are per gene')
                 # Always needs to be a treatment so it can be applied to new mutations.
                 # Insert a neutral treatment at start if initial treatment is not defined.
                 if self.treatment_timings[0] != 0:
                     if self.treatment_replace_fitness:
-                        self.treatment_effects = [np.full(len(mutation_generator.genes) + 1, np.nan)] + list(
+                        self.treatment_effects = [np.full(len(fitness_calculator.genes) + 1, np.nan)] + list(
                             self.treatment_effects)
                     else:
-                        self.treatment_effects = [np.ones(len(mutation_generator.genes)+1)] + list(self.treatment_effects)
+                        self.treatment_effects = [np.ones(len(fitness_calculator.genes)+1)] + list(self.treatment_effects)
                     self.treatment_timings = np.concatenate(([0], self.treatment_timings))
 
-                if any([len(t) != len(mutation_generator.genes)+1 for t in self.treatment_effects]):
+                if any([len(t) != len(fitness_calculator.genes)+1 for t in self.treatment_effects]):
                     raise ValueError(
                         'Each treatment effect must have the same length as the number of genes plus 1.')
             else:

@@ -137,7 +137,7 @@ class LabelValidator(LabelParameters, ValidationBase):
             if isinstance(self.label_values, (int, float)):
                 self.label_values = [self.label_values]
 
-            if self.label_fitness is not None and len(self.label_frequencies) > 1 and self.fitness.mutation_generator is None:
+            if self.label_fitness is not None and len(self.label_frequencies) > 1 and self.fitness.fitness_calculator is None:
                 raise ValueError(
                     'Applying multiple labels with fitness effects requires a mutation generator to define ' \
                     'how fitness combines across labels and mutations.')
@@ -154,7 +154,7 @@ class LabelValidator(LabelParameters, ValidationBase):
                     self.label_genes = [self.label_genes]
                 if any(g > -1 for g in self.label_genes):  # Means applying a mutant to a particular gene
                     # Requires multi-gene setup
-                    if self.fitness.mutation_generator and not self.fitness.mutation_generator.multi_gene_array:
+                    if self.fitness.fitness_calculator and not self.fitness.fitness_calculator.multi_gene_array:
                         raise ValueError('Applying labels with mutations to particular genes requires a '
                                                  'mutation generator with multi_gene_array=True')
 

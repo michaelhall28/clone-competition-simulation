@@ -20,14 +20,14 @@ def test_pickling():
              Gene(name='random_driver', mutation_distribution=NormalDist(mean=1.01, var=0.05),
                   synonymous_proportion=0.8),
     ]
-    mut_gen1 = FitnessCalculator(multi_gene_array=False, genes=genes, combine_mutations='add')
+    fit_calc1 = FitnessCalculator(multi_gene_array=False, genes=genes, combine_mutations='add')
 
     np.random.seed(0)
     p = Parameters(
         algorithm=Algorithm.MORAN,
         population=PopulationParameters(initial_cells=10000),
         times=TimeParameters(max_time=20, division_rate=1),
-        fitness=FitnessParameters(mutation_rates=0.01, mutation_generator=mut_gen1)
+        fitness=FitnessParameters(mutation_rates=0.01, fitness_calculator=fit_calc1)
     )
 
     s = p.get_simulator()

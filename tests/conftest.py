@@ -92,7 +92,7 @@ def cs_label():
 
 
 @pytest.fixture()
-def mutation_generator():
+def fitness_calculator():
     return FitnessCalculator(
         combine_mutations='multiply',
         multi_gene_array=False,

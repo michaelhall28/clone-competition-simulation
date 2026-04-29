@@ -22,7 +22,7 @@ from clone_competition_simulation import (
 
 # Setting up a simulation with a few mutations
 gene = Gene(name='Gene1', mutation_distribution=FixedValue(2), synonymous_proportion=0)
-mut_gen = FitnessCalculator(genes=[gene])
+fit_calc = FitnessCalculator(genes=[gene])
 
 np.random.seed(0)
 p = Parameters(
@@ -31,7 +31,7 @@ p = Parameters(
     population=PopulationParameters(initial_cells=50),
     fitness=FitnessParameters(
         mutation_rates=0.01, 
-        mutation_generator=mut_gen,     
+        fitness_calculator=fit_calc,     
     )
 )
 s = p.get_simulator()
@@ -235,7 +235,7 @@ To reduce the time taken, or to make the plots clearer, you can hide small clone
 
 ```python
 gene = Gene(name='Gene1', mutation_distribution=FixedValue(1.5), synonymous_proportion=0.5)
-mut_gen = FitnessCalculator(genes=[gene])
+fit_calc = FitnessCalculator(genes=[gene])
 
 np.random.seed(0)
 p = Parameters(
@@ -244,7 +244,7 @@ p = Parameters(
     population=PopulationParameters(initial_cells=10000),
     fitness=FitnessParameters(
         mutation_rates=0.01, 
-        mutation_generator=mut_gen,     
+        fitness_calculator=fit_calc,     
     )
 )
 s = p.get_simulator()
@@ -296,7 +296,7 @@ and here for a neutral simulation
 
 ```python
 gene = Gene(name='Gene1', mutation_distribution=FixedValue(1), synonymous_proportion=0.5)
-mut_gen = FitnessCalculator(genes=[gene])
+fit_calc = FitnessCalculator(genes=[gene])
 
 np.random.seed(0)
 p = Parameters(
@@ -305,7 +305,7 @@ p = Parameters(
     population=PopulationParameters(initial_cells=10000),
     fitness=FitnessParameters(
         mutation_rates=0.01, 
-        mutation_generator=mut_gen,     
+        fitness_calculator=fit_calc,     
     )
 )
 s = p.get_simulator()

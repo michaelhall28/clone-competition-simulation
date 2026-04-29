@@ -143,7 +143,7 @@ from clone_competition_simulation import (
     NormalDist
 )
 
-mutation_generator = FitnessCalculator(
+fitness_calculator = FitnessCalculator(
     genes=[Gene(name="Gene1", mutation_distribution=NormalDist(mean=1.1, var=0.1), 
                 synonymous_proportion=0.5)]
 )
@@ -153,7 +153,7 @@ p = Parameters(
     algorithm='Moran', 
     times=TimeParameters(max_time=10, division_rate=1),
     population=PopulationParameters(initial_cells=5000),
-    fitness=FitnessParameters(mutation_rates=0.01, mutation_generator=mutation_generator),
+    fitness=FitnessParameters(mutation_rates=0.01, fitness_calculator=fitness_calculator),
     differentiated_cells=DifferentiatedCellsParameters(r=0.15, gamma=3)
 )
 s = p.get_simulator()

@@ -64,7 +64,7 @@ def gene():
 
 
 @pytest.fixture
-def mutation_generator(gene):
+def fitness_calculator(gene):
     return FitnessCalculator(
         genes=[gene],
         multi_gene_array=False
@@ -74,7 +74,7 @@ def mutation_generator(gene):
 @pytest.fixture
 def validated_fitness_parameters(empty_fitness_params, validated_time_parameters,
                                  validated_population_parameters,
-                                 mutation_generator
+                                 fitness_calculator
                                  ):
     return FitnessValidator(
         tag="Full",
@@ -82,11 +82,11 @@ def validated_fitness_parameters(empty_fitness_params, validated_time_parameters
         config_file_settings=empty_fitness_params,
         population=validated_population_parameters,
         times=validated_time_parameters,
-        mutation_generator=mutation_generator,
+        fitness_calculator=fitness_calculator,
     )
 
 @pytest.fixture
-def mutation_generator_multi_gene(gene):
+def fitness_calculator_multi_gene(gene):
     return FitnessCalculator(
         genes=[gene],
         multi_gene_array=True
@@ -96,7 +96,7 @@ def mutation_generator_multi_gene(gene):
 @pytest.fixture
 def validated_fitness_parameters_multi_gene(empty_fitness_params, validated_time_parameters,
                                  validated_population_parameters,
-                                 mutation_generator_multi_gene
+                                 fitness_calculator_multi_gene
                                  ):
     return FitnessValidator(
         tag="Full",
@@ -104,7 +104,7 @@ def validated_fitness_parameters_multi_gene(empty_fitness_params, validated_time
         config_file_settings=empty_fitness_params,
         population=validated_population_parameters,
         times=validated_time_parameters,
-        mutation_generator=mutation_generator_multi_gene,
+        fitness_calculator=fitness_calculator_multi_gene,
     )
 
 

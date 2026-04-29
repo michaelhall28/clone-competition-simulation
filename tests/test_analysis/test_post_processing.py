@@ -48,7 +48,7 @@ def mutating_sim(monkeypatch):
                                             cell_in_own_neighbourhood=False),
             times=TimeParameters(max_time=10, division_rate=1),
             fitness=FitnessParameters(
-                mutation_generator=FitnessCalculator(
+                fitness_calculator=FitnessCalculator(
                     genes=[Gene(name="A",
                                 mutation_distribution=NormalDist(mean=1, var=0.1),
                                 synonymous_proportion=0.5)],
@@ -74,7 +74,7 @@ def mutating_sim2(monkeypatch):
                                             cell_in_own_neighbourhood=False),
             times=TimeParameters(max_time=10, division_rate=1),
             fitness=FitnessParameters(
-                mutation_generator=FitnessCalculator(
+                fitness_calculator=FitnessCalculator(
                     genes=[Gene(name="A",
                                 mutation_distribution=NormalDist(mean=1, var=0.1),
                                 synonymous_proportion=0.5)],
@@ -166,7 +166,7 @@ def test_view_clone_info4(monkeypatch):
         rng = np.random.RandomState()
         monkeypatch.setattr('numpy.random', rng)
         np.random.seed(0)
-        mut_gen = FitnessCalculator(
+        fit_calc = FitnessCalculator(
             genes=[
                 Gene(name='Gene1', mutation_distribution=FixedValue(1.1), synonymous_proportion=0),
                 Gene(name='Gene2', mutation_distribution=FixedValue(1.05), synonymous_proportion=0)
@@ -187,7 +187,7 @@ def test_view_clone_info4(monkeypatch):
             population=PopulationParameters(initial_cells=6),
             fitness=FitnessParameters(
                 mutation_rates=0.15,
-                mutation_generator=mut_gen,
+                fitness_calculator=fit_calc,
             )
         )
         s = p.get_simulator()
@@ -457,7 +457,7 @@ def test_absorb_small_clones(mutating_sim):
     mutating_sim.change_sparse_to_csr()
     clones_array, pop_array = mutating_sim._absorb_small_clones(min_size=6)
     expected_clones_array = np.array([
-        [0., 0., 1., 0., -1., -1.],
+        [0., 0., 1., 0., -1, np.nan],
         [8., 0., 1., 3., 0., 0.],
         [15., 0., 1.150584, 7., 8., 0.]
     ])

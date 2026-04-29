@@ -5,13 +5,13 @@ from src.clone_competition_simulation.parameters import Algorithm, Parameters, T
 
 
 @pytest.fixture()
-def simulation(mutation_generator):
+def simulation(fitness_calculator):
     np.random.seed(0)
     parameters = Parameters(
         algorithm=Algorithm.MORAN2D,
         times=TimeParameters(max_time=10, division_rate=1), 
         population=PopulationParameters(initial_cells=100, cell_in_own_neighbourhood=True), 
-        fitness=FitnessParameters(mutation_generator=mutation_generator, mutation_rates=0.1)
+        fitness=FitnessParameters(fitness_calculator=fitness_calculator, mutation_rates=0.1)
     )
     sim = parameters.get_simulator()
     sim.run_sim()
@@ -20,7 +20,7 @@ def simulation(mutation_generator):
 
 
 @pytest.fixture()
-def simulation2(mutation_generator):
+def simulation2(fitness_calculator):
     """
     A simulation without mutations for certain plots. 
     """
@@ -37,7 +37,7 @@ def simulation2(mutation_generator):
 
 
 @pytest.fixture()
-def simulation3(mutation_generator):
+def simulation3(fitness_calculator):
     """
     A non-spatial simulation 
     """

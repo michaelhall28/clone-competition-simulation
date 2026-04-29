@@ -85,7 +85,7 @@ def get_vafs_for_all_biopsies(sim: BaseHexagonalGridSim, biopsies: list[Biopsy],
             for clone, vaf in biopsy_vafs.items():
                 names.append(i)
                 vafs.append(vaf)
-                genes.append(sim.mutation_generator.genes[mutant_gene_map[clone]].name)
+                genes.append(sim.fitness_calculator.genes[mutant_gene_map[clone]].name)
                 clone_ids.append(clone)
     else:
         biopsy_vafs = get_vafs(grid, sim, None, detection_limit=detection_limit, coverage=coverage,
@@ -94,7 +94,7 @@ def get_vafs_for_all_biopsies(sim: BaseHexagonalGridSim, biopsies: list[Biopsy],
         for clone, vaf in biopsy_vafs.items():
             names.append(0)
             vafs.append(vaf)
-            genes.append(sim.mutation_generator.genes[mutant_gene_map[clone]].name)
+            genes.append(sim.fitness_calculator.genes[mutant_gene_map[clone]].name)
             clone_ids.append(clone)
 
     # if merge_clones:
@@ -280,8 +280,8 @@ def get_sample_dnds(observed_vafs: pd.DataFrame, sim: BaseHexagonalGridSim, gene
     ns = observed_vafs['clone_id'].isin(sim.ns_muts).sum()
     s = len(observed_vafs) - ns
 
-    expected_ns = s * (1 / sim.mutation_generator.get_synonymous_proportion(
-        sim.mutation_generator.get_gene_number(gene)
+    expected_ns = s * (1 / sim.fitness_calculator.get_synonymous_proportion(
+        sim.fitness_calculator.get_gene_number(gene)
     ) - 1)
     try:
         dnds = ns / expected_ns

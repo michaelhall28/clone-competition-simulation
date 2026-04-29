@@ -167,34 +167,34 @@ def test_mutation_combination(method, expected):
 
 
 def test_mutation_generation_validation(genes, epistatics):
-    mut_gen = FitnessCalculator(
+    fit_calc = FitnessCalculator(
         genes=genes, epistatics=epistatics,
         combine_mutations=MutationCombination.ADD,
         combine_array=ArrayCombination.MULTIPLY
     )
-    assert mut_gen.num_genes == len(genes)
-    assert mut_gen.gene_indices == {
+    assert fit_calc.num_genes == len(genes)
+    assert fit_calc.gene_indices == {
         'neutral': 0, 'mild_driver': 1, 'random_driver': 2, "uniform_driver": 3, "exp_driver": 4,
         "E1": 5, "E2": 6
     }
-    assert isinstance(mut_gen.mutation_combination_class, UnboundedFitness)
+    assert isinstance(fit_calc.mutation_combination_class, UnboundedFitness)
     expected_dists = [FixedValue, FixedValue, NormalDist, UniformDist, ExponentialDist]
-    for dist, exp_dist in zip(mut_gen.mutation_distributions, expected_dists):
+    for dist, exp_dist in zip(fit_calc.mutation_distributions, expected_dists):
         assert isinstance(dist, exp_dist)
-    np.testing.assert_equal(mut_gen.synonymous_proportion, [0.5, 0.5, 0.8, 0.2, 0.2])
-    np.testing.assert_almost_equal(mut_gen.overall_synonymous_proportion,0.44)
-    np.testing.assert_almost_equal(mut_gen.relative_weights_cumsum, [0.1, 0.4, 0.6, 0.8, 1.])
-    assert mut_gen.epistatics_dict == {
+    np.testing.assert_equal(fit_calc.synonymous_proportion, [0.5, 0.5, 0.8, 0.2, 0.2])
+    np.testing.assert_almost_equal(fit_calc.overall_synonymous_proportion,0.44)
+    np.testing.assert_almost_equal(fit_calc.relative_weights_cumsum, [0.1, 0.4, 0.6, 0.8, 1.])
+    assert fit_calc.epistatics_dict == {
         (1, 2): epistatics[0],
         (0, 3, 4): epistatics[1]
     }
-    np.testing.assert_equal(mut_gen.epistatic_cols, np.arange(6, 8))
-    assert mut_gen.combine_fitness_function == MutationCombination.ADD.function
-    assert mut_gen.combine_array_function == ArrayCombination.MULTIPLY.function
+    np.testing.assert_equal(fit_calc.epistatic_cols, np.arange(6, 8))
+    assert fit_calc.combine_fitness_function == MutationCombination.ADD.function
+    assert fit_calc.combine_array_function == ArrayCombination.MULTIPLY.function
 
 
 @pytest.fixture
-def mut_gen(genes, epistatics):
+def fit_calc(genes, epistatics):
     return FitnessCalculator(
         genes=genes, epistatics=epistatics,
         combine_mutations=MutationCombination.ADD,
@@ -203,7 +203,7 @@ def mut_gen(genes, epistatics):
 
 
 @pytest.fixture
-def mut_gen_non_multi_gene(genes):
+def fit_calc_non_multi_gene(genes):
     return FitnessCalculator(
         genes=genes,
         multi_gene_array=False,
@@ -212,16 +212,16 @@ def mut_gen_non_multi_gene(genes):
     )
 
 
-def test_gene_selection(monkeypatch, mut_gen):
+def test_gene_selection(monkeypatch, fit_calc):
     with monkeypatch.context() as m:
         m.setattr(np.random, "rand", lambda x, y: np.array([
             [0.3], [0.7], [0.1], [0.99]
         ]))
-        selected_gene_indices = mut_gen._get_genes(4)
+        selected_gene_indices = fit_calc._get_genes(4)
         np.testing.assert_equal(selected_gene_indices, [1, 3, 0, 4])
 
 
-def test_update_fitness_arrays_multi_gene_array(mut_gen):
+def test_update_fitness_arrays_multi_gene_array(fit_calc):
     old_mutation_arrays = np.array([
         [1, 2, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
         [1, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan ],
@@ -229,7 +229,7 @@ def test_update_fitness_arrays_multi_gene_array(mut_gen):
     genes_mutated = np.array([0, 1])
     syns = np.array([1, 0])
 
-    new_fitnesses, new_mutation_arrays = mut_gen._update_fitness_arrays(old_mutation_arrays, genes_mutated, syns)
+    new_fitnesses, new_mutation_arrays = fit_calc._update_fitness_arrays(old_mutation_arrays, genes_mutated, syns)
     np.testing.assert_almost_equal(new_fitnesses, np.array([2, 1.01]))
     np.testing.assert_almost_equal(new_mutation_arrays, np.array([
         [1, 2, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
@@ -237,12 +237,12 @@ def test_update_fitness_arrays_multi_gene_array(mut_gen):
     ]))
 
 
-def test_update_fitness_arrays_non_multi_gene_array(mut_gen_non_multi_gene):
+def test_update_fitness_arrays_non_multi_gene_array(fit_calc_non_multi_gene):
     old_mutation_arrays = np.array([[2.], [1.]])
     genes_mutated = np.array([0, 1])
     syns = np.array([1, 0])
 
-    new_fitnesses, new_mutation_arrays = mut_gen_non_multi_gene._update_fitness_arrays(old_mutation_arrays,
+    new_fitnesses, new_mutation_arrays = fit_calc_non_multi_gene._update_fitness_arrays(old_mutation_arrays,
                                                                                        genes_mutated, syns)
     np.testing.assert_almost_equal(new_fitnesses, np.array([2, 1.01]))
     np.testing.assert_almost_equal(new_mutation_arrays, np.array([
@@ -250,14 +250,14 @@ def test_update_fitness_arrays_non_multi_gene_array(mut_gen_non_multi_gene):
     ]))
 
 
-def test_epistatic_combination(mut_gen):
+def test_epistatic_combination(fit_calc):
     fitness_arrays = np.array([
         [1, 2, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],  # No epistatics
         [1, 1, 2, 3., np.nan, np.nan, np.nan, np.nan ],  # First epistatic effect
         [1, 1, np.nan, np.nan, 2., 3., np.nan, np.nan],  # Second epistatic effect
         [1, 1, 2, 3, 2., 3., np.nan, np.nan],  # Both epistatic effects
     ])
-    new_fitness_array, epistatic_fitness_array = mut_gen._epistatic_combinations(fitness_arrays)
+    new_fitness_array, epistatic_fitness_array = fit_calc._epistatic_combinations(fitness_arrays)
     np.testing.assert_almost_equal(
         new_fitness_array,
         np.array([
@@ -278,14 +278,14 @@ def test_epistatic_combination(mut_gen):
     )
 
 
-def test_combine_vectors1(mut_gen):
+def test_combine_vectors1(fit_calc):
     fitness_arrays = np.array([
         [1, 2, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],  # No epistatics
         [1, 1, 2, 3., np.nan, np.nan, np.nan, np.nan],  # First epistatic effect
         [1, 1, np.nan, np.nan, 2., 3., np.nan, np.nan],  # Second epistatic effect
         [1, 1, 2, 3, 2., 3., np.nan, np.nan],  # Both epistatic effects
     ])
-    new_fitness_array, full_fitness_arrays = mut_gen.combine_vectors(fitness_arrays)
+    new_fitness_array, full_fitness_arrays = fit_calc.combine_vectors(fitness_arrays)
     np.testing.assert_almost_equal(
         full_fitness_arrays,
         np.array([
@@ -301,9 +301,9 @@ def test_combine_vectors1(mut_gen):
     )
 
 
-def test_combine_vectors2(mut_gen_non_multi_gene):
+def test_combine_vectors2(fit_calc_non_multi_gene):
     fitness_arrays = np.array([[2.], [1.]])
-    new_fitness_array, full_fitness_arrays = mut_gen_non_multi_gene.combine_vectors(fitness_arrays)
+    new_fitness_array, full_fitness_arrays = fit_calc_non_multi_gene.combine_vectors(fitness_arrays)
     np.testing.assert_almost_equal(
         full_fitness_arrays,
         np.array([[2.], [1.]])
