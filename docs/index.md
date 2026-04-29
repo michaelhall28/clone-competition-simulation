@@ -24,7 +24,7 @@ the simulations with various options and view the results.
 - A guide to the various methods of defining the initial clones in a simulation
 
 #### [Defining Initial Clone Fitness](DefiningInitialCloneFitness.md)
-- A very brief guide to the `fitness_array` argument of the Parameters class
+- A very brief guide to the `initial_fitness_array` argument of the Parameters class
 
 #### [Lineage Tracing Simulations](LineageTracingSimulations.md)
 - How to set up simulations of lineage tracing experiments

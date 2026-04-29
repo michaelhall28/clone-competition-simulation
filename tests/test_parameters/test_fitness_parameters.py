@@ -3,7 +3,7 @@ import pytest
 from pydantic import ValidationError
 
 from src.clone_competition_simulation.fitness import (
-    MutationGenerator,
+    FitnessCalculator,
     Gene,
     FixedValue,
     MutationCombination,
@@ -44,13 +44,13 @@ def test_gene2():
 
 def test_mutation_generation1():
     with pytest.raises(ValidationError) as exc_info:
-        mut_gen = MutationGenerator()
+        mut_gen = FitnessCalculator()
 
     assert 'genes' in str(exc_info)
 
 
 def test_mutation_generation2(gene):
-    mut_gen = MutationGenerator(genes=[gene])
+    mut_gen = FitnessCalculator(genes=[gene])
 
     assert mut_gen.genes == [gene]
     assert mut_gen.combine_mutations == MutationCombination.MULTIPLY

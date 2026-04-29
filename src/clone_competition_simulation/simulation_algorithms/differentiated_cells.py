@@ -15,9 +15,9 @@ import numpy as np
 from scipy.sparse import lil_matrix
 
 import diff_cell_functions
-from .branching_process import SimpleBranchingProcess
-from .general_sim_class import GeneralSimClass, NonSpatialCurrentData
-from .general_2D_class import SpatialCurrentData
+from .branching_process import Branching
+from .base_sim_class import BaseSimClass, NonSpatialCurrentData
+from .base_2D_class import SpatialCurrentData
 from .moran import Moran
 from .moran2D import Moran2D
 from ..analysis.analysis import mean_clone_size, mean_clone_size_fit
@@ -30,7 +30,7 @@ class DiffNonSpatialCurrentData(NonSpatialCurrentData):
     current_diff_cell_population: np.ndarray[tuple[int], np.dtype[np.int_]]
 
     @classmethod
-    def from_sim(cls, sim: GeneralSimClass) -> Self:
+    def from_sim(cls, sim: BaseSimClass) -> Self:
         current_population = np.zeros(len(sim.clones_array), dtype=int)
         current_population[:sim.initial_clones] = sim.initial_size_array
         
@@ -59,7 +59,7 @@ class DiffSpatialCurrentData(SpatialCurrentData):
     current_diff_cell_population: np.ndarray[tuple[int], np.dtype[np.int_]]
 
     @classmethod
-    def from_sim(cls, sim: GeneralSimClass) -> Self:
+    def from_sim(cls, sim: BaseSimClass) -> Self:
         grid_array = np.ravel(sim.parameters.population.initial_grid)
 
         current_diff_cell_population = np.zeros(shape=len(sim.clones_array), dtype=np.int_)
@@ -83,7 +83,7 @@ class DiffSpatialCurrentData(SpatialCurrentData):
         diff_cell_population_array[non_zero, plot_idx] = self.current_diff_cell_population[non_zero]
 
 
-class GeneralSimDiffCells(GeneralSimClass):
+class BaseSimDiffCells(BaseSimClass):
     """
     In the single progenitor model proposed in Clayton et al 2007, there are differentiated cells that
     remain in the basal layer for a short period before differentiating
@@ -358,7 +358,7 @@ class GeneralSimDiffCells(GeneralSimClass):
         ax.scatter(times, means, label=legend_label, **plot_kwargs)
 
 
-class MoranWithDiffCells(Moran, GeneralSimDiffCells):
+class MoranWithDiffCells(Moran, BaseSimDiffCells):
     """
     The fixed population refers to the number of progenitor cells.
     The number of differentiated cells is allowed to vary and does not effect the dynamics of the progenitor
@@ -435,7 +435,7 @@ class MoranWithDiffCells(Moran, GeneralSimDiffCells):
         return current_data
 
 
-class Moran2DWithDiffcells(Moran2D, GeneralSimDiffCells):
+class Moran2DWithDiffcells(Moran2D, BaseSimDiffCells):
     current_data_cls = DiffSpatialCurrentData
 
     def _sim_step(self, i, current_data: DiffSpatialCurrentData) -> DiffSpatialCurrentData:
@@ -483,7 +483,7 @@ class Moran2DWithDiffcells(Moran2D, GeneralSimDiffCells):
         return current_data
 
 
-class BranchingWithDiffCells(SimpleBranchingProcess, GeneralSimDiffCells):
+class BranchingWithDiffCells(Branching, BaseSimDiffCells):
 
     def _run_for_clone(self, clone_id, start_time):
         self._reset_to_start(start_time)

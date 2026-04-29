@@ -283,7 +283,7 @@ An example where at each generation, the surviving clone with the lowest id lose
 
 ```python
 from clone_competition_simulation import (
-    WrightFisher, 
+    WF, 
     NonSpatialCurrentData, 
     Parameters,
     TimeParameters,
@@ -291,7 +291,7 @@ from clone_competition_simulation import (
 )
 
 
-class MyCustomWF(WrightFisher):
+class MyCustomWF(WF):
     """Always take from the lowest id clone and add to the highest"""
 
     def get_next_generation(self, current_data: NonSpatialCurrentData) -> np.ndarray[tuple[int], np.dtype[np.int_]]:
@@ -350,14 +350,14 @@ In this example we just rotate the cells around the grid.
 
 ```python
 from clone_competition_simulation import (
-    WrightFisher2D, 
+    WF2D, 
     SpatialCurrentData, 
     Parameters,
     TimeParameters,
     PopulationParameters
 )
 
-class MyCustomWF2D(WrightFisher2D):
+class MyCustomWF2D(WF2D):
         """All cells just rotate along the grid by one position each step"""
 
     def get_next_generation(self, current_data: SpatialCurrentData) -> np.ndarray[tuple[int], np.dtype[np.int_]]:
@@ -423,7 +423,7 @@ from clone_competition_simulation import (
     PopulationParameters
 )
 
-class MyCustomBranching(SimpleBranchingProcess):
+class MyCustomBranching(Branching):
         """The cell division probability depends on the clone id"""
 
     def does_cell_divide(self, clone_id: int) -> bool:
@@ -469,7 +469,7 @@ This is an array with one row per clone and the following columns:
 - fitness. The fitness of the clone. This can change over time depending on any treatments. 
 - generation born. The index of the sample point the clone first appeared in. 
 - parent id. The id of the parent clone. 
-- gene mutated id. If there are multiple genes in the MutationGenerator, this records the index of the gene 
+- gene mutated id. If there are multiple genes in the FitnessCalculator, this records the index of the gene 
   mutated to create this new clone. 
 
 The array indices are recorded in the simulation class and can be accessed using `self.id_idx`, `self.label_idx`, 

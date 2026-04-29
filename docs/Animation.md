@@ -63,13 +63,13 @@ Since this is a less used function, it does not currently have the same set of o
 
 ```python
 import matplotlib.cm as cm
-from clone_competition_simulation import Gene, MutationGenerator, UniformDist, FitnessParameters
+from clone_competition_simulation import Gene, FitnessCalculator, UniformDist, FitnessParameters
 
 # Set up a simulation with some mutations that change the fitness. 
 # Keeping the two initial neutral clones as before to demonstrate that they are not used to colour the cells here 
 np.random.seed(2)
 initial_grid = np.concatenate([np.zeros(5000), np.ones(5000)]).reshape(100, 100)
-mut_gen = MutationGenerator(
+mut_gen = FitnessCalculator(
     genes=[Gene(name='Gene1', mutation_distribution=UniformDist(1, 1.5), synonymous_proportion=0)], 
     combine_mutations='add'
 )

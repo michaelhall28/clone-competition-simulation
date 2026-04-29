@@ -171,9 +171,9 @@ cm1 = PlotColourMaps(
 Run a simulation with ongoing mutation. 
 
 ```python
-from clone_competition_simulation import FitnessParameters, MutationGenerator, Gene, NormalDist, PlottingParameters
+from clone_competition_simulation import FitnessParameters, FitnessCalculator, Gene, NormalDist, PlottingParameters
 
-mutation_generator = MutationGenerator(
+mutation_generator = FitnessCalculator(
     genes=[Gene(name="Gene1", mutation_distribution=NormalDist(mean=1.1, var=0.1), 
                 synonymous_proportion=0.5)]
 )
@@ -292,7 +292,7 @@ Say we have two genes. We are interested in how long it takes until the first oc
 Set up the genes
 Use a multi_gene_array=True so we can easily tell which genes are mutated in which clones. 
 ```python
-mut_gen = MutationGenerator(
+mut_gen = FitnessCalculator(
     genes=[
         Gene(name='Gene1', mutation_distribution=NormalDist(mean=1.1, var=0.1), synonymous_proportion=0),
         Gene(name='Gene2', mutation_distribution=NormalDist(mean=1, var=0.01), synonymous_proportion=0)

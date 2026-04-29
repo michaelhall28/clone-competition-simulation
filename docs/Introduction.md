@@ -40,7 +40,7 @@ p = Parameters(
         initial_size_array=[100, 100, 100]  # There are three initial clones, with 100 cells in each
     ),
     fitness=FitnessParameters(  # Define the cell fitness
-        fitness_array=[1, 1.02, 1.04]    # Each clone has a different fitness value
+        initial_fitness_array=[1, 1.02, 1.04]    # Each clone has a different fitness value
     )
 )
 ```

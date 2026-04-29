@@ -33,7 +33,7 @@ p = Parameters(
     algorithm='Moran', 
     times=TimeParameters(max_time=10, division_rate=1), 
     population=PopulationParameters(initial_size_array=[500, 500]),  # Start with equal clone sizes
-    fitness=FitnessParameters(fitness_array=[1, 1.5])  # The second clone is fitter than the first
+    fitness=FitnessParameters(initial_fitness_array=[1, 1.5])  # The second clone is fitter than the first
 )
 s = p.get_simulator()
 s.run_sim()
@@ -55,7 +55,7 @@ p = Parameters(
     algorithm='Moran', 
     times=TimeParameters(max_time=10, division_rate=1), 
     population=PopulationParameters(initial_size_array=[500, 500]),  # Start with equal clone sizes
-    fitness=FitnessParameters(fitness_array=[1, 1.5]),  # The second clone is fitter than the first (at the start)
+    fitness=FitnessParameters(initial_fitness_array=[1, 1.5]),  # The second clone is fitter than the first (at the start)
     treatment=TreatmentParameters(
         # Define the treatment. 
         treatment_timings=[4],  # Start the treatment at time 4
@@ -88,7 +88,7 @@ p = Parameters(
     algorithm='Moran',
     times=TimeParameters(max_time=10, division_rate=1), 
     population=PopulationParameters(initial_size_array=[500, 500]),  # Start with equal clone sizes
-    fitness=FitnessParameters(fitness_array=[1, 1.5]),  # The second clone is fitter than the first (at the start)
+    fitness=FitnessParameters(initial_fitness_array=[1, 1.5]),  # The second clone is fitter than the first (at the start)
     treatment=TreatmentParameters(
         # Define the treatment. 
         treatment_timings=[3, 5, 8],  # Change the treatments at these times
@@ -120,7 +120,7 @@ p = Parameters(
     algorithm='Moran', 
     times=TimeParameters(max_time=10, division_rate=1), 
     population=PopulationParameters(initial_size_array=[500, 500]),  # Start with equal clone sizes
-    fitness=FitnessParameters(fitness_array=[1, 1.5]),  # The second clone is fitter than the first (at the start)
+    fitness=FitnessParameters(initial_fitness_array=[1, 1.5]),  # The second clone is fitter than the first (at the start)
     treatment=TreatmentParameters(
         # Define the treatment. 
         treatment_timings=[3, 6],  # Change the treatments at these times
@@ -143,7 +143,7 @@ plt.show()
 
 ## Treatments affecting genes
 
-To have treatment effects that depend on the gene mutated, run simulations with `MutationGenerator.multi_gene_array=True`.
+To have treatment effects that depend on the gene mutated, run simulations with `FitnessCalculator.multi_gene_array=True`.
 
 This can also be used with the initial clones if `initial_mutant_gene_array` is used.  
 
@@ -154,9 +154,9 @@ instead of the clone_id.
 
 
 ```python
-from clone_competition_simulation import MutationGenerator, Gene, FixedValue
-# Define a MutationGenerator with a few genes
-mut_gen = MutationGenerator(
+from clone_competition_simulation import FitnessCalculator, Gene, FixedValue
+# Define a FitnessCalculator with a few genes
+mut_gen = FitnessCalculator(
     genes=[
         Gene(name='Gene1', mutation_distribution=FixedValue(1), synonymous_proportion=0), 
         Gene(name='Gene2', mutation_distribution=FixedValue(2), synonymous_proportion=0), 
@@ -171,7 +171,7 @@ p = Parameters(
     times=TimeParameters(max_time=10, division_rate=1), 
     population=PopulationParameters(initial_size_array=[300, 300, 300]),  # Start with equal clone sizes
     fitness=FitnessParameters(
-        fitness_array=[1, 2, 3],  # Have to define the initial fitness values
+        initial_fitness_array=[1, 2, 3],  # Have to define the initial fitness values
         initial_mutant_gene_array=[0, 1, 2],   # And define the genes mutated for each clone
         mutation_generator=mut_gen
     )
@@ -187,7 +187,7 @@ plt.show()
 -------
 Like before, we can introduce treatments that can alter the clone fitness.  
 For each treatment, there should be a value applied to the background fitness (this will affect all cells), 
-plus a value for each gene defined in the MutationGenerator
+plus a value for each gene defined in the FitnessCalculator
 
 ```python
 np.random.seed(0)
@@ -196,7 +196,7 @@ p = Parameters(
     times=TimeParameters(max_time=10, division_rate=1), 
     population=PopulationParameters(initial_size_array=[300, 300, 300]),  # Start with equal clone sizes
     fitness=FitnessParameters(
-        fitness_array=[1, 2, 3],  # Have to define the initial fitness values
+        initial_fitness_array=[1, 2, 3],  # Have to define the initial fitness values
         initial_mutant_gene_array=[0, 1, 2],   # And define the genes mutated for each clone
         mutation_generator=mut_gen
     ), 
@@ -230,8 +230,8 @@ import matplotlib.cm as cm
 from matplotlib.colors import Normalize
 from clone_competition_simulation import PlottingParameters, ColourRule, FeatureValue, CloneFeature, PlotColourMaps
 
-# Setting up a MutationGenerator and plotting colours for two genes. 
-mut_gen = MutationGenerator(
+# Setting up a FitnessCalculator and plotting colours for two genes. 
+mut_gen = FitnessCalculator(
     genes=[
         Gene(name='Gene1', mutation_distribution=FixedValue(1), synonymous_proportion=0),
         Gene(name='Gene2', mutation_distribution=FixedValue(3), synonymous_proportion=0)

@@ -32,14 +32,14 @@ def test_label_validation1(validated_population_parameters, validated_fitness_pa
         population=validated_population_parameters,
         fitness=validated_fitness_parameters,
         config_file_settings=empty_label_parameters,
-        label_array=1,
+        initial_label_array=1,
         label_times=2,
         label_frequencies=0.01,
         label_values=3,
         label_genes=-1,
     )
 
-    np.testing.assert_array_equal(p.label_array, np.array([1]))
+    np.testing.assert_array_equal(p.initial_label_array, np.array([1]))
     np.testing.assert_array_equal(p.label_times, np.array([2]))
     np.testing.assert_array_equal(p.label_frequencies, np.array([0.01]))
     np.testing.assert_array_equal(p.label_values, np.array([3]))
@@ -55,14 +55,14 @@ def test_label_validation2(validated_population_parameters,
         population=validated_population_parameters,
         fitness=validated_fitness_parameters_multi_gene,
         config_file_settings=empty_label_parameters,
-        label_array=1,
+        initial_label_array=1,
         label_times=2,
         label_frequencies=0.01,
         label_values=3,
         label_genes=0,
     )
 
-    np.testing.assert_array_equal(p.label_array, np.array([1]))
+    np.testing.assert_array_equal(p.initial_label_array, np.array([1]))
     np.testing.assert_array_equal(p.label_times, np.array([2]))
     np.testing.assert_array_equal(p.label_frequencies, np.array([0.01]))
     np.testing.assert_array_equal(p.label_values, np.array([3]))
@@ -79,7 +79,7 @@ def test_label_validation3(validated_population_parameters,
             population=validated_population_parameters,
             fitness=validated_fitness_parameters,
             config_file_settings=empty_label_parameters,
-            label_array=1,
+            initial_label_array=1,
             label_times=2,
             label_frequencies=0.01,
             label_values=3,

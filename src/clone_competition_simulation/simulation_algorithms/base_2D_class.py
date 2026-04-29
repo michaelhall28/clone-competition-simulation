@@ -6,7 +6,7 @@ from typing import Self
 import numpy as np
 from scipy.sparse import lil_matrix
 from ..plotting.animator import HexAnimator
-from .general_sim_class import CurrentData, GeneralSimClass
+from .base_sim_class import CurrentData, BaseSimClass
 
 
 @dataclass
@@ -14,7 +14,7 @@ class SpatialCurrentData(CurrentData):
     grid_array: np.ndarray[tuple[int], np.dtype[np.int_]]  # The clone id of each cell in the grid
 
     @classmethod
-    def from_sim(cls, sim: GeneralSimClass) -> Self:
+    def from_sim(cls, sim: BaseSimClass) -> Self:
         grid_array = np.ravel(sim.parameters.population.initial_grid)
         return cls(
             grid_array=grid_array, 
@@ -44,7 +44,7 @@ class SpatialCurrentData(CurrentData):
         population_array[non_zero, plot_idx] = current_population[non_zero]
 
 
-class GeneralHexagonalGridSim:
+class BaseHexagonalGridSim:
     """
     Contains functions that can be used with any hexagonal grid.
     Should be inherited along with the GeneralSimClass (or a subclass of it) to create a 2D simulation class.
@@ -166,7 +166,7 @@ def get_2D_coord(idx: int, grid_shape: tuple[int, int]) -> tuple[int, int]:
     return idx // grid_shape[0], idx % grid_shape[0]
 
 
-def get_neighbour_coords_2D(sim: GeneralHexagonalGridSim, idx: int, col: int | None = None) -> \
+def get_neighbour_coords_2D(sim: BaseHexagonalGridSim, idx: int, col: int | None = None) -> \
         np.ndarray[tuple[int, int], np.dtype[np.int64]]:
     """
     Get the neighbouring coordinates in the 2D grid from either the index in the 1D array or the coordinates in the

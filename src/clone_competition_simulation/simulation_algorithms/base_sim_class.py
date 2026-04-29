@@ -63,7 +63,7 @@ class CurrentData(ABC):
 
     @classmethod
     @abstractmethod
-    def from_sim(cls, sim: "GeneralSimClass") -> Self:
+    def from_sim(cls, sim: "BaseSimClass") -> Self:
         ...
     
     @abstractmethod
@@ -83,7 +83,7 @@ class NonSpatialCurrentData(CurrentData):
     non_zero_clones: np.ndarray[tuple[int], np.dtype[np.int_]]  # ids of clones with living cells
 
     @classmethod
-    def from_sim(cls, sim: "GeneralSimClass") -> Self:
+    def from_sim(cls, sim: "BaseSimClass") -> Self:
         current_population = np.zeros(len(sim.clones_array), dtype=int)
         current_population[:sim.initial_clones] = sim.initial_size_array
 
@@ -116,7 +116,7 @@ class NonSpatialCurrentData(CurrentData):
         population_array[self.non_zero_clones, plot_idx] = self.current_population
 
 
-class GeneralSimClass(ABC):
+class BaseSimClass(ABC):
     """
     Common functions for all simulation algorithms.
     Functions for setting up simulations and for plotting results
@@ -201,7 +201,7 @@ class GeneralSimClass(ABC):
         self.total_clone_count = self.initial_clones + self.new_mutation_count
         self.next_mutation_index = self.initial_clones  # Keeping track of how many mutations added
 
-        self._init_arrays(parameters.labels.label_array, parameters.fitness.initial_mutant_gene_array, parameters.fitness.fitness_array)
+        self._init_arrays(parameters.labels.initial_label_array, parameters.fitness.initial_mutant_gene_array, parameters.fitness.initial_fitness_array)
         
         # Attributes for early stopping
         self.stop_time: float | None = None

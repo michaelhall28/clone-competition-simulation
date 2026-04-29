@@ -2,19 +2,60 @@ from typing import Annotated, Literal
 
 import numpy as np
 from loguru import logger
-from pydantic import (
-    ConfigDict,
-    Tag,
-    BeforeValidator
-)
+from pydantic import BeforeValidator, ConfigDict, Tag
 
 from ..fitness.fitness_classes import UnboundedFitness
 from .fitness_validation import FitnessValidator
 from .population_validation import PopulationValidator
-from .validation_utils import assign_config_settings, ValidationBase, FloatArrayParameter, ParameterBase
+from .validation_utils import (FloatArrayParameter, ParameterBase,
+                               ValidationBase, assign_config_settings)
 
 
 class TreatmentParameters(ParameterBase):
+    """Parameters that control when and how treatment is applied during the simulation.
+    Treatments change the fitness of clones/gene mutations at specified times, which can be used to 
+    model drug treatments or other interventions.
+
+    Fields:
+        treatment_timings:
+            A list or array of times at which treatment changes occur. Each entry
+            corresponds to a change in treatment effect. For a neutral treatment or
+            no treatment changes, this may be left unset.
+
+            Example:
+                treatment_timings = [0, 10, 20]
+
+        treatment_effects:
+            A list or array of treatment effect values to apply at the corresponding
+            ``treatment_timings``. If the simulation uses a multi-gene mutation
+            generator, each treatment effect entry must have one value per gene plus
+            one wild-type term. For non-multi-gene simulations, each effect entry
+            should have one value per initial clone.
+
+            Example:
+                treatment_effects = [0.5, 1.0, 0.8]
+
+        treatment_replace_fitness:
+            A boolean that controls how the treatment effect is applied to fitness.
+            If ``True``, the treatment effect replaces the existing fitness values.
+            If ``False``, the treatment is applied multiplicatively to the current
+            fitness values. When unset, the default is ``False`` (i.e. multiplicative 
+            application).
+
+            Example:
+                treatment_replace_fitness = False
+
+    Examples:
+        Single treatment change at time 10:
+            treatment_timings = [10]
+            treatment_effects = [0.75]
+            treatment_replace_fitness = False
+
+        Two treatment changes with multi-gene effects:
+            treatment_timings = [0, 15]
+            treatment_effects = [[1.0, 0.8, 0.8], [1.0, 0.7, 0.6]]
+            treatment_replace_fitness = True
+    """
     _field_name = "treatment"
     tag: Literal['Base'] = 'Base'
     model_config = ConfigDict(arbitrary_types_allowed=True)

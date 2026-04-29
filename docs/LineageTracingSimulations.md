@@ -181,7 +181,7 @@ To replicate experiments in which mutant clones are induced within an otherwise 
 simulations in which most of the tissue is wild type (fitness 1), and a small proportion of the tissue is 
 single-cell clones with a fitness>1.  
 
-This is most easily done using the label_array option to label the wild type and mutant clones separately.
+This is most easily done using the initial_label_array option to label the wild type and mutant clones separately.
 
 ```python
 from clone_competition_simulation import LabelParameters, FitnessParameters
@@ -196,13 +196,13 @@ p = Parameters(
             np.ones(50)]   # 50 single-cell clones
     )),
     fitness=FitnessParameters(
-        fitness_array=np.concatenate([
+        initial_fitness_array=np.concatenate([
             [1],   # Wild type cells with fitness 1
             np.full(50, 1.3)  # The next 50 clones given fitness 1.3
             ])
     ),
     labels=LabelParameters(
-        label_array=np.concatenate([
+        initial_label_array=np.concatenate([
             [0],  # Wild type clone labelled with 0
             np.ones(50)  # Mutant clones labelled with 1
             ])
@@ -242,14 +242,14 @@ to the end of the simulation.
 from clone_competition_simulation import (
     FitnessParameters, 
     Gene, 
-    MutationGenerator, 
+    FitnessCalculator, 
     NormalDist, 
     PlottingParameters,
     PLOT_COLOURS_EXAMPLE1
 )
 
 # We'll add some mutations, so we have to define the fitness of the mutated cells
-mutation_generator = MutationGenerator(
+mutation_generator = FitnessCalculator(
     genes=[Gene(name="Gene1", mutation_distribution=NormalDist(mean=1.1, var=0.1), 
                 synonymous_proportion=0.5)]
 )

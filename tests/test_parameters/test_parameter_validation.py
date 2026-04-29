@@ -37,7 +37,7 @@ def test_validation_from_config1():
     assert p.times.max_time == 10
     assert p.times.samples == 100
     assert p.population.initial_cells == 100
-    np.testing.assert_array_equal(p.fitness.fitness_array, [1])
+    np.testing.assert_array_equal(p.fitness.initial_fitness_array, [1])
     np.testing.assert_array_equal(p.fitness.mutation_rates, [[0, 0]])
 
 
@@ -49,7 +49,7 @@ def test_validation_from_config2():
     assert p.times.max_time == 10
     assert p.times.samples == 100
     assert p.population.initial_cells == 1000
-    np.testing.assert_array_equal(p.fitness.fitness_array, [1])
+    np.testing.assert_array_equal(p.fitness.initial_fitness_array, [1])
     np.testing.assert_array_equal(p.fitness.mutation_rates, [[0, 0]])
 
 
@@ -77,7 +77,7 @@ def test_validation_from_config5(monkeypatch):
         assert p.times.max_time == 10
         assert p.times.samples == 100
         assert p.population.initial_cells == 100
-        np.testing.assert_array_equal(p.fitness.fitness_array, [1])
+        np.testing.assert_array_equal(p.fitness.initial_fitness_array, [1])
         np.testing.assert_array_equal(p.fitness.mutation_rates, [[0, 0]])
         del os.environ["CCS_RUN_CONFIG"]
 

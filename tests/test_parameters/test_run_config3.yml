@@ -6,5 +6,5 @@ times:
 population:
   initial_cells: "asdf"
 fitness:
-  fitness_array: 1  # For initial clones. Integers be converted to a list
+  initial_fitness_array: 1  # For initial clones. Integers be converted to a list
   mutation_rates: 0

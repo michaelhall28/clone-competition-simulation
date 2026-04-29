@@ -5,12 +5,12 @@ from src.clone_competition_simulation import (
     PopulationParameters,
     Moran, 
     Moran2D, 
-    WrightFisher, 
-    WrightFisher2D, 
-    SimpleBranchingProcess
+    WF, 
+    WF2D, 
+    Branching
 )
-from src.clone_competition_simulation.simulation_algorithms.general_sim_class import NonSpatialCurrentData
-from src.clone_competition_simulation.simulation_algorithms.general_2D_class import SpatialCurrentData
+from clone_competition_simulation.simulation_algorithms.base_sim_class import NonSpatialCurrentData
+from clone_competition_simulation.simulation_algorithms.base_2D_class import SpatialCurrentData
 
 
 def test_custom_moran():
@@ -80,7 +80,7 @@ def test_custom_moran2d():
 
 def test_custom_wf():
 
-    class MyCustomWF(WrightFisher):
+    class MyCustomWF(WF):
         """Always take from the lowest id clone and add to the highest"""
         def get_next_generation(self, current_data: NonSpatialCurrentData) -> np.ndarray[tuple[int], np.dtype[np.int_]]:
             """This function should return the cell counts for all new clone
@@ -125,7 +125,7 @@ def test_custom_wf():
 
 def test_custom_wf2d():
     
-    class MyCustomWF2D(WrightFisher2D):
+    class MyCustomWF2D(WF2D):
         """All cells just rotate along the grid by one position each step"""
 
         def get_next_generation(self, current_data: SpatialCurrentData) -> np.ndarray[tuple[int], np.dtype[np.int_]]:
@@ -159,7 +159,7 @@ def test_custom_wf2d():
 
 def test_custom_branching():
     
-    class MyCustomBranching(SimpleBranchingProcess):
+    class MyCustomBranching(Branching):
         """The cell division probability depends on the clone id"""
 
         def does_cell_divide(self, clone_id: int) -> bool:

@@ -7,7 +7,7 @@ from src.clone_competition_simulation import (
     PopulationParameters,
     DifferentiatedCellsParameters
 )
-from src.clone_competition_simulation.simulation_algorithms.general_differentiated_cell_class import MoranWithDiffCells
+from src.clone_competition_simulation.simulation_algorithms.differentiated_cells import MoranWithDiffCells
 from src.clone_competition_simulation.simulation_algorithms.moran import Moran
 
 
@@ -64,7 +64,7 @@ def test_stop_condition2(monkeypatch):
             algorithm='Moran',
             times=TimeParameters(max_time=30, division_rate=1),
             population=PopulationParameters(initial_size_array=np.ones(100)),
-            differentiated_cells=DifferentiatedCellsParameters(r=0.1, gamma=0.8, stratification_sim_percentile=0.5),
+            differentiated_cells=DifferentiatedCellsParameters(r=0.1, gamma=0.8, stratification_sim_proportion=0.5),
             end_condition_function=stop_when_10_clones_left
         )
         s = p.get_simulator()

@@ -77,7 +77,7 @@ p = Parameters(
     algorithm="Branching", 
     population=PopulationParameters(initial_size_array=np.ones(100)),
     times=TimeParameters(max_time=10, division_rate=1),
-    fitness=FitnessParameters(fitness_array=np.full(100, 1.1)), 
+    fitness=FitnessParameters(initial_fitness_array=np.full(100, 1.1)), 
 )
 s = p.get_simulator()
 s.run_sim()
@@ -102,7 +102,7 @@ p = Parameters(
     algorithm="Branching",
     population=PopulationParameters(initial_cells=100),
     times=TimeParameters(max_time=3, division_rate=1),
-    fitness=FitnessParameters(fitness_array=[2]),
+    fitness=FitnessParameters(initial_fitness_array=[2]),
 )
 s = p.get_simulator()
 s.run_sim()
@@ -120,7 +120,7 @@ p = Parameters(
     algorithm="Branching",
     population=PopulationParameters(initial_cells=100),
     times=TimeParameters(max_time=3, division_rate=1),
-    fitness=FitnessParameters(fitness_array=[100]),
+    fitness=FitnessParameters(initial_fitness_array=[100]),
 )
 s = p.get_simulator()
 s.run_sim()
@@ -149,7 +149,7 @@ p = Parameters(
         population_limit=30000  # Set the population limit here 
     ),
     times=TimeParameters(max_time=3, division_rate=1),
-    fitness=FitnessParameters(fitness_array=np.full(100, 2))
+    fitness=FitnessParameters(initial_fitness_array=np.full(100, 2))
 )
 s = p.get_simulator()
 s.run_sim()

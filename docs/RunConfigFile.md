@@ -18,20 +18,20 @@ times:
 population:
   initial_cells: 100
 fitness:
-  fitness_array: 1  # For initial clones. Integers be converted to a list
+  initial_fitness_array: 1  # For initial clones. Integers be converted to a list
   mutation_rates: 0
   initial_mutant_gene_array: -1  # For the genes of initial clones. Integers be converted to a list. -1 means not associated with a gene.
 labels:
-  label_array: 0   # For initial clones. Integers be converted to a list
+  initial_label_array: 0   # For initial clones. Integers be converted to a list
 treatment:
   treatment_effect: 1
 differentiated_cells:
-  stratification_sim_percentile: 1
+  stratification_sim_proportion: 1
 plotting:
   figsize: [10, 10]
 ```
 
-Currently, it is not possible to define Genes or MutationGenerators using the config file. 
+Currently, it is not possible to define Genes or FitnessCalculators using the config file. 
 
 ## Specifying the config file
 

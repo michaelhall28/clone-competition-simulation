@@ -9,11 +9,11 @@ import pytest
 from matplotlib.ticker import NullFormatter
 from scipy.sparse import SparseEfficiencyWarning
 
-from src.clone_competition_simulation.fitness.fitness_classes import FixedValue, NormalDist, ExponentialDist, UniformDist, Gene, MutationGenerator, \
+from src.clone_competition_simulation.fitness.fitness_classes import FixedValue, NormalDist, ExponentialDist, UniformDist, Gene, FitnessCalculator, \
     BoundedLogisticFitness
 from src.clone_competition_simulation.parameters.algorithm_validation import AlgorithmClass
 from src.clone_competition_simulation.plotting.plot_colours import PlotColourMaps, ColourRule, CloneFeature, FeatureValue
-from src.clone_competition_simulation.simulation_algorithms.general_differentiated_cell_class import set_gsl_random_seed
+from clone_competition_simulation.simulation_algorithms.differentiated_cells import set_gsl_random_seed
 from src.clone_competition_simulation.parameters import (
     Parameters,
     TimeParameters,
@@ -99,7 +99,7 @@ def test_multiple_clones(mock_random, axes, algorithm, overwrite_results=False):
                                   initial_grid=initial_grid,
                                   cell_in_own_neighbourhood=False
                               ),
-                   fitness=FitnessParameters(fitness_array=[1, 1.1, 0.9]),
+                   fitness=FitnessParameters(initial_fitness_array=[1, 1.1, 0.9]),
                    times=TimeParameters(max_time=MAX_TIME, division_rate=DIVISION_RATE)
                    )
     sim = p.get_simulator()
@@ -134,7 +134,7 @@ def test_mutations(mock_random, axes, algorithm, overwrite_results=False):
                   synonymous_proportion=0.2),
              Gene(name='exp_driver', mutation_distribution=ExponentialDist(mean=exp_mean, offset=0.8),
                   synonymous_proportion=0.2)]
-    mut_gen1 = MutationGenerator(multi_gene_array=False, genes=genes, combine_mutations='add')
+    mut_gen1 = FitnessCalculator(multi_gene_array=False, genes=genes, combine_mutations='add')
 
     #  Simple
     ax = next_ax(axes, algorithm)
@@ -183,7 +183,7 @@ def test_mutations(mock_random, axes, algorithm, overwrite_results=False):
     ax.set_title('Variable mutation rate')
 
     #  Multi-gene array
-    mut_gen = MutationGenerator(multi_gene_array=True, genes=genes, combine_mutations='add')
+    mut_gen = FitnessCalculator(multi_gene_array=True, genes=genes, combine_mutations='add')
     ax = next_ax(axes, algorithm)
     np.random.seed(0)
     p = Parameters(
@@ -199,7 +199,7 @@ def test_mutations(mock_random, axes, algorithm, overwrite_results=False):
     ax.set_title('Multi-gene')
 
     #  Multiply fitness
-    mut_gen = MutationGenerator(multi_gene_array=False, genes=genes, combine_mutations='multiply')
+    mut_gen = FitnessCalculator(multi_gene_array=False, genes=genes, combine_mutations='multiply')
     ax = next_ax(axes, algorithm)
     np.random.seed(0)
     p = Parameters(
@@ -215,7 +215,7 @@ def test_mutations(mock_random, axes, algorithm, overwrite_results=False):
     ax.set_title('Multiply fitness')
 
     #  Replace fitness
-    mut_gen = MutationGenerator(multi_gene_array=False, genes=genes, combine_mutations='replace')
+    mut_gen = FitnessCalculator(multi_gene_array=False, genes=genes, combine_mutations='replace')
     ax = next_ax(axes, algorithm)
     np.random.seed(0)
     p = Parameters(
@@ -231,7 +231,7 @@ def test_mutations(mock_random, axes, algorithm, overwrite_results=False):
     ax.set_title('Replace fitness')
 
     #  max fitness
-    mut_gen = MutationGenerator(multi_gene_array=False, genes=genes, combine_mutations='max')
+    mut_gen = FitnessCalculator(multi_gene_array=False, genes=genes, combine_mutations='max')
     ax = next_ax(axes, algorithm)
     np.random.seed(0)
     p = Parameters(
@@ -247,7 +247,7 @@ def test_mutations(mock_random, axes, algorithm, overwrite_results=False):
     ax.set_title('max')
 
     # min fitness
-    mut_gen = MutationGenerator(multi_gene_array=False, genes=genes, combine_mutations='min')
+    mut_gen = FitnessCalculator(multi_gene_array=False, genes=genes, combine_mutations='min')
     ax = next_ax(axes, algorithm)
     np.random.seed(0)
     p = Parameters(
@@ -263,7 +263,7 @@ def test_mutations(mock_random, axes, algorithm, overwrite_results=False):
     ax.set_title('min')
 
     #  Add array
-    mut_gen = MutationGenerator(multi_gene_array=True, genes=genes, combine_array='add',
+    mut_gen = FitnessCalculator(multi_gene_array=True, genes=genes, combine_array='add',
                                 combine_mutations='multiply')
     ax = next_ax(axes, algorithm)
     np.random.seed(0)
@@ -280,7 +280,7 @@ def test_mutations(mock_random, axes, algorithm, overwrite_results=False):
     ax.set_title('Add array')
 
     #  Multiply array
-    mut_gen = MutationGenerator(multi_gene_array=True, genes=genes, combine_array='multiply',
+    mut_gen = FitnessCalculator(multi_gene_array=True, genes=genes, combine_array='multiply',
                                 combine_mutations='replace')
     ax = next_ax(axes, algorithm)
     np.random.seed(0)
@@ -297,7 +297,7 @@ def test_mutations(mock_random, axes, algorithm, overwrite_results=False):
     ax.set_title('Multiply array')
 
     #  Max array
-    mut_gen = MutationGenerator(multi_gene_array=True, genes=genes, combine_array='max',
+    mut_gen = FitnessCalculator(multi_gene_array=True, genes=genes, combine_array='max',
                                 combine_mutations='add')
     ax = next_ax(axes, algorithm)
     np.random.seed(0)
@@ -314,7 +314,7 @@ def test_mutations(mock_random, axes, algorithm, overwrite_results=False):
     ax.set_title('Max array')
 
     #  Min array
-    mut_gen = MutationGenerator(multi_gene_array=True, genes=genes, combine_array='min',
+    mut_gen = FitnessCalculator(multi_gene_array=True, genes=genes, combine_array='min',
                                 combine_mutations='add')
     ax = next_ax(axes, algorithm)
     np.random.seed(0)
@@ -339,7 +339,7 @@ def test_mutations(mock_random, axes, algorithm, overwrite_results=False):
              Gene(name='uniform_driver', mutation_distribution=UniformDist(low=0.95, high=h),
                   synonymous_proportion=0.2)]
 
-    mut_gen = MutationGenerator(multi_gene_array=False, genes=genes, combine_array='multiply',
+    mut_gen = FitnessCalculator(multi_gene_array=False, genes=genes, combine_array='multiply',
                                 mutation_combination_class=BoundedLogisticFitness(1.1, 10),
                                 combine_mutations='multiply')
     np.random.seed(0)
@@ -356,7 +356,7 @@ def test_mutations(mock_random, axes, algorithm, overwrite_results=False):
     sim.plot_average_fitness_over_time(ax=ax)
     ax.set_title('Logistic fitness')
 
-    mut_gen = MutationGenerator(multi_gene_array=True, genes=genes, combine_array='multiply',
+    mut_gen = FitnessCalculator(multi_gene_array=True, genes=genes, combine_array='multiply',
                                 mutation_combination_class=BoundedLogisticFitness(1.1, 10),
                                 combine_mutations='multiply')
     np.random.seed(0)
@@ -430,7 +430,7 @@ def test_imbalance(mock_random, axes, algorithm, overwrite_results=False):
         population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
                                         cell_in_own_neighbourhood=False),
         times=TimeParameters(max_time=MAX_TIME, division_rate=DIVISION_RATE),
-        fitness=FitnessParameters(fitness_array=fitness_array)
+        fitness=FitnessParameters(initial_fitness_array=fitness_array)
     )
     sim = p.get_simulator()
     sim.run_sim()
@@ -507,7 +507,7 @@ def test_treatment_with_fixed_clones(mock_random, axes, algorithm, overwrite_res
         times=TimeParameters(max_time=12, division_rate=DIVISION_RATE),
         population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
                                         cell_in_own_neighbourhood=False),
-        fitness=FitnessParameters(fitness_array=[1.05, 1, 0.9]),
+        fitness=FitnessParameters(initial_fitness_array=[1.05, 1, 0.9]),
         treatment=TreatmentParameters(treatment_timings=timings, treatment_effects=treatment_arrays,
                                       treatment_replace_fitness=False),
     )
@@ -537,7 +537,7 @@ def test_treatment_replace_with_fixed_clones(mock_random, axes, algorithm, overw
         times=TimeParameters(max_time=12, division_rate=DIVISION_RATE),
         population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
                                         cell_in_own_neighbourhood=False),
-        fitness=FitnessParameters(fitness_array=[1.05, 1, 0.9]),
+        fitness=FitnessParameters(initial_fitness_array=[1.05, 1, 0.9]),
         treatment=TreatmentParameters(treatment_timings=timings, treatment_effects=treatment_arrays,
                                       treatment_replace_fitness=True),
     )
@@ -559,7 +559,7 @@ def test_treatment_with_multiple_genes(mock_random, axes, algorithm, overwrite_r
         initial_size_array = [400, 500]
         initial_grid = None
 
-    mut_gen = MutationGenerator(multi_gene_array=True,
+    mut_gen = FitnessCalculator(multi_gene_array=True,
                                 genes=[
                                     Gene(name='neutral', mutation_distribution=FixedValue(1), synonymous_proportion=0.5),
                                     Gene(name='driver', mutation_distribution=FixedValue(1.1),
@@ -574,7 +574,7 @@ def test_treatment_with_multiple_genes(mock_random, axes, algorithm, overwrite_r
                                         cell_in_own_neighbourhood=False),
         times=TimeParameters(max_time=12, division_rate=DIVISION_RATE),
         fitness=FitnessParameters(initial_mutant_gene_array=[0, 1], mutation_generator=mut_gen,
-                                  fitness_array=[1.05, 1]),
+                                  initial_fitness_array=[1.05, 1]),
         treatment=TreatmentParameters(treatment_timings=timings, treatment_effects=treatment_arrays),
     )
     sim = p.get_simulator()
@@ -591,7 +591,7 @@ def test_treatment_with_multiple_genes(mock_random, axes, algorithm, overwrite_r
                                         cell_in_own_neighbourhood=False),
         times=TimeParameters(max_time=12, division_rate=DIVISION_RATE),
         fitness=FitnessParameters(initial_mutant_gene_array=[0, 1], mutation_generator=mut_gen,
-                                  fitness_array=[1.05, 1], mutation_rates=0.005),
+                                  initial_fitness_array=[1.05, 1], mutation_rates=0.005),
         treatment=TreatmentParameters(treatment_timings=timings, treatment_effects=treatment_arrays),
     )
     sim = p.get_simulator()
@@ -612,7 +612,7 @@ def test_treatment_replace_with_multiple_genes(mock_random, axes, algorithm, ove
         initial_size_array = [400, 500]
         initial_grid = None
 
-    mut_gen = MutationGenerator(multi_gene_array=True,
+    mut_gen = FitnessCalculator(multi_gene_array=True,
                                 genes=[
                                     Gene(name='neutral', mutation_distribution=FixedValue(1), synonymous_proportion=0.5),
                                     Gene(name='driver', mutation_distribution=FixedValue(1.1),
@@ -626,7 +626,7 @@ def test_treatment_replace_with_multiple_genes(mock_random, axes, algorithm, ove
         times=TimeParameters(max_time=12, division_rate=DIVISION_RATE),
         population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
                                         cell_in_own_neighbourhood=False),
-        fitness=FitnessParameters(initial_mutant_gene_array=[0, 1], mutation_generator=mut_gen, fitness_array=[1.05, 1]),
+        fitness=FitnessParameters(initial_mutant_gene_array=[0, 1], mutation_generator=mut_gen, initial_fitness_array=[1.05, 1]),
         treatment=TreatmentParameters(treatment_timings=timings, treatment_effects=treatment_arrays,
                                       treatment_replace_fitness=True),
     )
@@ -644,7 +644,7 @@ def test_treatment_replace_with_multiple_genes(mock_random, axes, algorithm, ove
         population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
                                         cell_in_own_neighbourhood=False),
         fitness=FitnessParameters(initial_mutant_gene_array=[0, 1], mutation_generator=mut_gen, mutation_rates=0.005,
-                                  fitness_array=[1.05, 1]),
+                                  initial_fitness_array=[1.05, 1]),
         treatment=TreatmentParameters(treatment_timings=timings, treatment_effects=treatment_arrays,
                                       treatment_replace_fitness=False)
     )
@@ -656,7 +656,7 @@ def test_treatment_replace_with_multiple_genes(mock_random, axes, algorithm, ove
 
 
 def test_labels(mock_random, cs_label, axes, algorithm, overwrite_results=False):
-    mut_gen = MutationGenerator(multi_gene_array=True,
+    mut_gen = FitnessCalculator(multi_gene_array=True,
                                 genes=[
                                     Gene(name='neutral', mutation_distribution=FixedValue(1), synonymous_proportion=0.5),
                                     Gene(name='driver', mutation_distribution=FixedValue(1.1),
@@ -676,10 +676,10 @@ def test_labels(mock_random, cs_label, axes, algorithm, overwrite_results=False)
         algorithm=algorithm,
         times=TimeParameters(max_time=MAX_TIME, division_rate=1),
         plotting=PlottingParameters(plot_colour_maps=cs_label),
-        fitness=FitnessParameters(mutation_generator=mut_gen, fitness_array=[1.05, 1, 0.9, 1.02], mutation_rates=0.01),
+        fitness=FitnessParameters(mutation_generator=mut_gen, initial_fitness_array=[1.05, 1, 0.9, 1.02], mutation_rates=0.01),
         population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
                                         cell_in_own_neighbourhood=False),
-        labels=LabelParameters(label_array=[0, 1, 2, 1])
+        labels=LabelParameters(initial_label_array=[0, 1, 2, 1])
     )
     sim = p.get_simulator()
     sim.run_sim()
@@ -696,10 +696,10 @@ def test_labels(mock_random, cs_label, axes, algorithm, overwrite_results=False)
         algorithm=algorithm,
         times=TimeParameters(max_time=MAX_TIME, division_rate=1),
         plotting=PlottingParameters(plot_colour_maps=cs_label),
-        fitness=FitnessParameters(mutation_generator=mut_gen, fitness_array=[1.05, 1, 0.9, 1.02]),
+        fitness=FitnessParameters(mutation_generator=mut_gen, initial_fitness_array=[1.05, 1, 0.9, 1.02]),
         population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
                                         cell_in_own_neighbourhood=False),
-        labels=LabelParameters(label_array=[0, 1, 0, 1], label_times=label_times,
+        labels=LabelParameters(initial_label_array=[0, 1, 0, 1], label_times=label_times,
                                label_frequencies=label_frequencies, label_values=label_values)
     )
     sim = p.get_simulator()
@@ -761,7 +761,7 @@ def test_partially_simulating_B_cells(mock_random, axes, algorithm, overwrite_re
             population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
                                             cell_in_own_neighbourhood=False),
             times=TimeParameters(times=[1.1, 2, 3.4, 12], division_rate=DIVISION_RATE),
-            differentiated_cells=DifferentiatedCellsParameters(r=0.2, gamma=2.1, stratification_sim_percentile=0.9)
+            differentiated_cells=DifferentiatedCellsParameters(r=0.2, gamma=2.1, stratification_sim_proportion=0.9)
         )
         sim = p.get_simulator()
         sim.run_sim()
@@ -774,7 +774,7 @@ def test_partially_simulating_B_cells(mock_random, axes, algorithm, overwrite_re
             population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
                                             cell_in_own_neighbourhood=False),
             times=TimeParameters(times=[1.1, 2, 3.4, 12], division_rate=DIVISION_RATE),
-            differentiated_cells=DifferentiatedCellsParameters(r=0.2, gamma=2.1, stratification_sim_percentile=0.5)
+            differentiated_cells=DifferentiatedCellsParameters(r=0.2, gamma=2.1, stratification_sim_proportion=0.5)
         )
         sim = p.get_simulator()
         sim.run_sim()
@@ -840,7 +840,7 @@ def test_too_many_sample_points(mock_random, axes, algorithm, overwrite_results=
 def test_induction_of_label_and_mutant(mock_random, axes, algorithm, overwrite_results=False):
     genes = [Gene(name='Neutral', mutation_distribution=FixedValue(1), synonymous_proportion=0.5),
              Gene(name='Notch1', mutation_distribution=FixedValue(4), synonymous_proportion=0)]
-    mutation_generator = MutationGenerator(genes=genes, combine_mutations='replace', multi_gene_array=True)
+    mutation_generator = FitnessCalculator(genes=genes, combine_mutations='replace', multi_gene_array=True)
     Key1 = namedtuple('Key1', ['label'])
     green_clones = PlotColourMaps(
         all_clones_noisy=False,
@@ -977,7 +977,7 @@ def test_animation(mock_random, algorithm):
     # Have to do after all other plots as this will reset the figures
     non_neut_genes = [Gene(name='mild_driver', mutation_distribution=NormalDist(mean=1.1, var=0.1),
                            synonymous_proportion=0.85)]
-    mut_gen = MutationGenerator(multi_gene_array=False, genes=non_neut_genes, combine_mutations='add')
+    mut_gen = FitnessCalculator(multi_gene_array=False, genes=non_neut_genes, combine_mutations='add')
 
     if algorithm.two_dimensional:
         initial_size_array = None

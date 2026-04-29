@@ -139,11 +139,11 @@ Same goes for simulations with ongoing mutations.
 from clone_competition_simulation import (
     FitnessParameters, 
     Gene, 
-    MutationGenerator, 
+    FitnessCalculator, 
     NormalDist
 )
 
-mutation_generator = MutationGenerator(
+mutation_generator = FitnessCalculator(
     genes=[Gene(name="Gene1", mutation_distribution=NormalDist(mean=1.1, var=0.1), 
                 synonymous_proportion=0.5)]
 )
@@ -248,7 +248,7 @@ p = Parameters(
     population=PopulationParameters(initial_grid=np.arange(10000).reshape(100, 100), cell_in_own_neighbourhood=False),
     differentiated_cells=DifferentiatedCellsParameters(
         r=0.15, gamma=3, 
-        stratification_sim_percentile=0.999   # This means simulating diff cells with a 99.9% chance of being observed
+        stratification_sim_proportion=0.999   # This means simulating diff cells with a 99.9% chance of being observed
     )
 )
 s2 = p.get_simulator()
