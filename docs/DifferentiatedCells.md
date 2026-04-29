@@ -248,7 +248,7 @@ p = Parameters(
     population=PopulationParameters(initial_grid=np.arange(10000).reshape(100, 100), cell_in_own_neighbourhood=False),
     differentiated_cells=DifferentiatedCellsParameters(
         r=0.15, gamma=3, 
-        stratification_sim_percentile=0.999   # This means simulating diff cells with a 99.9% chance of being observed
+        stratification_sim_proportion=0.999   # This means simulating diff cells with a 99.9% chance of being observed
     )
 )
 s2 = p.get_simulator()

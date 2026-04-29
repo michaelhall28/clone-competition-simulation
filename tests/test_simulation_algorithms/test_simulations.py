@@ -761,7 +761,7 @@ def test_partially_simulating_B_cells(mock_random, axes, algorithm, overwrite_re
             population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
                                             cell_in_own_neighbourhood=False),
             times=TimeParameters(times=[1.1, 2, 3.4, 12], division_rate=DIVISION_RATE),
-            differentiated_cells=DifferentiatedCellsParameters(r=0.2, gamma=2.1, stratification_sim_percentile=0.9)
+            differentiated_cells=DifferentiatedCellsParameters(r=0.2, gamma=2.1, stratification_sim_proportion=0.9)
         )
         sim = p.get_simulator()
         sim.run_sim()
@@ -774,7 +774,7 @@ def test_partially_simulating_B_cells(mock_random, axes, algorithm, overwrite_re
             population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
                                             cell_in_own_neighbourhood=False),
             times=TimeParameters(times=[1.1, 2, 3.4, 12], division_rate=DIVISION_RATE),
-            differentiated_cells=DifferentiatedCellsParameters(r=0.2, gamma=2.1, stratification_sim_percentile=0.5)
+            differentiated_cells=DifferentiatedCellsParameters(r=0.2, gamma=2.1, stratification_sim_proportion=0.5)
         )
         sim = p.get_simulator()
         sim.run_sim()

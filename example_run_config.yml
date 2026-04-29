@@ -14,7 +14,7 @@ labels:
 treatment:
   treatment_effect: 1
 differentiated_cells:
-  stratification_sim_percentile: 1
+  stratification_sim_proportion: 1
 plotting:
   figsize: [10, 10]
 

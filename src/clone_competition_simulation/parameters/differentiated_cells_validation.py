@@ -12,12 +12,60 @@ from .times_validation import TimeValidator
 
 
 class DifferentiatedCellsParameters(ParameterBase):
+    """Parameters that control the simulation of differentiated cells (B cells).
+
+    Fields:
+        r:
+            The proportion of each symmetric division type. This value
+            must be between 0 and 0.5. When r=0, all divisions are asymmetric (one
+            differentiated cell produces one differentiated and one progenitor cell).
+            When r=0.5, 50% of divisions produce two differentiated cells and the 
+            other 50% produce two progenitor cells.
+
+            Example:
+                r = 0.1  # 10% PP and 10% DD divisions
+                r = 0.0  # All asymmetric divisions
+
+        gamma:
+            The stratification rate (for an exponential distribution), representing 
+            the rate at which differentiated cells leave the basal layer. This must
+            be greater than 0. Higher values mean faster differentiation.
+
+            Example:
+                gamma = 1.0  # Differentiation rate of 1 per unit time
+                gamma = 0.5  # Slower differentiation
+
+        stratification_sim_proportion:
+            The target proportion (between 0 and 1) of differentiated cells that will
+            be simulated and observed at the sample points in simulations. This is to
+            avoid simulating unobserved differentiated cells that will be born and die 
+            between sample points and therefore waste computation. A value of 1 means
+            simulate all differentiated cells (conservative approach). Lower values
+            speed up simulations by not simulating cells very unlikely to survive to
+            observation. 
+
+            Example:
+                stratification_sim_proportion = 1.0  # Simulate all differentiated cells
+                stratification_sim_proportion = 0.99  # Only simulate cells with 99% chance of surviving to observation
+                stratification_sim_proportion = 0.90  # Only simulate cells with 90% chance of surviving to observation
+
+    Examples:
+        Basic differentiated cell simulation:
+            r = 0.1
+            gamma = 1.0
+            stratification_sim_proportion = 1.0
+
+        Faster simulation with partial differentiated cell tracking:
+            r = 0.2
+            gamma = 2.0
+            stratification_sim_proportion = 0.8
+    """
     _field_name = "differentiated_cells"
     tag: Literal['Base'] = 'Base'
     model_config = ConfigDict(arbitrary_types_allowed=True)
     r: float | None = None
     gamma: float | None = None
-    stratification_sim_percentile: float | None = None
+    stratification_sim_proportion: float | None = None
 
 
 class DifferentiatedCellsValidator(DifferentiatedCellsParameters, ValidationBase):
@@ -35,7 +83,7 @@ class DifferentiatedCellsValidator(DifferentiatedCellsParameters, ValidationBase
     def _validate_model(self):
         self.r = self.get_value_from_config("r")
         self.gamma = self.get_value_from_config("gamma")
-        self.stratification_sim_percentile = self.get_value_from_config("stratification_sim_percentile")
+        self.stratification_sim_proportion = self.get_value_from_config("stratification_sim_proportion")
 
         if self.r is not None or self.gamma is not None:
             if self.algorithm.algorithm_class not in (AlgorithmClass.MORAN, AlgorithmClass.BRANCHING):
@@ -49,9 +97,9 @@ class DifferentiatedCellsValidator(DifferentiatedCellsParameters, ValidationBase
                 raise ValueError(
                     'Must provide both r and gamma to run with B cells. Please provide gamma')
 
-            if self.stratification_sim_percentile is None:
+            if self.stratification_sim_proportion is None:
                 # If not set explicitly, use the conservative value (simulate every cell).
-                self.stratification_sim_percentile = self._default_strat_sim
+                self.stratification_sim_proportion = self._default_strat_sim
 
             if self.r > 0.5 or self.r < 0:
                 raise ValueError('Must have 0<=r<=0.5')
@@ -69,8 +117,8 @@ class DifferentiatedCellsValidator(DifferentiatedCellsParameters, ValidationBase
         For the Moran models, find the last simulation step prior to this minimum time before the sample point.
         For the Branching process, the times can be compared to the time of the next progenitor division
         """
-        if self.stratification_sim_percentile < 1:
-            min_diff_sim_time = expon.ppf(self.stratification_sim_percentile, scale=1 / self.gamma)
+        if self.stratification_sim_proportion < 1:
+            min_diff_sim_time = expon.ppf(self.stratification_sim_proportion, scale=1 / self.gamma)
             if self.algorithm.algorithm_class == AlgorithmClass.BRANCHING:
                 diff_sim_starts = self.times.times - min_diff_sim_time
                 diff_sim_starts[diff_sim_starts < 0] = 0
