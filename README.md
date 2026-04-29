@@ -52,7 +52,9 @@ s.run_sim()
 s.muller_plot()
 ```
 
-See the [docs](https://michaelhall28.github.io/clone-competition-simulation/) for more detailed guides.
+Each parameter class has a docstring describing how to use the arguments 
+(e.g.`help(TimeParameters)` or `print(TimeParameters.__doc__)`).  
+See the [docs](https://michaelhall28.github.io/clone-competition-simulation/) for more detailed guides. 
 
 ### Updates from version 0.0.1 (pre-2025)
 

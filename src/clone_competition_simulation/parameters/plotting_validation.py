@@ -1,14 +1,33 @@
 from typing import Annotated, Literal
-from pydantic import (
-    ConfigDict,
-    Tag,
-    BeforeValidator
-)
-from .validation_utils import assign_config_settings, ValidationBase, ParameterBase
+
+from pydantic import BeforeValidator, ConfigDict, Tag
+
 from ..plotting import PlotColourMaps
+from .validation_utils import (ParameterBase, ValidationBase,
+                               assign_config_settings)
 
 
 class PlottingParameters(ParameterBase):
+    """Parameters that control plotting options for simulation output.
+
+    Fields:
+        figsize:
+            Size of the figure used for plotting, specified as a tuple of the form
+            (width, height) in inches. If not provided, default figure sizing is
+            used by the plotting backend.
+
+            Example:
+                figsize = (10, 8)
+                figsize = (12, 6)
+
+        plot_colour_maps:
+            A PlotColourMaps object defining the colour maps used for each clone in
+            plots. If not provided, the default colour maps from the plotting module
+            are used.
+
+            Example:
+                plot_colour_maps = PlotColourMaps(...) # Complex object, see docs
+    """
     _field_name = "plotting"
     tag: Literal['Base'] = 'Base'
     model_config = ConfigDict(arbitrary_types_allowed=True)

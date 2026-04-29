@@ -2,24 +2,77 @@ from typing import Annotated, Literal
 
 import numpy as np
 from loguru import logger
-from pydantic import (
-    ConfigDict,
-    Tag, BeforeValidator
-)
+from pydantic import BeforeValidator, ConfigDict, Tag
 
 from .algorithm_validation import AlgorithmClass
 from .population_validation import PopulationValidator
-from .validation_utils import (
-    ParameterBase,
-    assign_config_settings,
-    ValidationBase,
-    FloatParameter,
-    IntParameter,
-    FloatArrayParameter
-)
+from .validation_utils import (FloatArrayParameter, FloatParameter,
+                               IntParameter, ParameterBase, ValidationBase,
+                               assign_config_settings)
 
 
 class TimeParameters(ParameterBase):
+    """Parameters that define the time and sampling schedule for a simulation.
+
+    Fields:
+        times:
+            Specific sample times at which the simulation should record outputs.
+            Provide this as an array of increasing float values. If ``times`` is
+            defined, ``samples`` is inferred from its length, and ``max_time`` must
+            either match the final time or be omitted.
+
+            Example:
+                times = [0.0, 5.0, 10.0]
+
+        max_time:
+            The total length of the simulation in model time units. If ``times`` is
+            not supplied, ``max_time`` is used together with ``division_rate`` and
+            ``simulation_steps`` to determine the simulation schedule.
+
+            Example:
+                max_time = 10.0
+
+        simulation_steps:
+            The number of discrete simulation steps to run. For Moran and WF
+            algorithms, this is a derived quantity based on ``max_time`` and
+            ``division_rate`` if not supplied explicitly. It is not allowed for the
+            branching algorithm.
+
+            Example:
+                simulation_steps = 1000
+
+        division_rate:
+            The rate of cell division per unit time. 
+
+            Example:
+                division_rate = 1.0
+
+        samples:
+            The number of output samples to record when ``times`` is not explicitly
+            provided. A default value (100) is used if neither ``times`` nor ``samples``
+            are supplied. For explicit ``times``, ``samples`` is derived from the
+            length of the ``times`` array.
+
+            Example:
+                samples = 100
+
+    Notes:
+        - Only a consistent subset of ``times``, ``max_time``, ``simulation_steps``
+          and ``division_rate`` needs to be provided. The validator will infer the
+          missing fields when possible.
+        - For ``times`` given explicitly, the values must be in strictly increasing
+          order.
+
+    Examples:
+        Use explicit sample times:
+            times = [0.0, 5.0, 10.0]
+            division_rate = 1.0
+
+        Use max_time and division rate with a fixed number of samples:
+            max_time = 10.0
+            division_rate = 1.0
+            samples = 50
+    """
     _field_name = "times"
     tag: Literal['Base'] = 'Base'
     model_config = ConfigDict(arbitrary_types_allowed=True)
