@@ -573,7 +573,7 @@ p = Parameters(
     times=TimeParameters(max_time=10, division_rate=1), 
     population=PopulationParameters(initial_size_array=[500, 500]), 
     labels=LabelParameters(
-        label_array=[0, 1]  # Apply some labels
+        initial_label_array=[0, 1]  # Apply some labels
     ),
     fitness=FitnessParameters(mutation_rates=0.05, mutation_generator=mut_gen),
     plotting=PlottingParameters(plot_colour_maps=plot_colour_maps)

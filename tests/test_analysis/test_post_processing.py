@@ -29,7 +29,7 @@ def non_mutating_sim(monkeypatch):
             population=PopulationParameters(initial_grid=np.arange(100).reshape((10, 10)),
                                             cell_in_own_neighbourhood=False),
             times=TimeParameters(max_time=10, division_rate=1, samples=7),
-            labels=LabelParameters(label_array=np.arange(100)),
+            labels=LabelParameters(initial_label_array=np.arange(100)),
         )
         sim = p.get_simulator()
         sim.run_sim()

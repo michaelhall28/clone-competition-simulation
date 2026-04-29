@@ -679,7 +679,7 @@ def test_labels(mock_random, cs_label, axes, algorithm, overwrite_results=False)
         fitness=FitnessParameters(mutation_generator=mut_gen, fitness_array=[1.05, 1, 0.9, 1.02], mutation_rates=0.01),
         population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
                                         cell_in_own_neighbourhood=False),
-        labels=LabelParameters(label_array=[0, 1, 2, 1])
+        labels=LabelParameters(initial_label_array=[0, 1, 2, 1])
     )
     sim = p.get_simulator()
     sim.run_sim()
@@ -699,7 +699,7 @@ def test_labels(mock_random, cs_label, axes, algorithm, overwrite_results=False)
         fitness=FitnessParameters(mutation_generator=mut_gen, fitness_array=[1.05, 1, 0.9, 1.02]),
         population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
                                         cell_in_own_neighbourhood=False),
-        labels=LabelParameters(label_array=[0, 1, 0, 1], label_times=label_times,
+        labels=LabelParameters(initial_label_array=[0, 1, 0, 1], label_times=label_times,
                                label_frequencies=label_frequencies, label_values=label_values)
     )
     sim = p.get_simulator()

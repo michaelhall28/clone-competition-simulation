@@ -181,7 +181,7 @@ To replicate experiments in which mutant clones are induced within an otherwise 
 simulations in which most of the tissue is wild type (fitness 1), and a small proportion of the tissue is 
 single-cell clones with a fitness>1.  
 
-This is most easily done using the label_array option to label the wild type and mutant clones separately.
+This is most easily done using the initial_label_array option to label the wild type and mutant clones separately.
 
 ```python
 from clone_competition_simulation import LabelParameters, FitnessParameters
@@ -202,7 +202,7 @@ p = Parameters(
             ])
     ),
     labels=LabelParameters(
-        label_array=np.concatenate([
+        initial_label_array=np.concatenate([
             [0],  # Wild type clone labelled with 0
             np.ones(50)  # Mutant clones labelled with 1
             ])
