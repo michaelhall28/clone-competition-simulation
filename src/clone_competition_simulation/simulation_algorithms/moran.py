@@ -3,11 +3,11 @@ A class to run Moran-style simulations.
 """
 import numpy as np
 from numpy.typing import ArrayLike
-from .general_sim_class import GeneralSimClass, NonSpatialCurrentData
+from .base_sim_class import BaseSimClass, NonSpatialCurrentData
 from ..utils import find_ge
 
 
-class Moran(GeneralSimClass):
+class Moran(BaseSimClass):
     """
     Runs a simulation of the clonal growth, mutation and competition.
     It inherits most functions from GeneralSimClass

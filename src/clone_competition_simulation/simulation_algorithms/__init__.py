@@ -1,7 +1,7 @@
-from .general_sim_class import pickle_load, EndConditionError, NonSpatialCurrentData
-from .general_2D_class import SpatialCurrentData
-from .branching_process import SimpleBranchingProcess
+from .base_sim_class import pickle_load, EndConditionError, NonSpatialCurrentData
+from .base_2D_class import SpatialCurrentData
+from .branching_process import Branching
 from .moran import Moran
 from .moran2D import Moran2D
-from .wf import WrightFisher
-from .wf2D import WrightFisher2D
+from .wf import WF
+from .wf2D import WF2D

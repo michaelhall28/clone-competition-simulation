@@ -8,7 +8,7 @@ import pandas as pd
 from numpy.typing import NDArray
 from pydantic import BaseModel, field_validator
 
-from ..simulation_algorithms.general_2D_class import GeneralHexagonalGridSim
+from ..simulation_algorithms.base_2D_class import BaseHexagonalGridSim
 
 
 class Biopsy(BaseModel):
@@ -41,7 +41,7 @@ class Biopsy(BaseModel):
 
 
 
-def get_vafs_for_all_biopsies(sim: GeneralHexagonalGridSim, biopsies: list[Biopsy],
+def get_vafs_for_all_biopsies(sim: BaseHexagonalGridSim, biopsies: list[Biopsy],
                               detection_limit: int | None=None, coverage: int | None=None, merge_clones: bool=False,
                               sample_num: int | None=None, binom_params: tuple[int, float] | None=None,
                               remove_initial_clones: bool=True, heterozygous: bool=True) -> pd.DataFrame:
@@ -125,7 +125,7 @@ def get_vafs_for_all_biopsies(sim: GeneralHexagonalGridSim, biopsies: list[Biops
     return df
 
 
-def get_vafs(grid: NDArray, sim: GeneralHexagonalGridSim, biopsy: Biopsy, detection_limit: int|None=None,
+def get_vafs(grid: NDArray, sim: BaseHexagonalGridSim, biopsy: Biopsy, detection_limit: int|None=None,
              coverage: int | None=None, binom_params: tuple[int, float] | None=None,
              remove_initial_clones: bool=True, heterozygous: bool=True) \
         -> dict[int, float]:
@@ -163,7 +163,7 @@ def get_vafs(grid: NDArray, sim: GeneralHexagonalGridSim, biopsy: Biopsy, detect
     return vafs
 
 
-def biopsy_sample(grid: NDArray, sim: GeneralHexagonalGridSim, biopsy: Biopsy, remove_initial_clones: bool=True) \
+def biopsy_sample(grid: NDArray, sim: BaseHexagonalGridSim, biopsy: Biopsy, remove_initial_clones: bool=True) \
         -> dict[int, int]:
     """
     Find all number of cells in each mutant clone in the biopsy.
@@ -229,7 +229,7 @@ def small_detection_limit_nbin(clones: dict[int, int], binom_params: tuple[int, 
     return observed
 
 
-def _get_vaf_denominator(biopsy: Biopsy | None, heterozygous: bool, sim: GeneralHexagonalGridSim) -> int:
+def _get_vaf_denominator(biopsy: Biopsy | None, heterozygous: bool, sim: BaseHexagonalGridSim) -> int:
     """
     Get the total number of copies of the chromosomes in the sample, i.e. the copy number multiplied by the cell number
     :param heterozygous: Assumes the mutant is on one of two copies of the chromosome
@@ -247,7 +247,7 @@ def _get_vaf_denominator(biopsy: Biopsy | None, heterozygous: bool, sim: General
     return d
 
 
-def get_mutants_from_clone_number(sim: GeneralHexagonalGridSim, clone_number: int, remove_initial_clones: bool=True) \
+def get_mutants_from_clone_number(sim: BaseHexagonalGridSim, clone_number: int, remove_initial_clones: bool=True) \
         -> list[int]:
     """
     Each clone may contain many mutants. This returns a list of the mutations present in a particular clone (defined
@@ -266,7 +266,7 @@ def get_mutants_from_clone_number(sim: GeneralHexagonalGridSim, clone_number: in
     return mutants
 
 
-def get_sample_dnds(observed_vafs: pd.DataFrame, sim: GeneralHexagonalGridSim, gene: str | None=None) -> float:
+def get_sample_dnds(observed_vafs: pd.DataFrame, sim: BaseHexagonalGridSim, gene: str | None=None) -> float:
     """
     Calculates a dN/dS ratio for a set of "observed" mutations.
     :param observed_vafs: Dataframe of mutations (the output of the get_vafs_for_all_biopsies function).

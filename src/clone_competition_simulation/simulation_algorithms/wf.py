@@ -2,13 +2,13 @@
 A class to run non-spatial Wright-Fisher-style simulations
 """
 
-from .general_sim_class import GeneralSimClass, NonSpatialCurrentData
+from .base_sim_class import BaseSimClass, NonSpatialCurrentData
 import numpy as np
 from numpy.typing import ArrayLike
 
 
-class WrightFisher(GeneralSimClass):
-    """Runs a simulation of the clonal growth, mutation and competition"""
+class WF(BaseSimClass):
+    """Runs a Wright-Fisher simulation of the clonal growth, mutation and competition"""
     current_data_cls = NonSpatialCurrentData
 
     def __init__(self, parameters):

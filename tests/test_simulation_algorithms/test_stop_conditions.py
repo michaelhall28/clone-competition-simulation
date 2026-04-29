@@ -7,7 +7,7 @@ from src.clone_competition_simulation import (
     PopulationParameters,
     DifferentiatedCellsParameters
 )
-from src.clone_competition_simulation.simulation_algorithms.general_differentiated_cell_class import MoranWithDiffCells
+from src.clone_competition_simulation.simulation_algorithms.differentiated_cells import MoranWithDiffCells
 from src.clone_competition_simulation.simulation_algorithms.moran import Moran
 
 

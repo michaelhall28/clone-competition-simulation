@@ -24,14 +24,14 @@ from .population_validation import population_validation_type
 from .times_validation import times_validation_type
 from .treatment_validation import treatment_validation_type
 from .validation_utils import ValidationModelField, AlwaysValidateNoneField
-from ..simulation_algorithms.branching_process import SimpleBranchingProcess
-from ..simulation_algorithms.general_differentiated_cell_class import (
+from ..simulation_algorithms.branching_process import Branching
+from ..simulation_algorithms.differentiated_cells import (
     Moran2DWithDiffcells, MoranWithDiffCells, BranchingWithDiffCells)
-from ..simulation_algorithms.general_sim_class import GeneralSimClass
+from ..simulation_algorithms.base_sim_class import BaseSimClass
 from ..simulation_algorithms.moran import Moran
 from ..simulation_algorithms.moran2D import Moran2D
-from ..simulation_algorithms.wf import WrightFisher
-from ..simulation_algorithms.wf2D import WrightFisher2D
+from ..simulation_algorithms.wf import WF
+from ..simulation_algorithms.wf2D import WF2D
 
 
 class RunSettingsBase(BaseSettings):
@@ -44,7 +44,7 @@ class RunSettingsBase(BaseSettings):
     differentiated_cells: differentiated_cells_validation_type = ValidationModelField
     plotting: plotting_validation_type = ValidationModelField
 
-    end_condition_function: Callable[[GeneralSimClass], None] | None = None
+    end_condition_function: Callable[[BaseSimClass], None] | None = None
     tmp_store: Path | None = None
 
 
@@ -192,9 +192,9 @@ class Parameters(RunSettingsBase, ConfigFileSettings):
                 sim_class = BranchingWithDiffCells
         else:
             if self.algorithm == Algorithm.WF:
-                sim_class = WrightFisher
+                sim_class = WF
             elif self.algorithm == Algorithm.WF2D:
-                sim_class = WrightFisher2D
+                sim_class = WF2D
             elif self.algorithm == Algorithm.MORAN:
                 sim_class = Moran
             elif self.algorithm == Algorithm.MORAN2D:
@@ -202,7 +202,7 @@ class Parameters(RunSettingsBase, ConfigFileSettings):
             elif self.algorithm == Algorithm.BRANCHING:
                 if self.end_condition_function is not None:
                     raise ValueError('Cannot use an end_condition_function for the branching algorithm')
-                sim_class = SimpleBranchingProcess
+                sim_class = Branching
             
 
         if sim_class is None:

@@ -12,13 +12,13 @@ from numpy.typing import ArrayLike
 from scipy.sparse import lil_matrix
 from rich.progress import Progress
 
-from .general_sim_class import GeneralSimClass
+from .base_sim_class import BaseSimClass
 
 
 class OverPopulationError(BaseException): pass
 
 
-class SimpleBranchingProcess(GeneralSimClass):
+class Branching(BaseSimClass):
     """
     A simplified version of the single progenitor model
     Progenitor cells either divide to form two new progenitor cells or they die

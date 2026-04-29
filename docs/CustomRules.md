@@ -283,7 +283,7 @@ An example where at each generation, the surviving clone with the lowest id lose
 
 ```python
 from clone_competition_simulation import (
-    WrightFisher, 
+    WF, 
     NonSpatialCurrentData, 
     Parameters,
     TimeParameters,
@@ -291,7 +291,7 @@ from clone_competition_simulation import (
 )
 
 
-class MyCustomWF(WrightFisher):
+class MyCustomWF(WF):
     """Always take from the lowest id clone and add to the highest"""
 
     def get_next_generation(self, current_data: NonSpatialCurrentData) -> np.ndarray[tuple[int], np.dtype[np.int_]]:
@@ -350,14 +350,14 @@ In this example we just rotate the cells around the grid.
 
 ```python
 from clone_competition_simulation import (
-    WrightFisher2D, 
+    WF2D, 
     SpatialCurrentData, 
     Parameters,
     TimeParameters,
     PopulationParameters
 )
 
-class MyCustomWF2D(WrightFisher2D):
+class MyCustomWF2D(WF2D):
         """All cells just rotate along the grid by one position each step"""
 
     def get_next_generation(self, current_data: SpatialCurrentData) -> np.ndarray[tuple[int], np.dtype[np.int_]]:
@@ -423,7 +423,7 @@ from clone_competition_simulation import (
     PopulationParameters
 )
 
-class MyCustomBranching(SimpleBranchingProcess):
+class MyCustomBranching(Branching):
         """The cell division probability depends on the clone id"""
 
     def does_cell_divide(self, clone_id: int) -> bool:

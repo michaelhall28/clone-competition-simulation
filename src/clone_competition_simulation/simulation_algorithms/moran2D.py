@@ -4,10 +4,10 @@ A class to run Moran-style simulations on a 2D hexagonal grid
 
 import numpy as np
 from .moran import Moran
-from .general_2D_class import GeneralHexagonalGridSim, get_neighbour_map, SpatialCurrentData
+from .base_2D_class import BaseHexagonalGridSim, get_neighbour_map, SpatialCurrentData
 
 
-class Moran2D(GeneralHexagonalGridSim, Moran):
+class Moran2D(BaseHexagonalGridSim, Moran):
     """
     Runs a simulation of the clonal growth, mutation and competition.
     It inherits most functions from GeneralSimClass and MoranSim
