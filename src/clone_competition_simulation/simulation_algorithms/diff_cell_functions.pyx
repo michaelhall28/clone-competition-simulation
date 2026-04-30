@@ -68,7 +68,7 @@ cpdef ndarray bcell_cy(long[:] current_population,
     """
     cdef int i = 0
     cdef int a, b
-    cdef ndarray[long, ndim=1] new_b_cells = np.empty_like(current_diff_cell_population, dtype=int)
+    cdef ndarray[long, ndim=1] new_b_cells = np.zeros_like(current_diff_cell_population, dtype=np.int64)
 
     for i in range(current_population.shape[0]):
         a, b = current_population[i], current_diff_cell_population[i]
