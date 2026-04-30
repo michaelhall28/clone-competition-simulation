@@ -91,7 +91,7 @@ class FitnessParameters(ParameterBase):
     fitness_calculator: FitnessCalculator | None = AlwaysValidateNoneField
     mutation_rates: FloatOrArrayParameter = AlwaysValidateNoneField
     initial_fitness_array: FloatOrArrayParameter = AlwaysValidateNoneField
-    initial_mutant_gene_array: str | list | None = AlwaysValidateNoneField
+    initial_mutant_gene_array: str | list | None | np.ndarray[tuple[int], np.int_] = AlwaysValidateNoneField
 
 
 class FitnessValidator(FitnessParameters, ValidationBase):
@@ -114,8 +114,10 @@ class FitnessValidator(FitnessParameters, ValidationBase):
         self._check_initial_mutant_gene_array()
 
         if self.fitness_calculator is not None and self.fitness_calculator.multi_gene_array:
-            # Make sure the fitness array has the appropriate dimensions.
-            # All non-mutated genes have np.nan
+            # Make sure the initial fitness array has the appropriate dimensions.
+            # There will be one row per initial clone
+            # and one column for the wild type fitness plus one column for each gene in the fitness calculator.
+            # All non-mutated genes in a clone have np.nan in that row
             # First column is the wild type/non-gene associated fitness. Can still vary if specified.
             if isinstance(self.initial_fitness_array, float):
                 # Assume all genes have the same fitness
@@ -131,9 +133,20 @@ class FitnessValidator(FitnessParameters, ValidationBase):
                     # Make blank array
                     blank_fitness_array = np.full((len(initial_size_array), len(self.fitness_calculator.genes)+1),
                                                   np.nan, dtype=float)
-                    blank_fitness_array[:, 0] = self._wt_fitness
-                    blank_fitness_array[
-                        np.arange(len(initial_size_array)), self.initial_mutant_gene_array + 1] = self.initial_fitness_array
+                    if self.initial_mutant_gene_array is None:
+                        # No mutant genes specified, so all fitness values in the first column (wild type fitness)
+                        blank_fitness_array[:, 0] = self.initial_fitness_array
+                    else:
+                        # The mutant genes are specified by the initial_mutant_gene_array. 
+                        # The columns in the fitness array are shifted by one compared to the gene numbers because
+                        # of the wild type column at the start, so add 1 to the mutant gene numbers to get the right 
+                        # column in the fitness array.
+                        
+                        # Add the wt value to the first column
+                        blank_fitness_array[:, 0] = self._wt_fitness
+                        # Add the initial fitness values to the appropriate columns based on the mutant gene array
+                        blank_fitness_array[
+                            np.arange(len(initial_size_array)), self.initial_mutant_gene_array + 1] = self.initial_fitness_array
 
                     self.initial_fitness_array = blank_fitness_array
                 elif self.initial_fitness_array.shape == (len(initial_size_array), len(self.fitness_calculator.genes)+1):

@@ -506,7 +506,8 @@ class BaseSimClass(ABC):
             return True
         return False
 
-    def _add_label(self, current_data: CurrentData, label_frequency, label, label_fitness, label_gene) -> CurrentData:
+    def _add_label(self, current_data: CurrentData, label_frequency: float, label: int, 
+                   label_fitness: float, label_gene_name: str | None) -> CurrentData:
         """
         Add some labelling at the current label frequency.
         The labelling is not exact, so each cell has same chance.
@@ -528,7 +529,7 @@ class BaseSimClass(ABC):
         for i, (c, n) in enumerate(zip(labels_per_clone, non_zero_clones)):
             for j in range(c):
                 current_population[i] -= 1
-                self._add_labelled_clone(n, label, label_fitness, label_gene)
+                self._add_labelled_clone(n, label, label_fitness, label_gene_name)
 
         gr_z = np.where(current_population > 0)[0]  # The indices of clones alive at this point in the current pop
         non_zero_clones = non_zero_clones[gr_z]  # Convert to the original clone numbers
@@ -544,7 +545,7 @@ class BaseSimClass(ABC):
                             non_zero_clones=non_zero_clones)
         return current_data
 
-    def _add_labelled_clone(self, parent_idx, label, label_fitness, label_gene):
+    def _add_labelled_clone(self, parent_idx: int, label: int, label_fitness: float, label_gene_name: str | None) -> None:
         """Select a fitness for the new mutation and the cell in which the mutation occurs
         parent_idx = the id of the clone in which the mutation occurs
         """
@@ -552,13 +553,14 @@ class BaseSimClass(ABC):
         old_fitness = selected_clone[self.fitness_idx]
         old_mutation_array = self.raw_fitness_array[parent_idx]
         new_fitness_array = old_mutation_array.copy()
-        if label_gene is None:
+        if label_gene_name is None:
             gene_mutated = np.nan  # Not a gene mutation. Any fitness change will be on wild type
-            label_gene = 0
+            fitness_arr_col = 0
         else:
-            gene_mutated = label_gene
+            gene_mutated = self.fitness_calculator.get_gene_number(label_gene_name)
+            fitness_arr_col = gene_mutated + 1  # The first column of the fitness array is the wild type fitness, so add 1 to get the right column for the gene
         if label_fitness is not None:  # Fitness will replace what went before for that gene/wild type
-            new_fitness_array[label_gene] = label_fitness
+            new_fitness_array[fitness_arr_col] = label_fitness
             new_fitness, self.raw_fitness_array[self.next_mutation_index] \
                 = self.fitness_calculator.combine_vectors(np.atleast_2d(new_fitness_array))
             new_fitness = new_fitness[0]  # We are only adding one clone at a time.

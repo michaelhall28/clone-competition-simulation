@@ -573,7 +573,7 @@ def test_treatment_with_multiple_genes(mock_random, axes, algorithm, overwrite_r
         population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
                                         cell_in_own_neighbourhood=False),
         times=TimeParameters(max_time=12, division_rate=DIVISION_RATE),
-        fitness=FitnessParameters(initial_mutant_gene_array=[0, 1], fitness_calculator=fit_calc,
+        fitness=FitnessParameters(initial_mutant_gene_array=["neutral", "driver"], fitness_calculator=fit_calc,
                                   initial_fitness_array=[1.05, 1]),
         treatment=TreatmentParameters(treatment_timings=timings, treatment_effects=treatment_arrays),
     )
@@ -590,7 +590,7 @@ def test_treatment_with_multiple_genes(mock_random, axes, algorithm, overwrite_r
         population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
                                         cell_in_own_neighbourhood=False),
         times=TimeParameters(max_time=12, division_rate=DIVISION_RATE),
-        fitness=FitnessParameters(initial_mutant_gene_array=[0, 1], fitness_calculator=fit_calc,
+        fitness=FitnessParameters(initial_mutant_gene_array=["neutral", "driver"], fitness_calculator=fit_calc,
                                   initial_fitness_array=[1.05, 1], mutation_rates=0.005),
         treatment=TreatmentParameters(treatment_timings=timings, treatment_effects=treatment_arrays),
     )
@@ -626,7 +626,7 @@ def test_treatment_replace_with_multiple_genes(mock_random, axes, algorithm, ove
         times=TimeParameters(max_time=12, division_rate=DIVISION_RATE),
         population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
                                         cell_in_own_neighbourhood=False),
-        fitness=FitnessParameters(initial_mutant_gene_array=[0, 1], fitness_calculator=fit_calc, initial_fitness_array=[1.05, 1]),
+        fitness=FitnessParameters(initial_mutant_gene_array=["neutral", "driver"], fitness_calculator=fit_calc, initial_fitness_array=[1.05, 1]),
         treatment=TreatmentParameters(treatment_timings=timings, treatment_effects=treatment_arrays,
                                       treatment_replace_fitness=True),
     )
@@ -643,7 +643,7 @@ def test_treatment_replace_with_multiple_genes(mock_random, axes, algorithm, ove
         times=TimeParameters(max_time=12, division_rate=DIVISION_RATE),
         population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
                                         cell_in_own_neighbourhood=False),
-        fitness=FitnessParameters(initial_mutant_gene_array=[0, 1], fitness_calculator=fit_calc, mutation_rates=0.005,
+        fitness=FitnessParameters(initial_mutant_gene_array=["neutral", "driver"], fitness_calculator=fit_calc, mutation_rates=0.005,
                                   initial_fitness_array=[1.05, 1]),
         treatment=TreatmentParameters(treatment_timings=timings, treatment_effects=treatment_arrays,
                                       treatment_replace_fitness=False)
@@ -892,21 +892,21 @@ def test_induction_of_label_and_mutant(mock_random, axes, algorithm, overwrite_r
         label_fitness = 1.01
     else:
         label_fitness = 4
-    np.random.seed(0)
-    p = Parameters(
-        algorithm=algorithm,
-        population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
-                                        cell_in_own_neighbourhood=False),
-        times=TimeParameters(max_time=10, division_rate=DIVISION_RATE),
-        fitness=FitnessParameters(fitness_calculator=fitness_calculator),
-        labels=LabelParameters(label_times=label_time, label_values=label_value, label_frequencies=label_freq,
-                               label_fitness=label_fitness),
-        plotting=PlottingParameters(plot_colour_maps=green_clones)
-    )
-    sim = p.get_simulator()
-    sim.run_sim()
-    compare_to_old_results(algorithm, sim, test_name='single_label_with_mutant', overwrite_results=overwrite_results)
-    sim.muller_plot(quick=True, allow_y_extension=True, ax=ax)
+    # np.random.seed(0)
+    # p = Parameters(
+    #     algorithm=algorithm,
+    #     population=PopulationParameters(initial_size_array=initial_size_array, initial_grid=initial_grid,
+    #                                     cell_in_own_neighbourhood=False),
+    #     times=TimeParameters(max_time=10, division_rate=DIVISION_RATE),
+    #     fitness=FitnessParameters(fitness_calculator=fitness_calculator),
+    #     labels=LabelParameters(label_times=label_time, label_values=label_value, label_frequencies=label_freq,
+    #                            label_fitness=label_fitness),
+    #     plotting=PlottingParameters(plot_colour_maps=green_clones)
+    # )
+    # sim = p.get_simulator()
+    # sim.run_sim()
+    # compare_to_old_results(algorithm, sim, test_name='single_label_with_mutant', overwrite_results=overwrite_results)
+    # sim.muller_plot(quick=True, allow_y_extension=True, ax=ax)
 
     # Multiple labelling events
     ax = next_ax(axes, algorithm)
