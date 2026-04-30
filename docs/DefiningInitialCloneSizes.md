@@ -93,7 +93,7 @@ from clone_competition_simulation import FitnessParameters, Gene, FitnessCalcula
 import matplotlib.pyplot as plt
 
 # Define the fitness effects of the mutations
-mutation_generator = FitnessCalculator(
+fitness_calculator = FitnessCalculator(
     genes=[Gene(name="Gene1", mutation_distribution=NormalDist(mean=1.1, var=0.1), 
                 synonymous_proportion=0.5)]
 )
@@ -102,7 +102,7 @@ p = Parameters(
     algorithm='Moran',
     times=TimeParameters(samples=10, max_time=10, division_rate=1),
     population=PopulationParameters(initial_cells=1000), 
-    fitness=FitnessParameters(mutation_rates=0.05, mutation_generator=mutation_generator)
+    fitness=FitnessParameters(mutation_rates=0.05, fitness_calculator=fitness_calculator)
 )
 s = p.get_simulator()
 s.run_sim()

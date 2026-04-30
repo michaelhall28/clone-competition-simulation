@@ -325,7 +325,7 @@ class FitnessCalculator(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     genes: list[Gene]
-    combine_mutations: MutationCombination=MutationCombination.MULTIPLY
+    combine_mutations: MutationCombination = MutationCombination.MULTIPLY
     multi_gene_array: bool = False
     combine_array: ArrayCombination = ArrayCombination.MULTIPLY
     mutation_combination_class: FitnessTransform = Field(default_factory=UnboundedFitness)
@@ -358,7 +358,7 @@ class FitnessCalculator(BaseModel):
         return info.data['combine_array'].function
 
     @model_validator(mode="after")
-    def validate_mutation_generator(self) -> Self:
+    def validate_fitness_calculator(self) -> Self:
         self.num_genes = len(self.genes)
         self.gene_indices = {g.name: i for i, g in enumerate(self.genes)}
         self.mutation_distributions = [g.mutation_distribution for g in self.genes]
@@ -521,17 +521,38 @@ class FitnessCalculator(BaseModel):
 
         return self.mutation_combination_class.fitness(combined_fitness), full_fitness_arrays
 
-    def get_gene_number(self, gene_name: str) -> int | None:
-        if gene_name is None:
-            return None
-        return self.gene_indices.get(gene_name, None)
+    def get_gene_number(self, gene_name: str) -> int:
+        """Convert a gene name to the gene index
 
-    def get_gene_name(self, gene_number: int) -> str | None:
-        if gene_number is None or gene_number == -1 or gene_number > len(self.genes):
-            return None
-        return self.genes[gene_number].name
+        Args:
+            gene_name (str): Name of a gene
 
-    def get_synonymous_proportion(self, gene_num: int) -> float:
+        Raises:
+            ValueError: If the gene is not found in the gene list
+
+        Returns:
+            int: The index of the gene in the gene list
+        """
+        if gene_name not in self.gene_indices:
+            raise ValueError(f"Gene name {gene_name} not found")
+        return self.gene_indices[gene_name]
+
+    def get_gene_name(self, gene_number: int | float | None) -> str | None:
+        """Convert a gene index to a gene name
+
+        Args:
+            gene_number (int | float |None): Index of the gene in the gene list. Can be np.nan if no mutation.
+
+        Returns:
+            str | None: the name of the gene/epistatic effect. None if gene_number is None or -1.
+        """
+        if gene_number is None or np.isnan(gene_number):
+            return None
+        if gene_number < 0:
+            raise ValueError(f"Gene number {gene_number} is invalid. Must be non-negative or None.")
+        return self.genes[int(gene_number)].name
+
+    def get_synonymous_proportion(self, gene_num: int | None) -> float:
         if gene_num is None:
             return self.overall_synonymous_proportion
         else:

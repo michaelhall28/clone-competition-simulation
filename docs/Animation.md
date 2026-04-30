@@ -69,7 +69,7 @@ from clone_competition_simulation import Gene, FitnessCalculator, UniformDist, F
 # Keeping the two initial neutral clones as before to demonstrate that they are not used to colour the cells here 
 np.random.seed(2)
 initial_grid = np.concatenate([np.zeros(5000), np.ones(5000)]).reshape(100, 100)
-mut_gen = FitnessCalculator(
+fit_calc = FitnessCalculator(
     genes=[Gene(name='Gene1', mutation_distribution=UniformDist(1, 1.5), synonymous_proportion=0)], 
     combine_mutations='add'
 )
@@ -77,7 +77,7 @@ p = Parameters(
     algorithm='Moran2D', 
     times=TimeParameters(max_time=10, division_rate=1), 
     population=PopulationParameters(initial_grid=initial_grid, cell_in_own_neighbourhood=False),
-    fitness=FitnessParameters(mutation_generator=mut_gen, mutation_rates=0.1)
+    fitness=FitnessParameters(fitness_calculator=fit_calc, mutation_rates=0.1)
 )
 s = p.get_simulator()
 s.run_sim()

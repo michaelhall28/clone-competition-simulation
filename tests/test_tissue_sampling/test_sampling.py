@@ -38,7 +38,7 @@ class MockFitnessCalculator:
 class MockSim:
     grid: np.ndarray
     total_pop: int
-    mutation_generator: MockFitnessCalculator
+    fitness_calculator: MockFitnessCalculator
     ns_muts: set[int]
     grid_results: np.ndarray
     clones_array: np.ndarray
@@ -61,7 +61,7 @@ def sim(grid):
     return MockSim(
         grid=grid, total_pop=grid.size, grid_results= np.array([grid]),
         clones_array=np.tile(np.arange(4), 25).reshape(100, 1),
-        mutation_generator=MockFitnessCalculator(
+        fitness_calculator=MockFitnessCalculator(
             genes=[MockGene(name="A"), MockGene(name="B"), MockGene(name="C"), MockGene(name="D")],
         ),
         ns_muts=set(range(0, 100, 4)),

@@ -110,7 +110,7 @@ Run a simulation with some ongoing mutation
 ```python
 from clone_competition_simulation import Gene, FitnessCalculator, NormalDist, FitnessParameters
 
-mut_gen = FitnessCalculator(
+fit_calc = FitnessCalculator(
     genes=[Gene(name="Gene1", mutation_distribution=NormalDist(0.1), synonymous_proportion=0.5)],
 )
 
@@ -122,7 +122,7 @@ p = Parameters(
                                     cell_in_own_neighbourhood=False), 
     fitness=FitnessParameters(
         mutation_rates=0.1, 
-        mutation_generator=mut_gen
+        fitness_calculator=fit_calc
     )
 )
 s = p.get_simulator()
@@ -219,7 +219,7 @@ Get the exact mutant cell counts from the end of the simulation.
 ```python
 from clone_competition_simulation import FixedValue
 
-mut_gen = FitnessCalculator(
+fit_calc = FitnessCalculator(
     genes=[
         Gene(name='Gene1', mutation_distribution=FixedValue(1.2), synonymous_proportion=0.5), 
         Gene(name='Gene2', mutation_distribution=FixedValue(1.4), synonymous_proportion=0.5), 
@@ -236,7 +236,7 @@ p = Parameters(
                                     cell_in_own_neighbourhood=False), 
     fitness=FitnessParameters(
         mutation_rates=0.01, 
-        mutation_generator=mut_gen
+        fitness_calculator=fit_calc
     )
 )
 s = p.get_simulator()

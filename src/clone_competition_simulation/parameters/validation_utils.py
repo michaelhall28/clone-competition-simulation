@@ -71,7 +71,7 @@ def find_subclass(cls: type[ParameterBase], field_name: str) -> type[ParameterBa
     raise ValueError(f"No ParameterClass for field name {field_name}")
 
 
-def convert_to_array(value, dtype=None):
+def convert_to_array(value, dtype=None) -> Any | int | float | NDArray[np.float64] | NDArray[np.int_]:
     """
     Numbers and None are returned unchanged, otherwise
     convert anything "array like" to a numpy array.

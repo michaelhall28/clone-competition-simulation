@@ -12,7 +12,6 @@ import itertools
 import math
 import warnings
 from collections import Counter
-from functools import lru_cache
 from typing import TYPE_CHECKING, Iterable, Literal, Any, ClassVar, Self
 from abc import ABC, abstractmethod
 
@@ -20,6 +19,7 @@ from rich.progress import Progress
 from rich.console import Console
 import dill as pickle
 import matplotlib.cm as cm
+import matplotlib.axes
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -133,15 +133,11 @@ class BaseSimClass(ABC):
     # Could encode gene and/or nonsense/missense/... depending on how genes are defined
 
     def __init__(self, parameters: "Parameters"):
-        """
-
-        :param parameters: A Parameters object.
-        """
         # Get attributes from the parameters
         self.total_pop = parameters.population.initial_cells
         self.initial_size_array = parameters.population.initial_size_array
         self.mutation_rates = parameters.fitness.mutation_rates
-        self.mutation_generator = parameters.fitness.mutation_generator
+        self.fitness_calculator = parameters.fitness.fitness_calculator
         self.division_rate = parameters.times.division_rate
         self.max_time = parameters.times.max_time
         self.times = parameters.times.times
@@ -161,7 +157,7 @@ class BaseSimClass(ABC):
         self._search_times = None
         self.s_muts = set()  # Synonymous mutations. Indices of the first clone they appear in
         self.ns_muts = set()  # Non-synonymous mutations. Indices of the first clone they appear in
-        self.label_muts = set()  # Labelled clones. Indices of the clones that get a labeled (after init)
+        self.label_muts = set()  # Labelled clones. Indices of the clones that get a label (after init)
         self.label_count = 0
         self.next_label_time = None
         self.treatment_count = -1
@@ -183,7 +179,8 @@ class BaseSimClass(ABC):
 
         # Stores the sizes of clones containing particular mutants.
         self.mutant_clone_array = None
-        self.trimmed_tree = None  # Used for mutant clone arrays.
+        self.trimmed_tree = None  # Used for mutant clone arrays. Clone tree with only observed clones and their ancestors. 
+        self.sampled_clones = None  # The clones which are observed at sample points.  
 
         # A few attributes to help with the simulation running and storage
         self.tmp_store = parameters.tmp_store
@@ -209,7 +206,7 @@ class BaseSimClass(ABC):
         self.stop_function = parameters.end_condition_function
 
     ##### Functions for setting up the simulations
-    def _calculate_search_times(self):
+    def _calculate_search_times(self) -> None:
         """Calculates slightly adjusted times so floating point errors do not lead to incorrect time point selection
 
         To fix the cases where we are searching for the time before or equal to t and we exclude t.0000000001. 
@@ -224,14 +221,20 @@ class BaseSimClass(ABC):
             min_diff = self.times[0]
         self._search_times = self.times - min_diff/100
 
-    def _setup_label_times(self):
+    def _setup_label_times(self) -> None:
+        """Convert the input label times to the simulation step at which they will be applied. 
+        Also sets the next_label_time attribute to the first label time.
+        """
         self.label_times = self._adjust_raw_times(self.label_times)
         if self.label_times is not None:
             self.next_label_time = self.label_times[0]
         else:
             self.next_label_time = np.inf
 
-    def _setup_treatment(self, parameters: "Parameters"):
+    def _setup_treatment(self, parameters: "Parameters") -> None:
+        """Convert the input treatment times to the simulation step at which they will be applied. 
+        Also sets the next_treatment_time attribute to the first treatment time.
+        """
         self.treatment_count = -1
         if parameters.treatment.treatment_timings is None:
             # No treatment applied. But this set up means the initial fitness is set correctly then not changed.
@@ -246,7 +249,9 @@ class BaseSimClass(ABC):
             self.next_treatment_time = self.treatment_timings[0]  # First value will always be zero
             self.treatment_replace_fitness = parameters.treatment.treatment_replace_fitness
 
-    def _setup_clone_tree(self):
+    def _setup_clone_tree(self) -> None:
+        """Sets up the tree that tracks the ancestry of mutant clones.
+        """
         self.tree = Tree()
         self.tree.create_node(str(-1), -1)  # Make a root node that isn't a clone.
     
@@ -254,7 +259,8 @@ class BaseSimClass(ABC):
     def _adjust_raw_times(self, array: ArrayLike) -> np.ndarray[tuple[int], np.dtype[np.float64]]:
         """
         Takes an array of time points and converts to number of simulation steps
-        This is for the Moran simulations. Overwrite for the other cases
+        Varies depending on the algorithm, so is defined in the subclasses. 
+        
         :param array: Numpy array or list of time points.
         """
         raise NotImplementedError()
@@ -269,10 +275,10 @@ class BaseSimClass(ABC):
         """
         raise NotImplementedError()
 
-    def _init_arrays(self, labels_array, initial_mutant_gene_array, input_fitness_array):
+    def _init_arrays(self, labels_array, initial_mutant_gene_array, input_fitness_array) -> None:
         """
         Defines self.clones_array, self.population_array and self.raw_fitness_array
-        Fills the self.clones_array with any information given about the initial cells.
+        Fills self.clones_array with any information given about the initial cells.
         """
         self.clones_array = np.zeros((self.total_clone_count, 6))
         self.clones_array[:, self.id_idx] = np.arange(len(self.clones_array))  # Give clone an identifier
@@ -282,8 +288,8 @@ class BaseSimClass(ABC):
         self.clones_array[:self.initial_clones, self.label_idx] = labels_array  # Give each intial cell a type
 
         if initial_mutant_gene_array is None:
-            initial_mutant_gene_array = -1
-        # Give each initial cell mutation type. -1 if no mutation
+            initial_mutant_gene_array = np.nan
+        # Give each initial cell mutation type. np.nan if no mutation
         self.clones_array[:self.initial_clones, self.gene_mutated_idx] = initial_mutant_gene_array
 
         self.clones_array[:self.initial_clones, self.generation_born_idx] = 0
@@ -291,10 +297,10 @@ class BaseSimClass(ABC):
 
         # For each clone, need an raw fitness array as long as the number of genes
         # Needs to be dtype=float, which is the default of np.zeros
-        if self.mutation_generator and self.mutation_generator.multi_gene_array:
-            num_cols_genes = len(self.mutation_generator.genes)+1
-            if self.mutation_generator.epistatics is not None:
-                num_cols = num_cols_genes + len(self.mutation_generator.epistatics)
+        if self.fitness_calculator and self.fitness_calculator.multi_gene_array:
+            num_cols_genes = len(self.fitness_calculator.genes)+1
+            if self.fitness_calculator.epistatics is not None:
+                num_cols = num_cols_genes + len(self.fitness_calculator.epistatics)
             else:
                 num_cols = num_cols_genes
             blank_fitness_array = np.full((self.total_clone_count, num_cols),
@@ -321,9 +327,14 @@ class BaseSimClass(ABC):
             self.tree.create_node(str(i), i, parent=-1)  # Directly descended from the root node
 
     ##### Functions for running the simulation    
-    def run_sim(self, continue_sim=False):
-        # Functions which runs any of the simulation types.
-        # self.sim_step will include the differences between the methods.
+    def run_sim(self, continue_sim: bool=False) -> None:
+        """Main function for running simulations. Sets up the simulation and then runs through all
+        the simulation steps. 
+
+        Args:
+            continue_sim (bool, optional): Continues a simulation from a previous state. 
+             Defaults to False. Should run through sim.continue_sim() instead of running this function directly. 
+        """
 
         if self.i > 0:
             # Not the first time it has been run
@@ -389,30 +400,44 @@ class BaseSimClass(ABC):
         self._finish_up()
         self.finished = True
 
-    def continue_sim(self):
+    def continue_sim(self) -> None:
+        """Continue a simulation from a previous state (e.g. saved to a pickle part way through a simulation). 
+        Restores the random state.
+        """
         if self.random_state is not None:
             np.random.set_state(self.random_state)
         self.run_sim(continue_sim=True)
 
-    def _sim_step(self, i, current_data: CurrentData) -> CurrentData:  # Overwrite
+    def _sim_step(self, i: int, current_data: CurrentData) -> CurrentData:  # Overwriten in each subclass.
+        """Runs a single step of a simulation. Will vary depending on the algorithm. 
+
+        Args:
+            i (int): the current simulation step.
+            current_data (CurrentData): Object storing the current state of the simulation, e.g. 
+             the current clone sizes or grid array. Will vary depending on the algorithm. 
+
+        Returns:
+            CurrentData: the current data updated following the simnulation step. 
+        """
         raise NotImplementedError()
 
-    def _finish_up(self):
+    def _finish_up(self) -> None:
         """
-        Some of the simulations may required some tidying up at the end,
-        for example, removing unused rows in the arrays.
+        Some of the algorithms may required some tidying up at the end,
+        for example, removing unused rows in the arrays. Overwritten where relevant. 
         :return:
         """
         pass
 
     ##### Functions for storing population counts.
-    def _record_results(self, i, current_data: CurrentData, progress: Progress, task: int) -> None:
+    def _record_results(self, i: int, current_data: CurrentData, progress: Progress, task: int) -> None:
         """
         Check if the current step is one of the sample points
         Record the results at the point the simulation is up to.
         Update the progress bar.
-        :param i:
-        :param current_population:
+
+        :param i (int): The current simulation step.
+        :param current_population (CurrentData):
         :param progress: The progress object for the progress bar. 
         :param task: The task number for the progress bar.
         :return:
@@ -423,7 +448,13 @@ class BaseSimClass(ABC):
                 self.stop_function(self)
             progress.update(task, advance=1)
 
-    def _take_sample(self, current_data: CurrentData):
+    def _take_sample(self, current_data: CurrentData) -> None:
+        """Store the current state of the simulation in the population array.  
+        If storing partially completed simulation states, dump the simulation to a pickle. 
+
+        Args:
+            current_data (CurrentData): _description_
+        """
         current_data.update_population_array(self.population_array, self.plot_idx)
         self.plot_idx += 1
         if self.tmp_store is not None:  # Store current state of the simulation.
@@ -434,37 +465,48 @@ class BaseSimClass(ABC):
                 self.pickle_dump(str(self.tmp_store) + '1')
                 self.store_rotation = 0
 
-    def set_colour_maps(self, plot_colour_maps: PlotColourMaps, regenerate_colours=True):
+    def set_colour_maps(self, plot_colour_maps: PlotColourMaps, regenerate_colours: bool=True) -> None:
         """
-        For changing the PlotColourMaps
+        For changing the colours used in plots. 
+        :param plot_colour_maps (PlotColourMaps): The PlotColourMaps object containing the new colour maps to use for plotting.
+        :param regenerate_colours (bool, optional): Whether to regenerate the colours. Defaults to True.
         :return: None
         """
         self.plot_colour_maps = plot_colour_maps
         if regenerate_colours:
             self._get_colours(self.clones_array, force_regenerate=True)
 
-    def pickle_dump(self, filename):
+    def pickle_dump(self, filename: str) -> None:
+        """Stores the simulation in a pickle file. 
+        Stores the current random state so it can be restored when reloading. 
+
+        Args:
+            filename (str): Name of the file to store the pickle in. 
+        """
         self.random_state = np.random.get_state()
         with gzip.open(filename, 'wb') as f:
             pickle.dump(self, f, protocol=4)
 
     ##### Functions for changing treatment (changes clone fitness)
-    def _check_treatment_time(self):
+    def _check_treatment_time(self) -> bool:
+        """Returns True if it is time to switch treatment, False otherwise"""
         if self.i >= self.next_treatment_time:
             return True
         return False
 
-    def _change_treatment(self, initial=False):
+    def _change_treatment(self, initial: bool=False) -> None:
+        """Switches to the next treatment and updates the fitness of all clones accordingly. 
+        Also used at the start of the simulation to calculate the initial fitness of clones."""
         self.treatment_count += 1
         self.current_fitness_multiplier = self.treatment_effects[self.treatment_count]
         self.next_treatment_time = self.treatment_timings[self.treatment_count+1]
         if initial:
-            if self.mutation_generator and self.mutation_generator.multi_gene_array:
+            if self.fitness_calculator and self.fitness_calculator.multi_gene_array:
                 self.clones_array[:self.initial_clones, self.fitness_idx] = self._apply_treatment(fitness_arrays=self.raw_fitness_array[:self.initial_clones])
             else:
                 self.clones_array[:self.initial_clones, self.fitness_idx] = self._apply_treatment(fitness_values=self.raw_fitness_array[:self.initial_clones])
         else:
-            if self.mutation_generator and self.mutation_generator.multi_gene_array:
+            if self.fitness_calculator and self.fitness_calculator.multi_gene_array:
                 self.clones_array[:, self.fitness_idx] = self._apply_treatment(fitness_arrays=self.raw_fitness_array)
             else:
                 self.clones_array[:, self.fitness_idx] = self._apply_treatment(fitness_values=self.raw_fitness_array)
@@ -473,11 +515,11 @@ class BaseSimClass(ABC):
         # Apply the treatment affects to an array of fitnesses
         # fitness_values is 1D array of overall fitness for each clone
         # fitness_arrays is a 2D array with one row per clone and one column per gene plus a column for wild type
-        if self.mutation_generator and self.mutation_generator.multi_gene_array:
+        if self.fitness_calculator and self.fitness_calculator.multi_gene_array:
             # Apply the treatment to the genes, then calculate the overall fitness.
             if not self.treatment_replace_fitness:  # Multiply the fitness by the treatment effect
                 adjusted_fitness_array = fitness_arrays * self.current_fitness_multiplier
-                combined_fitness_array, _ = self.mutation_generator.combine_vectors(adjusted_fitness_array)
+                combined_fitness_array, _ = self.fitness_calculator.combine_vectors(adjusted_fitness_array)
             else:
                 # Replace the fitness with the new fitness effect
                 adjusted_fitness_array = np.tile(self.current_fitness_multiplier, (len(fitness_arrays), 1))
@@ -487,7 +529,7 @@ class BaseSimClass(ABC):
                 adjusted_fitness_array[:,
                     np.isnan(self.current_fitness_multiplier)] = fitness_arrays[:,
                                                                     np.isnan(self.current_fitness_multiplier)]
-                combined_fitness_array, _ = self.mutation_generator.combine_vectors(adjusted_fitness_array)
+                combined_fitness_array, _ = self.fitness_calculator.combine_vectors(adjusted_fitness_array)
             return combined_fitness_array
         else:
             # Applies per clone.
@@ -506,7 +548,8 @@ class BaseSimClass(ABC):
             return True
         return False
 
-    def _add_label(self, current_data: CurrentData, label_frequency, label, label_fitness, label_gene) -> CurrentData:
+    def _add_label(self, current_data: CurrentData, label_frequency: float, label: int, 
+                   label_fitness: float, label_gene_name: str | None) -> CurrentData:
         """
         Add some labelling at the current label frequency.
         The labelling is not exact, so each cell has same chance.
@@ -528,7 +571,7 @@ class BaseSimClass(ABC):
         for i, (c, n) in enumerate(zip(labels_per_clone, non_zero_clones)):
             for j in range(c):
                 current_population[i] -= 1
-                self._add_labelled_clone(n, label, label_fitness, label_gene)
+                self._add_labelled_clone(n, label, label_fitness, label_gene_name)
 
         gr_z = np.where(current_population > 0)[0]  # The indices of clones alive at this point in the current pop
         non_zero_clones = non_zero_clones[gr_z]  # Convert to the original clone numbers
@@ -544,7 +587,7 @@ class BaseSimClass(ABC):
                             non_zero_clones=non_zero_clones)
         return current_data
 
-    def _add_labelled_clone(self, parent_idx, label, label_fitness, label_gene):
+    def _add_labelled_clone(self, parent_idx: int, label: int, label_fitness: float, label_gene_name: str | None) -> None:
         """Select a fitness for the new mutation and the cell in which the mutation occurs
         parent_idx = the id of the clone in which the mutation occurs
         """
@@ -552,15 +595,16 @@ class BaseSimClass(ABC):
         old_fitness = selected_clone[self.fitness_idx]
         old_mutation_array = self.raw_fitness_array[parent_idx]
         new_fitness_array = old_mutation_array.copy()
-        if label_gene is None:
-            gene_mutated = -1  # Not a gene mutation. Any fitness change will be on wild type
-            label_gene = 0
+        if label_gene_name is None:
+            gene_mutated = np.nan  # Not a gene mutation. Any fitness change will be on wild type
+            fitness_arr_col = 0
         else:
-            gene_mutated = label_gene
+            gene_mutated = self.fitness_calculator.get_gene_number(label_gene_name)
+            fitness_arr_col = gene_mutated + 1  # The first column of the fitness array is the wild type fitness, so add 1 to get the right column for the gene
         if label_fitness is not None:  # Fitness will replace what went before for that gene/wild type
-            new_fitness_array[label_gene] = label_fitness
+            new_fitness_array[fitness_arr_col] = label_fitness
             new_fitness, self.raw_fitness_array[self.next_mutation_index] \
-                = self.mutation_generator.combine_vectors(np.atleast_2d(new_fitness_array))
+                = self.fitness_calculator.combine_vectors(np.atleast_2d(new_fitness_array))
             new_fitness = new_fitness[0]  # We are only adding one clone at a time.
         else:
             new_fitness = old_fitness
@@ -619,7 +663,7 @@ class BaseSimClass(ABC):
 
         # Get a fitness value for the new clone.
         new_fitness_values, new_fitness_arrays, \
-        synonymous, genes_mutated = self.mutation_generator.get_new_fitnesses(old_fitnesses, old_mutation_arrays)
+        synonymous, genes_mutated = self.fitness_calculator.get_new_fitnesses(old_fitnesses, old_mutation_arrays)
 
         mutation_indices = np.arange(self.next_mutation_index, self.next_mutation_index + len(parent_idxs))
 
@@ -651,7 +695,8 @@ class BaseSimClass(ABC):
     def view_clone_info(self, include_raw_fitness: bool=False) -> pd.DataFrame:
         """
         This converts the clone_array into a more readable pandas dataframe
-        :param include_raw_fitness: Add the raw_fitness_array data to the dataframe
+        :param include_raw_fitness: Add the raw_fitness_array data to the dataframe. 
+         This will show the fitness applied by mutations in each gene. 
         :return: pandas.DataFrame
         """
         df = pd.DataFrame({
@@ -661,18 +706,18 @@ class BaseSimClass(ABC):
             'generation born': pd.Series(self.clones_array[:, self.generation_born_idx], dtype=int),
             'parent clone id': pd.Series(self.clones_array[:, self.parent_idx], dtype=int),
         })
-        if self.mutation_generator is not None:
+        if self.fitness_calculator is not None:
             df['last gene mutated'] = pd.Series(
-                [self.mutation_generator.get_gene_name(int(g)) for g in self.clones_array[:, self.gene_mutated_idx]],
+                [self.fitness_calculator.get_gene_name(g) for g in self.clones_array[:, self.gene_mutated_idx]],
                 dtype=object)
 
-        if include_raw_fitness and self.mutation_generator is not None:
+        if include_raw_fitness and self.fitness_calculator is not None:
             cols = []
-            if self.mutation_generator.multi_gene_array:
+            if self.fitness_calculator.multi_gene_array:
                 cols += ['Initial clone fitness']
-            cols += [g.name for g in self.mutation_generator.genes]
-            if self.mutation_generator.epistatics is not None:
-                cols += [e.name for e in self.mutation_generator.epistatics]
+            cols += [g.name for g in self.fitness_calculator.genes]
+            if self.fitness_calculator.epistatics is not None:
+                cols += [e.name for e in self.fitness_calculator.epistatics]
             raw_df = pd.DataFrame(self.raw_fitness_array, columns=cols)
             df = pd.concat([df, raw_df], axis=1)
 
@@ -707,17 +752,18 @@ class BaseSimClass(ABC):
 
     def get_clone_sizes_array_for_non_mutation(self, t: float | int | None=None,
                                                index_given:bool=False, label: int | None=None,
-                                               exclude_zeros: bool=True) -> NDArray[int]:
+                                               exclude_zeros: bool=True) -> np.ndarray[tuple[int], np.dtype[np.int_]]:
         """
         Gets array of all clone sizes.
         Clones here are defined by a unique set of mutations, not per mutation.
         Therefore this is only really suitable for a simulation without mutations, where we want to track the sizes of
         a number of initial clones.
+
         :param t: time or index of the sample to get the distribution for.
         :param index_given: True if t is the index
         :param label: label of the clones to include. Will return all clones if None.
         :param exclude_zeros: Remove any "dead" clones
-        :return:
+        :return: 1D-array of clones sizes.
         """
         if self.is_lil:
             self.change_sparse_to_csr()
@@ -742,15 +788,17 @@ class BaseSimClass(ABC):
         return clones
 
     def get_clone_size_distribution_for_non_mutation(self, t: float | int | None=None, index_given:bool=False,
-                                                     label: int | None=None, exclude_zeros: bool=True) -> NDArray[int]:
+                                                     label: int | None=None, exclude_zeros: bool=True) ->np.ndarray[tuple[int], np.dtype[np.int_]]:
         """
-        Gets the clone size frequencies. Not normalised.
+        Gets the clone size frequencies (a numpy bincount of clone sizes). Not normalised.
         Clones here are defined by a unique set of mutations, not per mutation.
         Therefore this is only really suitable for a simulation without mutations, where we want to track the sizes of
         a number of initial clones.
+
         :param t: time or index of the sample to get the distribution for.
         :param index_given: True if t is the index
-        :return:
+        :return: Array of integers. Count of clones of each size. The index of the array is the clone size, so the value at index 0 
+         is the number of clones of size 0, etc.
         """
         clones = self.get_clone_sizes_array_for_non_mutation(t=t, index_given=index_given, label=label,
                                                              exclude_zeros=exclude_zeros)
@@ -758,12 +806,16 @@ class BaseSimClass(ABC):
         return counts
 
     def get_surviving_clones_for_non_mutation(self, times: Iterable[float] | None=None, label: int | None=None)\
-            -> tuple[NDArray[int], Iterable[float]]:
+            -> tuple[np.ndarray[tuple[int], np.dtype[np.int_]], Iterable[float]]:
         """
         Follows the surviving clones based on of each row in the clone array. This is a clone defined by a unique set of
         mutations, not be a particular mutation.
         Therefore, this function is only suitable for tracking the progress of clones growing without any mutations.
         For comparing to single progenitor model in lineage tracing experiments.
+
+        :param times: Iterable of time points to get the number of surviving clones at. If None, will use all time points.
+        :param label: label of the clones to include. Will return all clones if None.
+        :return: Tuple of (array of number of surviving clones at each time point, array of time points). 
         """
         if times is None:
             times = self.times
@@ -782,6 +834,7 @@ class BaseSimClass(ABC):
     def get_clone_ancestors(self, clone_idx: int) -> list[int]:
         """
         Return the clone ids of all ancestors of a given clone.
+
         :param clone_idx: int
         :return:
         """
@@ -790,45 +843,62 @@ class BaseSimClass(ABC):
     def get_clone_descendants(self, clone_idx: int) -> list[int]:
         """
         Return the clone ids of all descendants of a given clone.
+
         :param clone_idx: int
         :return:
         """
         return list(self.tree.subtree(clone_idx).nodes.keys())  # Might be better way to do this
 
-    @lru_cache()
     def _trim_tree(self) -> tuple[Tree, list[int]]:
-        # Some clones may have appeared and died between sampling points.
-        # These won't affect the results but can slow down the processing
-        # Make new tree just from sampled clones.
-        non_zero_sampled_clones = np.unique((self.population_array.nonzero()[0]))
-        sampled_clones_set = set()
-        for clone in non_zero_sampled_clones[::-1]:
-            if clone not in sampled_clones_set:
-                ancestors = self.get_clone_ancestors(clone)
-                sampled_clones_set.update(ancestors)
+        """Creates a clone family tree excluding any clones with are never observed and do not have any 
+        unobserved descendants. Can greatly reduce the number of clones we have to consider in an analysis. 
 
-        sampled_clones_set.remove(-1)
-        trimmed_tree = Tree()
-        trimmed_tree.create_node("-1", -1)
-        sampled_clones = sorted(sampled_clones_set)
-        for n in sorted(sampled_clones):  # For every clone that is alive at a sampling time
-            for n2 in self.tree.rsearch(n):  # Find the first ancestor that was sampled. This is the new parent.
-                if n != n2 and (n2 == -1 or n2 in sampled_clones_set):
-                    trimmed_tree.create_node(str(n), n, parent=n2)
-                    break
-        return trimmed_tree, sampled_clones
+        Returns:
+            tuple[Tree, list[int]]: The trimmed tree and list of the clones in it. 
+        """
+        if self.trimmed_tree is None:
+            # Some clones may have appeared and died between sampling points.
+            # These won't affect the results but can slow down the processing
+            # Make new tree just from sampled clones.
+            non_zero_sampled_clones = np.unique((self.population_array.nonzero()[0]))
+            sampled_clones_set = set()
+            for clone in non_zero_sampled_clones[::-1]:
+                if clone not in sampled_clones_set:
+                    ancestors = self.get_clone_ancestors(clone)
+                    sampled_clones_set.update(ancestors)
 
-    def _get_clone_descendants_trimmed(self, trimmed_tree: Tree, clone_idx: int) -> list[int]:
+            sampled_clones_set.remove(-1)
+            trimmed_tree = Tree()
+            trimmed_tree.create_node("-1", -1)
+            sampled_clones = sorted(sampled_clones_set)
+            for n in sorted(sampled_clones):  # For every clone that is alive at a sampling time
+                for n2 in self.tree.rsearch(n):  # Find the first ancestor that was sampled. This is the new parent.
+                    if n != n2 and (n2 == -1 or n2 in sampled_clones_set):
+                        trimmed_tree.create_node(str(n), n, parent=n2)
+                        break
+            self.trimmed_tree = trimmed_tree
+            self.sampled_clones = sampled_clones
+        
+        return self.trimmed_tree, self.sampled_clones
+
+    def _get_clone_descendants_trimmed(self, clone_idx: int) -> list[int]:
         """Must run trim tree first"""
-        return list(trimmed_tree.subtree(clone_idx).nodes.keys())
+        if not self.trimmed_tree:
+            self._trim_tree()
+        return list(self.trimmed_tree.subtree(clone_idx).nodes.keys())
 
-    def track_mutations(self, selection: Literal['all', 's', 'ns', 'label', 'mutations', 'non_zero']='all') \
+    def _track_mutations(self, selection: Literal['all', 's', 'ns', 'label', 'mutations', 'non_zero']='all') \
             -> dict[int, list[int]]:
         """
         Get a dictionary of the clones which contain each mutation.
-        :param selection: 'all', 'ns', 's'. All/non-synonymous only/synonymous only.
+
+        :param selection: 'all', 'ns', 's', 'label', 'mutations', 'non_zero'. 'all: All clones. 
+         'ns': non-synonymous clones only. 's': synonymous clones only. 
+         'label': clones from a labelling event. 'mutations': clones from mutants. 
+         'non_zero': clones which are observed at sample points and their ancestors.
+
         :return: Dict. Key: mutation id (id of first clone which contains the mutation),
-        value: set of clone ids which contain that mutation
+                       Value: set of clone ids which contain that mutation
         """
         if selection == 's':
             mutant_clones = {k: self.get_clone_descendants(k) for k in self.s_muts}
@@ -841,20 +911,21 @@ class BaseSimClass(ABC):
         elif selection == 'mutations':
             mutant_clones = {k: self.get_clone_descendants(k) for k in self.ns_muts.union(self.s_muts)}
         elif selection == 'non_zero':
-            trimmed_tree, sampled_clones = self._trim_tree()
-            mutant_clones = {k: self._get_clone_descendants_trimmed(trimmed_tree, k) for k in sampled_clones}
+            # Only show observed clones. 
+            self._trim_tree()  # Calcutes the clone tree with only observed clones and their ancestors. 
+            mutant_clones = {k: self._get_clone_descendants_trimmed(k) for k in self.sampled_clones}
         else:
             logger.error("Please select from 'all', 's', 'ns', 'label', 'mutations' or 'non_zero'")
             raise ValueError("Please select from 'all', 's', 'ns', 'label', 'mutations' or 'non_zero'")
 
         return mutant_clones
 
-    def _create_mutant_clone_array(self):
+    def _create_mutant_clone_array(self) -> None:
         """
         Create an array with the clone sizes for each mutant across the entire simulation.
         The populations will usually add up to more than the total since many clones will have multiple mutations
         """
-        mutant_clones = self.track_mutations(selection='non_zero')
+        mutant_clones = self._track_mutations(selection='non_zero')
         self.mutant_clone_array = lil_matrix(self.population_array.shape)
         for mutant in mutant_clones:
             self.mutant_clone_array[mutant] = self.population_array[mutant_clones[mutant]].sum(axis=0)
@@ -864,23 +935,27 @@ class BaseSimClass(ABC):
         Returns a set of all clones with gene_mutated given
         :param gene_mutated: The name of the gene mutated.
         """
-        gene_num = self.mutation_generator.get_gene_number(gene_mutated)
+        gene_num = self.fitness_calculator.get_gene_number(gene_mutated)
         return set(np.where(self.clones_array[:, self.gene_mutated_idx] == gene_num)[0])
 
     def get_mutant_clone_sizes(self, t: float | int | None=None,
                                selection: Literal['mutations', 'all', 'ns', 's', 'label']='mutations',
                                index_given: bool=False, gene_mutated: str | None=None,
-                               non_zero_only: bool=False) -> NDArray:
+                               non_zero_only: bool=False) -> np.ndarray[tuple[int], np.dtype[np.int_]]:
         """
         Get an array of mutant clone sizes at a particular time
         WARNING: This may not work exactly as expected if there were multiple initial clones!
+
         :param t: time/sample index
-        :param selection: 'all', 'ns', 's'. All/non-synonymous only/synonymous only.
+        :param selection: 'all', 'ns', 's', 'label', 'mutations', 'non_zero'. 
+         'all: All clones, including initial clones and mutants. 
+         'ns': non-synonymous clones only. 's': synonymous clones only. 
+         'label': clones from a labelling event. 'mutations': clones from mutants. 
         :param index_given: True if t is an index of the sample, False if t is a time.
         :param gene_mutated: Gene name. Only return clone sizes for a particular additional label.
-        For example to only get mutations for a single gene.
+         For example to only get mutations for a single gene.
         :param non_zero_only: Only return mutants with a positive cell count.
-        :return: np.array of ints
+        :return: np.array of ints. The mutant clones sizes. 
         """
         if t is None:
             t = self.max_time
@@ -917,14 +992,16 @@ class BaseSimClass(ABC):
 
     def get_mutant_clone_size_distribution(self, t: float | int | None=None,
                                            selection: Literal['mutations', 'ns', 's']='mutations',
-                                           index_given: bool=False, gene_mutated: str | None=None) -> NDArray:
+                                           index_given: bool=False, gene_mutated: str | None=None) \
+                                            -> np.ndarray[tuple[int], np.dtype[np.int_]]:
         """
         Get the frequencies of mutant clone sizes. Not normalised.
+
         :param t: time/sample index
-        :param selection: 'mutations', 'ns', 's'. All/non-synonymous only/synonymous only.
+        :param selection: 'mutations', 'ns', 's'. All mutations/non-synonymous only/synonymous only.
         :param index_given: True if t is an index of the sample, False if t is a time.
         :param gene_mutated: Int. Only return clone sizes for a particular additional label.
-        For example to only get mutations for a single gene.
+         For example to only get mutations for a single gene.
         :return: np.array of ints.
         """
         if t is None:
@@ -958,9 +1035,10 @@ class BaseSimClass(ABC):
     def get_dnds(self, t: float | int | None=None, min_size: int=1, gene: str | None=None) -> float:
         """
         Returns the dN/dS at a particular time.
+
         :param t: Time. If None, will be the end of the simulation.
         :param min_size: Int. The minimum size of clones to include.
-        :param gene: Int. The type of the mutation. E.g. For getting dN/dS for a particular gene.
+        :param gene: str. The name of a gene. E.g. For getting dN/dS for a particular gene.
         :return:
         """
         if t is None:
@@ -972,8 +1050,11 @@ class BaseSimClass(ABC):
         s_mut_measured = s_mut[s_mut >= min_size]
         total_s = len(s_mut_measured)
 
-        gene_num = self.mutation_generator.get_gene_number(gene)  # If gene is None, will get the overall ns
-        expected_ns = total_s * (1 / self.mutation_generator.get_synonymous_proportion(gene_num) - 1)
+        # If gene is None, will get the overall ns
+        if gene is not None:
+            # Convert gene name to gene number for the fitness calculator
+            gene = self.fitness_calculator.get_gene_number(gene)  
+        expected_ns = total_s * (1 / self.fitness_calculator.get_synonymous_proportion(gene) - 1)
         try:
             dnds = total_ns / expected_ns
             return dnds
@@ -983,7 +1064,8 @@ class BaseSimClass(ABC):
     def get_labeled_population(self, label: int | None=None) -> NDArray:
         """
         If label is None, will return the total population (not interesting for the fixed population models)
-        :param label:
+
+        :param label: Int | None. The label of the clones to include.
         :return: Array of population at all time points
         """
         if label is not None:
@@ -1000,6 +1082,7 @@ class BaseSimClass(ABC):
         """
         Returns the mean mutant clone size.
         Each clone is defined as the total cells containing a mutation.
+
         :param t: time point. If index_given=True, it is the index of the time point required.
         :param selection: 'mutations' for all mutant clones. 'ns' for non-synonymous mutations only. 's' for synonymonus
         clones only.
@@ -1061,8 +1144,8 @@ class BaseSimClass(ABC):
                     initial = True
                 else:
                     initial = False
-                if self.mutation_generator is not None:
-                    last_mutated_gene = self.mutation_generator.get_gene_name(int(clone[self.gene_mutated_idx]))
+                if self.fitness_calculator is not None:
+                    last_mutated_gene = self.fitness_calculator.get_gene_name(clone[self.gene_mutated_idx])
                 else:
                     last_mutated_gene = None
                 self.colours[clone[self.id_idx]] = self.plot_colour_maps._get_colour(
@@ -1081,7 +1164,7 @@ class BaseSimClass(ABC):
         Returns:
             set[str]: Set of names of the mutated genes. 
         """
-        if self.mutation_generator is None:
+        if self.fitness_calculator is None:
             return set()
         
         # Get the non-nan entries in the raw fitness array for this clone. 
@@ -1089,13 +1172,13 @@ class BaseSimClass(ABC):
         # Then the index from np.where equals the gene number in the Mutation generator and 
         # we can get the gene name
         mutated_gene_numbers= np.where(~np.isnan(self.raw_fitness_array[clone_id, 1:]))[0]
-        gene_names = {self.mutation_generator.get_gene_name(gene_number) for 
+        gene_names = {self.fitness_calculator.get_gene_name(gene_number) for 
                       gene_number in mutated_gene_numbers}
         if None in gene_names:
             gene_names.remove(None)
         return gene_names
 
-    def get_colour(self, clone_id):
+    def get_colour(self, clone_id: int):
         """
         Return the colour for a clone_id.
         If the clone_id is not in the clones_array (can happen if manually adding values to a grid),
@@ -1121,32 +1204,38 @@ class BaseSimClass(ABC):
 
         return self.colours[clone_id]
 
-    def muller_plot(self, plot_file=None, plot_against_time=True, quick=False, min_size=1,
-                    allow_y_extension=False, plot_order=None, figsize=None, force_new_colours=False, ax=None,
-                    show_mutations_with_x=True):
+    def muller_plot(self, plot_file: str | None=None, plot_against_time: bool=True, quick: bool=False, 
+                    min_size: int=1, allow_y_extension: bool=False, plot_order: list[int] | None=None, 
+                    figsize: tuple[int, int] | None=None, force_new_colours: bool=False, ax: matplotlib.axes.Axes | None=None,
+                    show_mutations_with_x=True) -> matplotlib.axes.Axes:
         """
         Plots the results of the simulation over time.
         Mutations marked with X unless show_mutations_with_x=False.
         The clones will appear as growing and shrinking sideways tear drops.
         Sub-clones emerge from their parent clones
+
         :param plot_file: File name to save the plot. If none, the plot will be displayed.
-        If a file name, include the file type, e.g. "output_plot.pdf"
-        :param plot_against_time: Bool. Use the time from the simulation instead of index of the sample for x-axis
-        :param quick: Bool. Runs a faster version of the plotting which looks worse
+        If a file name, include the file type, e.g. "output_plot.png"
+        :param plot_against_time: Bool. Set False to use the index of the sample points for x-axis labelling instead of the time. 
+        :param quick: Bool. Runs a faster version of the plotting which can look worse
         :param min_size: Show only clones which reach this number of cells.
-         Showing less clones speeds up the plotting and can make the plot clearer.
-        :param allow_y_extension: If the population is not constant, allows the y-axis to extend beyond the initial pop
-        :param plot_order: Manually list of the order of the clones to plot.
-        :param figsize: Figure size.
-        :param force_new_colours: Regenerate the colours of each clone.
-        :param ax: Axes to plot on.
-        :param show_mutations_with_x: If True, will place Xs on the plot to mark the origins of clones
-        :return: ax
+         Showing fewer clones speeds up the plotting and can make the plot clearer.
+        :param allow_y_extension: If the population is not constant, allows the y-axis to extend beyond the initial pop. 
+         Only relevant for the Branching algorithms. 
+        :param plot_order: Manually list the order of the clones in the plot. 
+        :param figsize: Figure size for matplotlib. If None, will use the default figsize. Only relevant if ax is None.
+        :param force_new_colours: Regenerate the colours of each clone. May be useful if the colours are randomly generated.
+        :param ax: Axes to plot on. If None, will create a new figure and axes. If given, figsize will be ignored.
+        :param show_mutations_with_x: If True, will place Xs on the plot to mark the origins of clones. 
+            Non-synonymous mutations will be red, synonymous mutations will be blue and labelling events will be black.
+
+        :return: ax: matplotlib.axes.Axes
         """
         if self.is_lil:
             self.change_sparse_to_csr()
 
-        self._get_colours(self.clones_array, force_new_colours)  # Get the colours used for the plots
+        # Get the colours used for the plots
+        self._get_colours(self.clones_array, force_new_colours) 
 
         if min_size > 0:  # Have to keep as >0 as some algorithms (e.g. relative fitness may have fractional counts)
             # Removes clones too small to plot by absorbing them into their parent clones
@@ -1294,12 +1383,16 @@ class BaseSimClass(ABC):
             x = list(range(self.sim_length))
         ax.stackplot(x, split_pops_for_plotting, colors=[self.get_colour(i) for i in plot_order])
 
-    def plot_incomplete_moment(self, t=None, selection='mutations', xlim=None, ylim=None, plt_file=None, sem=False,
-                               show_fit=False, show_legend=True, fit_prop=1,
-                               min_size=1, errorevery=1, clear_previous=True, show_plot=False, max_size=None,
-                               fit_style='m--', label='InMo', ax=None):
+    def plot_incomplete_moment(self, t: float | int | None=None, selection: Literal['mutations', 'ns', 's']='mutations', 
+                               xlim: tuple[float, float] | None=None, ylim: tuple[float, float] | None=None, 
+                               plt_file: str | None=None, sem: bool=False,
+                               show_fit: bool=False, show_legend: bool=True, fit_prop: float=1,
+                               min_size: int=1, errorevery: int=1, clear_previous: bool=True, show_plot: bool=False, 
+                               max_size: int | None=None,
+                               fit_style: str='m--', label: str='InMo', ax: matplotlib.axes.Axes | None=None) -> None:
         """
         Plots the incomplete moment
+
         :param t: The time to plot the incomplete moment for. If None, will use the end of the simulation
         :param selection: 'mutations', 'ns' or 's' for all mutations, non-synonymous only or synonymous only
         :param xlim: Tuple/list for the x-limits of the plot
@@ -1355,12 +1448,15 @@ class BaseSimClass(ABC):
         """The expected incomplete moment if the simulation is neutral and all clones are measured accurately"""
         return np.exp(-np.arange(1, max_n + 1) / (self.division_rate * t))
 
-    def plot_dnds(self, plt_file=None, min_size=1, gene=None, clear_previous=True, legend_label=None, ax=None):
+    def plot_dnds(self, plt_file: str | None=None, min_size: int=1, gene: str | None=None, 
+                  clear_previous: bool=True, legend_label: str | None=None, 
+                  ax: matplotlib.axes.Axes | None=None) -> None:
         """
         Plot dN/dS ratio over time.
+
         :param plt_file: Output file if required. Include the output file type in the name, e.g. "out.pdf"
         :param min_size: Minimum size of clones to include.
-        :param gene: Only include mutations in this gene.
+        :param gene: Gene name. Only include mutations in this gene.
         :param clear_previous: Clear previous plot.
         :param legend_label: Label for the line in the figure.
         :param ax: ax to plot on.
@@ -1376,7 +1472,7 @@ class BaseSimClass(ABC):
         if plt_file is not None:
             plt.savefig('{0}'.format(plt_file))
 
-    def plot_overall_population(self, label=None, legend_label=None, ax=None):
+    def plot_overall_population(self, label: str | None=None, legend_label: str | None=None, ax: matplotlib.axes.Axes | None=None) -> None:
         """
         With no label, plots for simulations without a fixed total population
         (will also run for the fixed population, but will not be interesting)
@@ -1390,7 +1486,7 @@ class BaseSimClass(ABC):
         ax.set_ylabel("Population")
         ax.set_xlabel("Time")
 
-    def plot_average_fitness_over_time(self, legend_label=None, ax=None):
+    def plot_average_fitness_over_time(self, legend_label: str | None=None, ax: matplotlib.axes.Axes | None=None) -> None:
         """
         Plots the average fitness of the entire cell population.
         :param legend_label:
@@ -1404,89 +1500,61 @@ class BaseSimClass(ABC):
         ax.set_ylabel("Average fitness")
         ax.set_xlabel("Time")
 
-    def animate(self, animation_file, grid_size=None, generations_per_frame=1, starting_clones=1,
-                figsize=None, figxsize=5, bitrate=500, min_prop=0, external_call=False, dpi=100, fps=5,
-                fitness=False, fitness_cmap=cm.Reds, min_fitness=0, fixed_label_text=None, fixed_label_loc=(0, 0),
-                fixed_label_kwargs=None, show_time_label=False, time_label_units=None,
-                time_label_decimal_places=0, time_label_loc=(0, 0), time_label_kwargs=None, equal_aspect=False):
+    def animate(self, animation_file: str, grid_size: tuple[int, int], generations_per_frame: int=1,  
+                starting_clones: int=1, figsize: tuple[float, float] | None=None, bitrate: int=500, 
+                min_prop: float=0, dpi: int=100, fps: int=5) -> None:
         """
         Output an animation of the simulation on a 2D grid.
 
-        For the 2D simulations, will plot the grid from the simulations.
         For the non-spatial simulations, will plot a 2D representation of the clone proportions. This is not very
         meaningful, but may help to visualise the simulation results.
+        The 2D simulations overwrite this function to plot the actual spatial distribution of the clones.
 
-        :param animation_file: Output file. Needs the file type included, e.g. 'out.mp4'
-        :param grid_size: For non-spatial simulations only, size of the grid to plot on.
-        :param generations_per_frame: For non-spatial simulations only.
-        :param starting_clones: For non-spatial simulations only. Can split initial clone cell populations into
-        separately placed clones.
-        :param figsize: Figure size.
-        :param figxsize: For 2D simulations only. If not using figsize, this gives the x-dimension of the video. The
-        y-dimension will be calculated based on the grid dimensions.
+        :param animation_file: Name of the output file. Needs the file type included, e.g. 'out.mp4'
+        :param grid_size: tuple[int, int] - Size of the grid to plot on.
+        :param generations_per_frame: Int. Number of cell generations to show per video frame. 
+        :param starting_clones: Int. Can split initial clone cell populations into separately placed clones.
+        :param figsize: Figure size. If None, will use  the default figsize. 
         :param bitrate: Bitrate of the video.
-        :param min_prop: For non-spatial simulations only. Hides clones which occupy less than this proportion of the
-        total tissue. Helps to speed up animation.
-        :param external_call: For 2D simulations only. Will run a version which is cruder and may run faster
+        :param min_prop: Hides clones which occupy less than this proportion of the
+         total tissue. Helps to speed up animation.
         :param dpi: DPI of the video.
         :param fps: Frames per second.
-        :param fitness: Boolean. For 2D simulations only. Colour cells by their fitness instead of their clone_id.
-        :param fitness_cmap: For 2D simulations only. Colourmap for the fitness.
-        :param min_fitness: The lower limit for the colourbar in the fitness animation.
-        :param fixed_label_text: For 2D simulations only. Text to add as a label over the video.
-        :param fixed_label_loc: Tuple. For 2D simulations only. The location for the fixed_label_text.
-        :param fixed_label_kwargs: Dictionary. For 2D simulations only. Any kwargs to pass to ax.text for the fixed_label_text.
-        :param show_time_label: For 2D simulations only. If True, will show the time of each frame overlaid on the video.
-        The time will be based on the times from the simulation (which may not be the frame number).
-        :param time_label_units: String, the units for the time label. For 2D simulations only.
-        Will not adjust the values, is just a string to follow the number. E.g. 'days', 'weeks', 'years'.
-        :param time_label_decimal_places: For 2D simulations only. Number of decimal places to show for the time label.
-        :param time_label_loc: Tuple. For 2D simulations only. Location of the time label.
-        :param time_label_kwargs: Dictionary. For 2D simulations only. Any kwargs to pass to ax.text for the time label.
-        :param equal_aspect: For 2D simulations only.  If True, will force the aspect ratio of the x and y axes to have the same scale.
-        However, this will not look equal aspect in terms of the number of cells per unit due to the tesselation of the hexagons.
         :return:
         """
         if self.is_lil:
             self.change_sparse_to_csr()
 
-        if self.parameters.algorithm.two_dimensional:
-            if fitness:
-                animator = HexFitnessAnimator(self, cmap=fitness_cmap, min_fitness=min_fitness,
-                                              figxsize=figxsize, figsize=figsize, dpi=dpi,
-                                              bitrate=bitrate, fps=fps)
-            else:
-                animator = HexAnimator(self, figxsize=figxsize, figsize=figsize, dpi=dpi, bitrate=bitrate,
-                                       fps=fps, external_call=external_call, fixed_label_text=fixed_label_text,
-                                       fixed_label_loc=fixed_label_loc, fixed_label_kwargs=fixed_label_kwargs,
-                                       show_time_label=show_time_label, time_label_units=time_label_units,
-                                       time_label_decimal_places=time_label_decimal_places,
-                                       time_label_loc=time_label_loc, time_label_kwargs=time_label_kwargs,
-                                       equal_aspect=equal_aspect)
-
-        else:
-            if fitness:
-                raise NotImplementedError('Cannot currently animate fitness for non-spatial simulations')
-            else:
-                if grid_size is None:
-                    raise ValueError("Must provide a grid size for animations of non-spatial simulations")
-                animator = NonSpatialToGridAnimator(self, grid_size=grid_size, generations_per_frame=generations_per_frame,
-                                starting_clones=starting_clones, figsize=figsize, bitrate=bitrate, min_prop=min_prop,
-                                dpi=dpi, fps=fps)
+        animator = NonSpatialToGridAnimator(self, grid_size=grid_size, generations_per_frame=generations_per_frame,
+                        starting_clones=starting_clones, figsize=figsize, bitrate=bitrate, min_prop=min_prop,
+                        dpi=dpi, fps=fps)
 
         animator.animate(animation_file)
 
     ## Plots for lineage tracing experiments
     # These assume no mutations occurred during the simulation,
     # but all mutations (or labelled clones) are induced at the start.
-    def plot_mean_clone_size_graph_for_non_mutation(self, times=None, label=None, show_spm_fit=True, spm_fit_rate=None,
-                                                    legend_label=None, legend_label_fit=None, ax=None,
-                                                    plot_kwargs=None, fit_plot_kwargs=None):
+    def plot_mean_clone_size_graph_for_non_mutation(self, times: Iterable[float] | None=None, label: int | None=None, 
+                                                    show_spm_fit: bool=True, spm_fit_rate: float | None=None,
+                                                    legend_label: str | None=None, legend_label_fit: str | None=None, 
+                                                    ax: matplotlib.axes.Axes | None=None,
+                                                    plot_kwargs: dict | None=None, fit_plot_kwargs: dict | None=None):
         """
         Follows the mean clone sizes of each row in the clone array. This is a clone defined by a unique set of
         mutations, not be a particular mutation.
         Therefore, this function is only suitable for tracking the progress of clones growing without any mutations.
         For comparing to single progenitor model in lineage tracing experiments.
+        :param times: Iterable of times to plot the mean clone size at. If None, will plot for all time points.
+        :param label: Int. If given, will only include clones with this label.
+        :param show_spm_fit: Bool. Whether to show the theoretical mean clone size from the single progenitor model.
+        :param spm_fit_rate: Float. The division rate to use for the single progenitor model fit. If None, will use 
+         the division rate of the simulation. 
+        :param legend_label: Label for the mean clone size line in the figure.
+        :param legend_label_fit: Label for the single progenitor model fit line in the figure.
+        :param ax: Axes to plot on. If None, will create a new figure and axes.
+        :param plot_kwargs: Dict. Additional keyword arguments to pass to the mean clone size plotting function.
+        :param fit_plot_kwargs: Dict. Additional keyword arguments to pass to the plot of the fit line. 
+
         """
         if times is None:
             times = self.times
@@ -1510,13 +1578,24 @@ class BaseSimClass(ABC):
             plot_kwargs = {}
         ax.plot(times, means, label=legend_label, **plot_kwargs)
 
-    def plot_surviving_clones_for_non_mutation(self, times=None, ax=None, label=None, show_spm_fit=False,
-                                           spm_fit_rate=None, plot_kwargs=None, legend_label=None):
+    def plot_surviving_clones_for_non_mutation(self, times: Iterable[float] | None=None, 
+                                               ax: matplotlib.axes.Axes | None=None, 
+                                               label: int | None=None, show_spm_fit: bool=False,
+                                               spm_fit_rate: float | None=None, 
+                                               plot_kwargs: dict | None=None, legend_label: str | None=None) -> None:
         """
         Follows the surviving clones based on of each row in the clone array. This is a clone defined by a unique set of
         mutations, not be a particular mutation.
         Therefore, this function is only suitable for tracking the progress of clones growing without any mutations.
         For comparing to single progenitor model in lineage tracing experiments.
+        :param times: Iterable of times to plot the mean clone size at. If None, will plot for all time points.
+        :param label: Int. If given, will only include clones with this label.
+        :param show_spm_fit: Bool. Whether to show the theoretical mean clone size from the single progenitor model.
+        :param spm_fit_rate: Float. The division rate to use for the single progenitor model fit. If None, will use 
+         the division rate of the simulation. 
+        :param legend_label: Label for the mean clone size line in the figure.
+        :param ax: Axes to plot on. If None, will create a new figure and axes.
+        :param plot_kwargs: Dict. Additional keyword arguments to pass to the mean clone size plotting function.
         """
         surviving_clones, times = self.get_surviving_clones_for_non_mutation(times=times, label=label)
 
@@ -1537,13 +1616,21 @@ class BaseSimClass(ABC):
         ax.set_ylabel('Surviving clones')
         ax.set_yscale("log")
 
-    def plot_clone_size_distribution_for_non_mutation(self, t=None, label=None, legend_label=None, ax=None,
-                                                      as_bar=False):
+    def plot_clone_size_distribution_for_non_mutation(self, t: float | None=None, 
+                                                      label: int | None=None, legend_label: str | None=None, 
+                                                      ax: matplotlib.axes.Axes | None=None,
+                                                      as_bar: bool=False) -> None:
         """
         Plots the clone size distribution, with the clones defined by the clones_array - i.e. not one clone per
         mutation, one clone per unique set of mutations.
         WARNING - Only really suitable for the case of no mutations, where we want to track the growth of a number of
         initial clones over time.
+
+        :param t: Float. Time point.If None, will plot for the final time point.
+        :param label: Int. If given, will only include clones with this label.
+        :param legend_label: Label for the mean clone size line in the figure.
+        :param ax: Axes to plot on. If None, will create a new figure and axes.
+        :param as_bar: Bool. Whether to use a bar plot (True) or scatter plot (False, default). 
         """
         if ax is None:
             fig, ax = plt.subplots()
@@ -1557,8 +1644,21 @@ class BaseSimClass(ABC):
             ax.scatter(range(1, len(csd)), csd[1:], label=legend_label)
         ax.set_ylim([0, csd[1:].max() * 1.1])
 
-    def plot_clone_size_scaling_for_non_mutation(self, times, markersize=2, label=None, legend_label="", ax=None):
-        """Mostly useful for simulations without any mutations. For comparing to single progenitor model."""
+    def plot_clone_size_scaling_for_non_mutation(self, times: Iterable[float], markersize: int=2, 
+                                                 label: int | None=None, legend_label: str="", 
+                                                 ax: matplotlib.axes.Axes | None=None) -> None:
+        """
+        Plots the cumulative clone size distribution at multiple time points, with the axis scaled by 
+        the mean clone size. 
+        Mostly useful for simulations without any mutations. For comparing to single progenitor model.
+        
+        :param times: Iterable of times to plot the clone size distribution for.
+        :param markersize: Int. Size of the markers for the scatter plot.
+        :param label: Int. If given, will only include clones with this label.
+        :param legend_label: Label for the mean clone size line in the figure.
+        :param ax: Axes to plot on. If None, will create a new figure and axes.
+        :param as_bar: Bool. Whether to use a bar plot (True) or scatter plot (False, default). 
+        """
         if ax is None:
             fig, ax = plt.subplots()
         for t in times:

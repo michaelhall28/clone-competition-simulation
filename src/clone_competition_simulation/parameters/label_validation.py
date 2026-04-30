@@ -67,11 +67,11 @@ class LabelParameters(ParameterBase):
             Optional gene index or array of gene indices targeted by each label event.
             If an integer is supplied, the same gene index is used for all label times.
             If a list/array is supplied, it must have the same length as
-            ``label_times``. The value ``-1`` indicates no specific gene targeting.
+            ``label_times``. ``None`` indicates no specific gene targeting.
 
             Example:
-                label_genes = -1
-                label_genes = [0, 1, -1]
+                label_genes = None
+                label_genes = [0, 1, None]
 
     Examples:
         Apply a single initial label to all clones:
@@ -90,7 +90,7 @@ class LabelParameters(ParameterBase):
             label_frequencies = [0.05, 0.1]
             label_values = [1, 2]
             label_fitness = [0.0, 0.02]
-            label_genes = [-1, 3]
+            label_genes = [None, 3]
     """
     _field_name = "labels"
     tag: Literal['Base'] = 'Base'
@@ -100,7 +100,7 @@ class LabelParameters(ParameterBase):
     label_frequencies: FloatOrArrayParameter= None
     label_values: FloatOrArrayParameter = None
     label_fitness: FloatOrArrayParameter = None
-    label_genes: IntOrArrayParameter = None
+    label_genes: str | list[str | None] | None = None
 
 
 class LabelValidator(LabelParameters, ValidationBase):
@@ -137,7 +137,7 @@ class LabelValidator(LabelParameters, ValidationBase):
             if isinstance(self.label_values, (int, float)):
                 self.label_values = [self.label_values]
 
-            if self.label_fitness is not None and len(self.label_frequencies) > 1 and self.fitness.mutation_generator is None:
+            if self.label_fitness is not None and len(self.label_frequencies) > 1 and self.fitness.fitness_calculator is None:
                 raise ValueError(
                     'Applying multiple labels with fitness effects requires a mutation generator to define ' \
                     'how fitness combines across labels and mutations.')
@@ -150,11 +150,11 @@ class LabelValidator(LabelParameters, ValidationBase):
             if self.label_genes is None:
                 self.label_genes = [None]*len(self.label_times)
             else:
-                if isinstance(self.label_genes, int):
+                if isinstance(self.label_genes, str):
                     self.label_genes = [self.label_genes]
-                if any(g > -1 for g in self.label_genes):  # Means applying a mutant to a particular gene
+                if any(g is not None for g in self.label_genes):  # Means applying a mutant to a particular gene
                     # Requires multi-gene setup
-                    if self.fitness.mutation_generator and not self.fitness.mutation_generator.multi_gene_array:
+                    if self.fitness.fitness_calculator and not self.fitness.fitness_calculator.multi_gene_array:
                         raise ValueError('Applying labels with mutations to particular genes requires a '
                                                  'mutation generator with multi_gene_array=True')
 

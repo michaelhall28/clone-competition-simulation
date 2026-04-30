@@ -24,7 +24,7 @@ from clone_competition_simulation import (
     FitnessCalculator
 )
 
-mut_gen = FitnessCalculator(
+fit_calc = FitnessCalculator(
     genes=[Gene(name="Gene1", mutation_distribution=NormalDist(0.1), synonymous_proportion=0.5)],
 )
 
@@ -32,7 +32,7 @@ p = Parameters(
     algorithm='Moran',
     times=TimeParameters(max_time=10, division_rate=1), 
     population=PopulationParameters(initial_cells=100),
-    fitness=FitnessParameters(mutation_rates=0.05, mutation_generator=mut_gen)
+    fitness=FitnessParameters(mutation_rates=0.05, fitness_calculator=fit_calc)
 )
 s = p.get_simulator()
 s.run_sim()
@@ -74,7 +74,7 @@ colour_rule = ColourRule(
 # And create a PlotColourMaps object using the colour rule
 plot_colour_maps = PlotColourMaps(colour_rules=[colour_rule])
 
-mut_gen = FitnessCalculator(
+fit_calc = FitnessCalculator(
     genes=[Gene(name="Gene1", mutation_distribution=NormalDist(0.1), synonymous_proportion=0.5)],
 )
 # Plot using the viridis colormap
@@ -82,7 +82,7 @@ p = Parameters(
     algorithm='Moran',
     times=TimeParameters(max_time=10, division_rate=1), 
     population=PopulationParameters(initial_cells=100),
-    fitness=FitnessParameters(mutation_rates=0.05, mutation_generator=mut_gen), 
+    fitness=FitnessParameters(mutation_rates=0.05, fitness_calculator=fit_calc), 
     plotting=PlottingParameters(plot_colour_maps=plot_colour_maps)
 )
 s = p.get_simulator()
@@ -127,7 +127,7 @@ plot_colour_maps = PlotColourMaps(
     use_fitness=True
 )
 
-mut_gen = FitnessCalculator(
+fit_calc = FitnessCalculator(
     genes=[Gene(name="Gene1", mutation_distribution=NormalDist(0.1), synonymous_proportion=0.5)],
 )
 # Plot using the viridis colormap
@@ -135,7 +135,7 @@ p = Parameters(
     algorithm='Moran',
     times=TimeParameters(max_time=10, division_rate=1), 
     population=PopulationParameters(initial_cells=100),
-    fitness=FitnessParameters(mutation_rates=0.05, mutation_generator=mut_gen), 
+    fitness=FitnessParameters(mutation_rates=0.05, fitness_calculator=fit_calc), 
     plotting=PlottingParameters(plot_colour_maps=plot_colour_maps)
 )
 s = p.get_simulator()
@@ -246,7 +246,7 @@ plot_colour_maps = PlotColourMaps(
     colour_rules=[colour_rule], 
 )
 
-mut_gen = FitnessCalculator(
+fit_calc = FitnessCalculator(
     genes=[Gene(name="Gene1", mutation_distribution=NormalDist(0.1), synonymous_proportion=0.5)],
 )
 
@@ -255,7 +255,7 @@ p = Parameters(
     algorithm='Moran', 
     times=TimeParameters(max_time=10, division_rate=1), 
     population=PopulationParameters(initial_size_array=np.full(10, 10)),   # 10 initial clones
-    fitness=FitnessParameters(mutation_rates=0.05, mutation_generator=mut_gen), 
+    fitness=FitnessParameters(mutation_rates=0.05, fitness_calculator=fit_calc), 
     plotting=PlottingParameters(plot_colour_maps=plot_colour_maps)
 )
 s = p.get_simulator()
@@ -412,7 +412,7 @@ p = Parameters(
         label_fitness=[1.5, 1.5],
     ),
     # We are combining label fitness, so need to supply a FitnessCalculator which defines how the fitnesses will be combined.
-    fitness=FitnessParameters(mutation_generator=FitnessCalculator(genes=[])),   
+    fitness=FitnessParameters(fitness_calculator=FitnessCalculator(genes=[])),   
     plotting=PlottingParameters(plot_colour_maps=plot_colour_maps)
 )
 s = p.get_simulator()
@@ -429,7 +429,7 @@ Colouring based on the combination of genes mutated in the clone.
 
 ```python
 # Define two genes
-mut_gen = FitnessCalculator(
+fit_calc = FitnessCalculator(
     genes=[
         Gene(name='Gene1', mutation_distribution=FixedValue(1.1), synonymous_proportion=0),
         Gene(name='Gene2', mutation_distribution=FixedValue(1.2), synonymous_proportion=0)
@@ -486,7 +486,7 @@ p = Parameters(
     algorithm='Moran', 
     times=TimeParameters(max_time=10, division_rate=1), 
     population=PopulationParameters(initial_size_array=np.full(10, 20)), 
-    fitness=FitnessParameters(mutation_rates=0.05, mutation_generator=mut_gen),
+    fitness=FitnessParameters(mutation_rates=0.05, fitness_calculator=fit_calc),
     plotting=PlottingParameters(plot_colour_maps=plot_colour_maps)
 )
 s = p.get_simulator()
@@ -506,7 +506,7 @@ For example, here we colour clones based on the label and the last gene mutated.
 
 ```python
 # Define the genes
-mut_gen = FitnessCalculator(
+fit_calc = FitnessCalculator(
     genes=[
         Gene(name='Gene1', mutation_distribution=FixedValue(1.1), synonymous_proportion=0),
         Gene(name='Gene2', mutation_distribution=FixedValue(1.2), synonymous_proportion=0)
@@ -575,7 +575,7 @@ p = Parameters(
     labels=LabelParameters(
         initial_label_array=[0, 1]  # Apply some labels
     ),
-    fitness=FitnessParameters(mutation_rates=0.05, mutation_generator=mut_gen),
+    fitness=FitnessParameters(mutation_rates=0.05, fitness_calculator=fit_calc),
     plotting=PlottingParameters(plot_colour_maps=plot_colour_maps)
 )
 s = p.get_simulator()
@@ -596,7 +596,7 @@ from clone_competition_simulation import NormalDist
 
 # Run without setting a colour map. It will use the default one (random colours)
 
-mut_gen = FitnessCalculator(
+fit_calc = FitnessCalculator(
     genes=[Gene(name="Gene1", mutation_distribution=NormalDist(0.1), synonymous_proportion=0.5)],
 )
 
@@ -605,7 +605,7 @@ p = Parameters(
     algorithm='Moran', 
     times=TimeParameters(max_time=10, division_rate=1), 
     population=PopulationParameters(initial_cells=100), 
-    fitness=FitnessParameters(mutation_rates=0.05, mutation_generator=mut_gen),
+    fitness=FitnessParameters(mutation_rates=0.05, fitness_calculator=fit_calc),
 )
 s = p.get_simulator()
 s.run_sim()

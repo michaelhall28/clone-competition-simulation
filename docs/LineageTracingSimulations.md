@@ -249,7 +249,7 @@ from clone_competition_simulation import (
 )
 
 # We'll add some mutations, so we have to define the fitness of the mutated cells
-mutation_generator = FitnessCalculator(
+fitness_calculator = FitnessCalculator(
     genes=[Gene(name="Gene1", mutation_distribution=NormalDist(mean=1.1, var=0.1), 
                 synonymous_proportion=0.5)]
 )
@@ -260,7 +260,7 @@ p = Parameters(
     population=PopulationParameters(initial_cells=10000), # Start with 10000 wild type cells
     fitness=FitnessParameters(
         mutation_rates=0.002,  # Introduce a constant mutation rate.
-        mutation_generator=mutation_generator
+        fitness_calculator=fitness_calculator
     ),
     labels=LabelParameters(
         label_times=3,  # Introduce a label part way through
@@ -317,7 +317,7 @@ p = Parameters(
     population=PopulationParameters(initial_cells=10000), # Start with 10000 wild type cells
     fitness=FitnessParameters(
         mutation_rates=0.002,  # Introduce a constant mutation rate.
-        mutation_generator=mutation_generator
+        fitness_calculator=fitness_calculator
     ),
     labels=LabelParameters(
         label_times=[3, 5],  # Introduce multiple labels

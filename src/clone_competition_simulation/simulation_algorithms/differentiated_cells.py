@@ -208,7 +208,7 @@ class BaseSimDiffCells(BaseSimClass):
         Create an array with the b cell clone sizes for each mutant across the entire simulation.
         The populations will usually add up to more than the total since many clones will have multiple mutations
         """
-        mutant_clones = self.track_mutations(selection='non_zero')
+        mutant_clones = self._track_mutations(selection='non_zero')
         self.diff_cell_mutant_clone_array = lil_matrix(self.diff_cell_population.shape)
         for mutant in mutant_clones:
             self.diff_cell_mutant_clone_array[mutant] = self.diff_cell_population[mutant_clones[mutant]].sum(axis=0)
