@@ -295,9 +295,9 @@ def test_trim_tree(mutating_sim):
 
 
 def test_get_clone_descendants_trimmed(mutating_sim):
-    trimmed_tree, _ = mutating_sim._trim_tree()
-    assert mutating_sim._get_clone_descendants_trimmed(trimmed_tree, 1) == [1, 4]
-    assert mutating_sim._get_clone_descendants_trimmed(trimmed_tree, 6) == [6, 10, 12, 19]
+    mutating_sim._trim_tree()
+    assert mutating_sim._get_clone_descendants_trimmed(1) == [1, 4]
+    assert mutating_sim._get_clone_descendants_trimmed(6) == [6, 10, 12, 19]
 
 
 @pytest.mark.parametrize('selection,expected', [
@@ -317,7 +317,7 @@ def test_get_clone_descendants_trimmed(mutating_sim):
                   15: [15], 19: [19]})
 ])
 def test_track_mutations(mutating_sim, selection, expected):
-    assert mutating_sim.track_mutations(selection) == expected
+    assert mutating_sim._track_mutations(selection) == expected
 
 
 def test_create_mutant_clone_array(mutating_sim):

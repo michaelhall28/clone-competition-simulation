@@ -4,8 +4,9 @@ A class to set up the hexagonal grids and general functions that apply to both t
 from dataclasses import dataclass
 from typing import Self
 import numpy as np
+import matplotlib.cm as cm
 from scipy.sparse import lil_matrix
-from ..plotting.animator import HexAnimator
+from ..plotting.animator import HexAnimator, HexFitnessAnimator
 from .base_sim_class import CurrentData, BaseSimClass
 
 
@@ -83,7 +84,6 @@ class BaseHexagonalGridSim:
         )
         return current_data
 
-
     def plot_grid(self, t=None, index_given=False, grid=None, figsize=None, figxsize=5, bitrate=500, dpi=100,
                   equal_aspect=False, ax=None):
         """
@@ -108,6 +108,57 @@ class BaseHexagonalGridSim:
         animator = HexAnimator(self, figxsize=figxsize, figsize=figsize, dpi=dpi, bitrate=bitrate,
                                equal_aspect=equal_aspect)
         animator.plot_grid(grid, ax)
+
+    def animate(self, animation_file: str, figsize=None, figxsize=5, bitrate=500, min_prop=0, external_call=False, dpi=100, fps=5,
+                fitness=False, fitness_cmap=cm.Reds, min_fitness=0, fixed_label_text=None, fixed_label_loc=(0, 0),
+                fixed_label_kwargs=None, show_time_label=False, time_label_units=None,
+                time_label_decimal_places=0, time_label_loc=(0, 0), time_label_kwargs=None, equal_aspect=False):
+        """
+        Output an animation of the simulation on a 2D grid.
+
+        :param animation_file: Output file. Needs the file type included, e.g. 'out.mp4'
+        :param figsize: Figure size.
+        :param figxsize: If not using figsize, this gives the x-dimension of the video. The
+          y-dimension will be calculated based on the grid dimensions.
+        :param bitrate: Bitrate of the video.
+        :param external_call: Will run a version which is cruder and may run faster
+        :param dpi: DPI of the video.
+        :param fps: Frames per second.
+        :param fitness: Boolean. Colour cells by their fitness instead of their clone_id.
+        :param fitness_cmap: Colourmap for the fitness.
+        :param min_fitness: The lower limit for the colourbar in the fitness animation.
+        :param fixed_label_text: Text to add as a label over the video.
+        :param fixed_label_loc: Tuple. The location for the fixed_label_text.
+        :param fixed_label_kwargs: Dictionary. Any kwargs to pass to ax.text for the fixed_label_text.
+        :param show_time_label: If True, will show the time of each frame overlaid on the video.
+        The time will be based on the times from the simulation (which may not be the frame number).
+        :param time_label_units: String, the units for the time label. 
+         Will not adjust the values, is just a string to follow the number. E.g. 'days', 'weeks', 'years'.
+        :param time_label_decimal_places: Number of decimal places to show for the time label.
+        :param time_label_loc: Tuple. Location of the time label.
+        :param time_label_kwargs: Dictionary. Any kwargs to pass to ax.text for the time label.
+        :param equal_aspect: If True, will force the aspect ratio of the x and y axes to have the same scale.
+         However, this will not look equal aspect in terms of the number of cells per unit due to the tesselation of the hexagons.
+        :return:
+        """
+        if self.is_lil:
+            self.change_sparse_to_csr()
+
+        if fitness:
+            animator = HexFitnessAnimator(self, cmap=fitness_cmap, min_fitness=min_fitness,
+                                            figxsize=figxsize, figsize=figsize, dpi=dpi,
+                                            bitrate=bitrate, fps=fps)
+        else:
+            animator = HexAnimator(self, figxsize=figxsize, figsize=figsize, dpi=dpi, bitrate=bitrate,
+                                    fps=fps, external_call=external_call, fixed_label_text=fixed_label_text,
+                                    fixed_label_loc=fixed_label_loc, fixed_label_kwargs=fixed_label_kwargs,
+                                    show_time_label=show_time_label, time_label_units=time_label_units,
+                                    time_label_decimal_places=time_label_decimal_places,
+                                    time_label_loc=time_label_loc, time_label_kwargs=time_label_kwargs,
+                                    equal_aspect=equal_aspect)
+
+
+        animator.animate(animation_file)
 
 
 def get_neighbour_map(grid_shape: tuple[int, int], cell_in_own_neighbourhood: bool) -> \

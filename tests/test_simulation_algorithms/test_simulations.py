@@ -1000,6 +1000,8 @@ def test_animation(mock_random, algorithm):
     )
     sim = p.get_simulator()
     sim.run_sim()
-    sim.animate(os.path.join(PLOT_DIR, 'test_ani_{}.mp4'.format(algorithm)), grid_size=grid_size)
-
+    if algorithm.two_dimensional:
+        sim.animate(os.path.join(PLOT_DIR, 'test_ani_{}.mp4'.format(algorithm)))
+    else:
+        sim.animate(os.path.join(PLOT_DIR, 'test_ani_{}.mp4'.format(algorithm)), grid_size=grid_size)
 
