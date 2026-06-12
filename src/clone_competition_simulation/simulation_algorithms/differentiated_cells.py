@@ -14,7 +14,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.sparse import lil_matrix
 
-import diff_cell_functions
+try:
+    import diff_cell_functions
+except ImportError:
+    diff_cell_functions = None
+
 from .branching_process import Branching
 from .base_sim_class import BaseSimClass, NonSpatialCurrentData
 from .base_2D_class import SpatialCurrentData
@@ -96,6 +100,9 @@ class BaseSimDiffCells(BaseSimClass):
     """
 
     def __init__(self, parameters):
+
+        if diff_cell_functions is None:
+            raise ImportError('Cython functions for simulating differentiated cells not found. Please compile diff_cell_functions.pyx to use this class.')
 
         # r and gamma from the single progenitor model in Clayton et al
         self.r = parameters.differentiated_cells.r  # The proportion of symmetric divisions
