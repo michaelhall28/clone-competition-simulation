@@ -24,6 +24,9 @@ jobs:
       with:
           python-version-file: "pyproject.toml"
 
+    - name: Refresh system packager mirrors and packages
+      run: sudo apt -y update
+
     - name: Install GSL
       run: sudo apt install -y libgsl-dev
 
