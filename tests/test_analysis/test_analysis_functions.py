@@ -47,7 +47,7 @@ def test_incomplete_moment(clone_size_dist):
 
 def test_incomplete_moment2():
     clone_size_dist = np.zeros(10)
-    assert incomplete_moment(clone_size_dist) == None
+    assert len(incomplete_moment(clone_size_dist)) == 0
 
 
 def test_incomplete_moment_sem(clone_size_dist):
