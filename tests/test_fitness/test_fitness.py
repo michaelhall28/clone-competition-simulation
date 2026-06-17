@@ -11,8 +11,16 @@ from src.clone_competition_simulation.fitness import (
     BoundedLogisticFitness,
     UnboundedFitness,
     EpistaticEffect,
-    MutationCombination,
-    ArrayCombination
+    add_fitness,
+    multiply_fitness,
+    replace_fitness,
+    add_array_fitness,
+    multiply_array_fitness,
+    priority_array_fitness,
+    max_fitness,
+    min_fitness,
+    max_array_fitness,
+    min_array_fitness
 )
 
 @pytest.fixture(scope='module')
@@ -137,23 +145,23 @@ def test_gene1():
 
 
 @pytest.mark.parametrize("method,expected", [
-    (MutationCombination.ADD, np.array([0.6, 4.2])),
-    (MutationCombination.MULTIPLY, np.array([0.55, 6.6])),
-    (MutationCombination.REPLACE, np.array([0.5, 3])),
-    (MutationCombination.MAX, np.array([1.1, 3])),
-    (MutationCombination.MIN, np.array([0.5, 2.2]))
+    (add_fitness, np.array([0.6, 4.2])),
+    (multiply_fitness, np.array([0.55, 6.6])),
+    (replace_fitness, np.array([0.5, 3])),
+    (max_fitness, np.array([1.1, 3])),
+    (min_fitness, np.array([0.5, 2.2]))
 ])
 def test_mutation_combination(method, expected):
     x = np.array([1.1, 2.2])
     y = np.array([0.5, 3])
-    np.testing.assert_almost_equal(method.function(x, y), expected)
+    np.testing.assert_almost_equal(method(x, y), expected)
 
 @pytest.mark.parametrize("method,expected", [
-    (ArrayCombination.ADD, [2.3, 3.3]),
-    (ArrayCombination.MULTIPLY, [2.42, 1.8]),
-    (ArrayCombination.PRIORITY, [1.1, 0.3]),
-    (ArrayCombination.MAX, [2.2, 3]),
-    (ArrayCombination.MIN, [1.1, 0.3])
+    (add_array_fitness, [2.3, 3.3]),
+    (multiply_array_fitness, [2.42, 1.8]),
+    (priority_array_fitness, [1.1, 0.3]),
+    (max_array_fitness, [2.2, 3]),
+    (min_array_fitness, [1.1, 0.3])
 ])
 def test_mutation_combination(method, expected):
     x = np.array(
@@ -162,15 +170,15 @@ def test_mutation_combination(method, expected):
             [1, 2, 3, 0.3]
         ]
     )
-    np.testing.assert_almost_equal(method.function(x), expected)
+    np.testing.assert_almost_equal(method(x), expected)
 
 
 
 def test_mutation_generation_validation(genes, epistatics):
     fit_calc = FitnessCalculator(
         genes=genes, epistatics=epistatics,
-        combine_mutations=MutationCombination.ADD,
-        combine_array=ArrayCombination.MULTIPLY
+        combine_mutations=add_fitness,
+        combine_array=multiply_array_fitness
     )
     assert fit_calc.num_genes == len(genes)
     assert fit_calc.gene_indices == {
@@ -189,16 +197,40 @@ def test_mutation_generation_validation(genes, epistatics):
         (0, 3, 4): epistatics[1]
     }
     np.testing.assert_equal(fit_calc.epistatic_cols, np.arange(6, 8))
-    assert fit_calc.combine_fitness_function == MutationCombination.ADD.function
-    assert fit_calc.combine_array_function == ArrayCombination.MULTIPLY.function
+    assert fit_calc.combine_mutations == add_fitness
+    assert fit_calc.combine_array == multiply_array_fitness
+
+
+def test_custom_fitness_combination():
+    def custom_combine(old, new):
+        return old + new + 1
+
+    fit_calc = FitnessCalculator(
+        genes=[Gene(name="test", mutation_distribution=FixedValue(1.1), synonymous_proportion=0)],
+        combine_mutations=custom_combine,
+        combine_array=multiply_array_fitness
+    )
+    assert fit_calc.combine_mutations == custom_combine
+
+
+def test_custom_array_combination():
+    def custom_combine_array(arr):
+        return np.nansum(arr, axis=1)
+
+    fit_calc = FitnessCalculator(
+        genes=[Gene(name="test", mutation_distribution=FixedValue(1.1), synonymous_proportion=0)],
+        combine_mutations=add_fitness,
+        combine_array=custom_combine_array
+    )
+    assert fit_calc.combine_array == custom_combine_array
 
 
 @pytest.fixture
 def fit_calc(genes, epistatics):
     return FitnessCalculator(
         genes=genes, epistatics=epistatics,
-        combine_mutations=MutationCombination.ADD,
-        combine_array=ArrayCombination.MULTIPLY
+        combine_mutations=add_fitness,
+        combine_array=multiply_array_fitness
     )
 
 
@@ -207,8 +239,8 @@ def fit_calc_non_multi_gene(genes):
     return FitnessCalculator(
         genes=genes,
         multi_gene_array=False,
-        combine_mutations=MutationCombination.ADD,
-        combine_array=ArrayCombination.MULTIPLY
+        combine_mutations=add_fitness,
+        combine_array=multiply_array_fitness
     )
 
 

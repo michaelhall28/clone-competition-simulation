@@ -2,11 +2,11 @@ import numpy as np
 import pytest
 from pydantic import ValidationError
 
-from src.clone_competition_simulation.fitness import (ArrayCombination,
-                                                      FitnessCalculator,
+from src.clone_competition_simulation.fitness import (FitnessCalculator,
                                                       FixedValue, Gene,
-                                                      MutationCombination,
-                                                      UnboundedFitness)
+                                                      UnboundedFitness, 
+                                                      multiply_fitness, 
+                                                      multiply_array_fitness)
 from src.clone_competition_simulation.parameters.fitness_validation import \
     FitnessValidator
 from src.clone_competition_simulation.parameters.population_validation import \
@@ -51,8 +51,8 @@ def test_fitness_calculator2(gene):
     fit_calc = FitnessCalculator(genes=[gene])
 
     assert fit_calc.genes == [gene]
-    assert fit_calc.combine_mutations == MutationCombination.MULTIPLY
-    assert fit_calc.combine_array == ArrayCombination.MULTIPLY
+    assert fit_calc.combine_mutations == multiply_fitness
+    assert fit_calc.combine_array == multiply_array_fitness
     assert isinstance(fit_calc.mutation_combination_class, UnboundedFitness)
     assert not fit_calc.multi_gene_array
 

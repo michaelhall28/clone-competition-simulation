@@ -3,7 +3,7 @@
 This guide describes some of the more complex options for defining the fitness effects of mutations. 
 Most of the complexity comes from defining how the fitness of a cell with multiple mutations should be calculated.    
 
-# multi_gene_array=False
+## multi_gene_array=False
 
 This is the default and simplest option.  
 Each new mutation in a cell combines with the previous mutations without any regard for the gene it came from.  
@@ -21,12 +21,13 @@ from clone_competition_simulation import (
     FitnessParameters,
     Gene, 
     FitnessCalculator, 
-    FixedValue 
+    FixedValue, 
+    multiply_fitness
 )
 
 fit_calc = FitnessCalculator(
     genes=[Gene(name='Gene1', mutation_distribution=FixedValue(1.1), synonymous_proportion=0)], 
-    combine_mutations='multiply'  # This is also the default option
+    combine_mutations=multiply_fitness  # This is also the default option
 )
 
 np.random.seed(1)
@@ -152,15 +153,14 @@ print(s.raw_fitness_array)
 
 ### Mutation combination options
 
-There are various other options as well as fitness multiplication
+There are various other options as well as fitness multiplication. You can also create your own function. 
 
 ```python
-from clone_competition_simulation import MutationCombination
-
-print(MutationCombination._member_names_)
-
+# The pre-built functions available:
+from clone_competition_simulation import (
+  multiply_fitness, add_fitness, replace_fitness, max_fitness, min_fitness
+)
 ```
-    ['MULTIPLY', 'ADD', 'REPLACE', 'MAX', 'MIN']
 
 -----
 For example, to add fitness values
@@ -171,7 +171,7 @@ fit_calc = FitnessCalculator(
     genes=[
         Gene(name='Gene1', mutation_distribution=FixedValue(1.1), synonymous_proportion=0)
     ], 
-    combine_mutations='add'  # Using add. Could also use MutationCombination.ADD
+    combine_mutations=add_fitness  # Using add.
 )
 
 # The simulation is otherwise the same as before
@@ -277,6 +277,24 @@ Note this adds the fitness *advantage* from the new mutation.
 So if the fitness is 1.1, there is a 0.1 advantage over neutral.  
 The fitness of clone_id 4 is now 1.3 = 1.2 + 0.1  
 
+#### Custom combination functions
+
+You can create your own function as pass that as an argument to the FitnessCalculator. 
+The function should take two NumPy arrays and return a single NumPy array. E.g. 
+
+```python
+def custom_combine(old, new):
+    return old + new + 1
+
+fit_calc = FitnessCalculator(
+    genes=[
+        Gene(name='Gene1', mutation_distribution=FixedValue(1.1), synonymous_proportion=0)
+    ], 
+    combine_mutations=custom_combine  # Using the custom function
+)
+```
+
+
 # multi_gene_array=True
 
 This allows much more control on the combination of fitness, but is also more complicated.   
@@ -291,14 +309,15 @@ This is the same simulation we ran before with multi_gene_array=False.
 Running a simulation where all new mutations have a fitness of 1.1.  These multiply the previous fitness of the cell
 
 ```python
+from clone_competition_simulation import multiply_array_fitness
 
 fit_calc = FitnessCalculator(
     genes=[
         Gene(name='Gene1', mutation_distribution=FixedValue(1.1), synonymous_proportion=0)
     ], 
     multi_gene_array=True,
-    combine_mutations='multiply', # This is the default option
-    combine_array='multiply',  # This is also the default
+    combine_mutations=multiply_fitness, # This is the default option
+    combine_array=multiply_array_fitness,  # This is also the default
 )
 
 np.random.seed(1)
@@ -411,7 +430,7 @@ Each row is for a clone.
 The first column is a fitness from the initial clones (often wild type/neutral fitness).    
 The next set of columns contain the fitness from each gene.   
 The total fitness for each clone is calculated from all the values in each row.   
-Here is it multiplied because FitnessCalculator.combine_array='multiply' (any nan values are ignored).
+Here is it multiplied because FitnessCalculator.combine_array=multiply_array_fitness (any nan values are ignored).
 
 ```python
 print(s.raw_fitness_array)
@@ -535,19 +554,21 @@ Using multiple genes adds extra columns to the raw_fitness_array.
 
 You can combine effects between genes in a different way to combining mutations within a gene.  
 For example, if further mutations in the same gene have no further effect, we can use 
-`combine_mutations='max'`, `'replace'`, or `'min'`.  
+`combine_mutations=max_fitness`, `replace_fitness`, or `min_fitness`.  
 
 But then you can still add the fitness effects from different genes. 
 
 ```python
+from clone_competition_simulation import add_array_fitness
+
 fit_calc = FitnessCalculator(
     genes=[
         Gene(name='Gene1', mutation_distribution=FixedValue(1.1), synonymous_proportion=0), 
         Gene(name='Gene2', mutation_distribution=FixedValue(1.05), synonymous_proportion=0)
     ], 
     multi_gene_array=True,
-    combine_mutations='replace',   # With FixedValue this means further mutations will do nothing
-    combine_array='add',  # Add the effects from the two genes
+    combine_mutations=replace_fitness,   # With FixedValue this means further mutations will do nothing
+    combine_array=add_array_fitness,  # Add the effects from the two genes
 )
 
 np.random.seed(0)
@@ -676,15 +697,21 @@ You can see that the overall fitness of each clone is the sum of fitness advanta
 ------
 
 The options for combination across genes are similar to the options within genes.   
-`priority` is an odd case, where only the last mutated gene in the list (or the last epistatic effect) is used.  
+`priority_array_fitness` is an odd case, where only the last mutated gene in the list (or the last epistatic effect) is used.  
 It might be relevant for cases where the knockout of one gene will override the function of downstream genes. 
 
 ```python
-from clone_competition_simulation import ArrayCombination
-print(ArrayCombination._member_names_)
+# The pre-built combine array functions 
+from clone_competition_simulation import (
+  multiply_array_fitness, 
+  add_array_fitness, 
+  priority_array_fitness, 
+  max_array_fitness, 
+  min_array_fitness
+)
 ```
 
-    ['MULTIPLY', 'ADD', 'MAX', 'MIN', 'PRIORITY']
+You can also write your own function. It should take a 2D NumPy array and return a 1D NumPy array. 
 
 
 
@@ -715,7 +742,7 @@ fit_calc = FitnessCalculator(
         )
     ],
     multi_gene_array=True,
-    combine_mutations='replace',   # With FixedValue this means further mutations will do nothing
+    combine_mutations=replace_fitness,   # With FixedValue this means further mutations will do nothing
 )
 
 np.random.seed(0)
@@ -894,7 +921,7 @@ fit_calc2 = FitnessCalculator(
         )
     ],
     multi_gene_array=True,
-    combine_array='multiply'
+    combine_array=multiply_array_fitness
 )
 fitness_combinations = fit_calc2.plot_fitness_combinations()
 print(f"Fitness combinations:  {fitness_combinations}")
@@ -907,7 +934,7 @@ plt.show()
 
 
 ------
-Can see the difference using `combine_array='max'` instead of `combine_array='multiply'`
+Can see the difference using `combine_array=max_array_fitness` instead of `combine_array=multiply_array_fitness`
 
 ```python
 fit_calc2 = FitnessCalculator(
@@ -923,7 +950,7 @@ fit_calc2 = FitnessCalculator(
         )
     ],
     multi_gene_array=True,
-    combine_array='max'
+    combine_array=max_array_fitness
 )
 fitness_combinations = fit_calc2.plot_fitness_combinations()
 print(f"Fitness combinations:  {fitness_combinations}")
@@ -958,7 +985,7 @@ fit_calc = FitnessCalculator(
         )
     ],
     multi_gene_array=True,
-    combine_mutations='replace',   # With FixedValue this means further mutations will do nothing
+    combine_mutations=replace_fitness,   # With FixedValue this means further mutations will do nothing
 )
 
 # This time, start with some mutations in Gene1. 
@@ -1182,7 +1209,7 @@ You can apply a transformation of the combined fitness effects of all mutations 
 # Run a simulation with loads of mutations that multiply in fitness
 fit_calc = FitnessCalculator(
     genes=[Gene(name='Gene1', mutation_distribution=FixedValue(1.4), synonymous_proportion=0)], 
-    combine_mutations='multiply' 
+    combine_mutations=multiply_fitness 
 )
 
 np.random.seed(0)
@@ -1371,7 +1398,7 @@ Running a simulation again, but limiting the max fitness.
 ```python
 fit_calc = FitnessCalculator(
     genes=[Gene(name='Gene1', mutation_distribution=FixedValue(1.4), synonymous_proportion=0)], 
-    combine_mutations='multiply', 
+    combine_mutations=multiply_fitness, 
     mutation_combination_class=BoundedLogisticFitness(3)   # This limits fitness to 3
 )
 

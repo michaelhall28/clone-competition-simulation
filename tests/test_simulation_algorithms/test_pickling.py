@@ -9,7 +9,8 @@ from src.clone_competition_simulation import (
     FixedValue,
     NormalDist,
     pickle_load,
-    Algorithm
+    Algorithm, 
+    add_fitness,
 )
 from tests.utilities import compare_single_res, convert_sim_to_standard_form
 
@@ -20,7 +21,7 @@ def test_pickling():
              Gene(name='random_driver', mutation_distribution=NormalDist(mean=1.01, var=0.05),
                   synonymous_proportion=0.8),
     ]
-    fit_calc1 = FitnessCalculator(multi_gene_array=False, genes=genes, combine_mutations='add')
+    fit_calc1 = FitnessCalculator(multi_gene_array=False, genes=genes, combine_mutations=add_fitness)
 
     np.random.seed(0)
     p = Parameters(

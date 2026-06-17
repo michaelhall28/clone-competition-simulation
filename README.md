@@ -28,15 +28,16 @@ and install the code in this repository
 First, the parameters for the simulation are defined. The Parameters class checks that the parameters are appropriate for the chosen algorithm.
 e.g.
 ```python
-from clone_competition_simulation.parameters import Parameters, TimeParameters, PopulationParmaters, FitnessParameters
-from clone_competition_simulation.fitness_classes import Gene, UniformDist, FitnessCalculator
+from clone_competition_simulation.parameters import Parameters, TimeParameters, PopulationParameters, FitnessParameters
+from clone_competition_simulation.fitness import Gene, UniformDist, FitnessCalculator, multiply_fitness
 
 # Define the effect of mutations that appear during the simulation
-fitness_calculator = FitnessCalculator(genes=[Gene(name='example_gene', UniformDist(1, 2), synonymous_proportion=0.5)],
-                                        combine_mutations='multiply')
+fitness_calculator = FitnessCalculator(genes=[Gene(name='example_gene', 
+                                                   mutation_distribution=UniformDist(1, 2), synonymous_proportion=0.5)],
+                                       combine_mutations=multiply_fitness)
 
 p = Parameters(
-        algorithm=algorithm,
+        algorithm="WF2D",
         population=PopulationParameters(grid_shape=(100, 100), cell_in_own_neighbourhood=True),
         times=TimeParameters(max_time=20, division_rate=1),
         fitness=FitnessParameters(mutation_rates=0.01, fitness_calculator=fitness_calculator)
