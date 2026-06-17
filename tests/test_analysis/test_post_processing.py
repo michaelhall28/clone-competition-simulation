@@ -15,7 +15,7 @@ from src.clone_competition_simulation.parameters import (
     FitnessParameters,
     LabelParameters,
 )
-from src.clone_competition_simulation.fitness import FitnessCalculator, Gene, NormalDist, FixedValue, EpistaticEffect
+from src.clone_competition_simulation.fitness import FitnessCalculator, Gene, NormalDist, FixedValue, EpistaticEffect, replace_fitness
 
 
 @pytest.fixture
@@ -179,7 +179,7 @@ def test_view_clone_info4(monkeypatch):
                 )
             ],
             multi_gene_array=True,
-            combine_mutations='replace',  # With FixedValue this means further mutations will do nothing
+            combine_mutations=replace_fitness,  # With FixedValue this means further mutations will do nothing
         )
         p = Parameters(
             algorithm='Moran',

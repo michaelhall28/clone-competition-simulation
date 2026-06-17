@@ -1,15 +1,14 @@
 import itertools
 from collections import Counter
-from typing import TYPE_CHECKING, Literal, Iterable
+from typing import TYPE_CHECKING, Iterable, Literal
 
-import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
-from loguru import logger
-from scipy.sparse import lil_matrix
 
-from ..analysis.analysis import mean_clone_size, mean_clone_size_fit, surviving_clones_fit, incomplete_moment, add_incom_to_plot
-from ..plotting.animator import NonSpatialToGridAnimator, HexAnimator, HexFitnessAnimator
+from ..analysis.analysis import (add_incom_to_plot, incomplete_moment,
+                                 mean_clone_size, mean_clone_size_fit,
+                                 surviving_clones_fit)
+from ..plotting.animator import NonSpatialToGridAnimator
 
 if TYPE_CHECKING:
     from .base_sim_class import BaseSimClass
@@ -311,7 +310,7 @@ class SimulationPlottingMixin:
             if clear_previous and ax is None:
                 plt.close('all')
                 fig, ax = plt.subplots()
-            if incom is not None:
+            if len(incom) > 0:
                 add_incom_to_plot(incom, clone_size_dist, sem=sem, show_fit=show_fit, fit_prop=fit_prop,
                                   min_size=min_size, label=label, errorevery=errorevery, fit_style=fit_style, ax=ax)
 
