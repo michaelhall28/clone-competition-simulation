@@ -12,6 +12,30 @@ from ..simulation_algorithms.base_2D_class import BaseHexagonalGridSim
 
 
 class Biopsy(BaseModel):
+    """Describe a rectangular biopsy region within a simulation grid.
+
+    Parameters
+    ----------
+    origin : tuple[int, int]
+        The zero-based (x, y) coordinate of the top-left corner of the biopsy in the
+        simulation grid.
+    shape : tuple[int, int]
+        The width and height of the biopsy rectangle in grid units.
+
+    Attributes
+    ----------
+    origin : tuple[int, int]
+        The validated biopsy origin coordinates.
+    shape : tuple[int, int]
+        The validated biopsy dimensions.
+    size : int
+        The total number of grid cells contained in the biopsy (width * height).
+
+    Notes
+    -----
+    The class validates that origin coordinates are non-negative and that shape
+    dimensions are positive.
+    """
     origin: tuple[int, int]
     shape: tuple[int, int]
 
@@ -34,6 +58,18 @@ class Biopsy(BaseModel):
         return self.shape[0] * self.shape[1]
 
     def slice_grid(self, grid: NDArray) -> NDArray:
+        """Returns the section of the grid covered by this biopsy
+
+        Parameters
+        ----------
+        grid : NDArray
+            The simulation grid from which to extract the biopsy region. 2D NumPy array. 
+
+        Returns
+        -------
+        NDArray
+            The sliced grid corresponding to the biopsy region. 2D NumPy array.
+        """
         x2, y2 = self.origin[0] + self.shape[0], self.origin[1] + self.shape[1]
         assert x2 <= grid.shape[0], (x2, grid.shape[0])
         assert y2 <= grid.shape[1], (y2, grid.shape[1])
@@ -45,26 +81,33 @@ def get_vafs_for_all_biopsies(sim: BaseHexagonalGridSim, biopsies: list[Biopsy],
                               detection_limit: int | None=None, coverage: int | None=None, merge_clones: bool=False,
                               sample_num: int | None=None, binom_params: tuple[int, float] | None=None,
                               remove_initial_clones: bool=True, heterozygous: bool=True) -> pd.DataFrame:
-    """
-    Simulate the sampling of a simulation using multiple biopsies.
+    """Simulate the sampling of a simulation using multiple biopsies.
 
-    :param sim: A simulation object with the simulation completed.
-    :param biopsies: A list of Biopsy objects defining biopsy position and size Biopsy(origin=(x, y), shape=(w, h))
-    :param coverage: Int. The depth of the simulated sequencing. Will be used if not None. If coverage is None and
-    binom=False, will assume perfect sampling of all clones.
-    :param detection_limit: Int. The lower limit of detection. I.e. mutant must appear in at least this number of
-    simulated reads to be counted as detected.
-    :param merge_clones: Bool. If True, will add the clone sizes if the same clone is detected in two different biopsies.
-    If False, will count the same clone in two different biopsies as two separate clones.
-    :param sample_num: Int. The index of the sample time from the simulation. By default, uses the final time point.
-    :param binom_params: The parameters (tuple) for numpy.random.negative_binomial if binom=True
-    :param remove_initial_clones: If True, will remove any clones present at the start of the simulation from the
-    final results.
-    :param heterozygous: If True, will assume every mutation is on one of two copies of the chromosome. So a mutant in
-    the entire biopsy will have a VAF of 0.5 instead of 1. If False, will assume the mutants are all homozygous.
-    To make other assumptions (such as a different copy number per gene), run the biopsy_sample function instead to
-    get the raw counts of mutant cells, which can then be processed further with the assumptions you need.
-    :return: A pandas data frame, with sample, VAF, gene and clone id for each "detected" clone.
+    Parameters
+    ----------
+    sim : BaseHexagonalGridSim
+        A completed simulation object.
+    biopsies : list[Biopsy] | None
+        The list of Biopsy objects defining biopsy position and size. If None, the entire grid is sampled.
+    detection_limit : int | None
+        Lower limit of detection; a mutant must appear in at least this many simulated reads to be counted.
+    coverage : int | None
+        Sequencing depth for fixed-coverage sampling. If None and ``binom_params`` is also None, perfect sampling is assumed.
+    merge_clones : bool
+        If True, merge detections of the same clone across multiple biopsies by clone id and gene.
+    sample_num : int | None
+        Index of the sample time from the simulation. Defaults to the final time point.
+    binom_params : tuple[int, float] | None
+        Parameters for ``numpy.random.negative_binomial`` when using negative-binomial sequencing depth.
+    remove_initial_clones : bool
+        If True, remove clones present at the start of the simulation from the output.
+    heterozygous : bool
+        If True, assume mutations are heterozygous, so a mutation present in all biopsy cells has maximum VAF 0.5.
+
+    Returns
+    -------
+    pd.DataFrame
+        Data frame containing sample index, VAF, gene name, and clone id for each detected clone.
     """
     if sample_num is None:
         sample_num = -1
@@ -97,16 +140,6 @@ def get_vafs_for_all_biopsies(sim: BaseHexagonalGridSim, biopsies: list[Biopsy],
             genes.append(sim.fitness_calculator.genes[mutant_gene_map[clone]].name)
             clone_ids.append(clone)
 
-    # if merge_clones:
-    #     clones = {}
-    #     for biopsy, vaf, gene, clone_id in zip(names, vafs, genes, clone_ids):
-    #         if clone_id not in clones:
-    #             clones[clone_id] = {'vaf': vaf, 'gene': gene, 'clone_id': clone_id}
-    #         else:
-    #             clones[clone_id]['vaf'] += vaf
-    #
-    #     df = pd.DataFrame.from_dict(list(clones.values()))
-    # else:
     df = pd.DataFrame({
         'sample': names,
         'vaf': vafs,
@@ -125,28 +158,38 @@ def get_vafs_for_all_biopsies(sim: BaseHexagonalGridSim, biopsies: list[Biopsy],
     return df
 
 
-def get_vafs(grid: NDArray, sim: BaseHexagonalGridSim, biopsy: Biopsy, detection_limit: int|None=None,
+def get_vafs(grid: NDArray, sim: BaseHexagonalGridSim, biopsy: Biopsy | None, detection_limit: int | None=None,
              coverage: int | None=None, binom_params: tuple[int, float] | None=None,
              remove_initial_clones: bool=True, heterozygous: bool=True) \
         -> dict[int, float]:
-    """
-    Simulate the DNA sequencing of a single biopsy.
+    """Simulate the DNA sequencing of a single biopsy.
 
-    :param grid: Simulated grid of cells.
-    :param sim: The simulation object associated with the grid.
-    :param biopsy: Biopsy object defining the position and size of the biopsy. Biopsy(origin=(x, y), shape=(w, h))
-    :param coverage: Int. The depth of the simulated sequencing. Will be used if not None. If coverage is None and
-    binom=False, will assume perfect sampling of all clones.
-    :param detection_limit: Int. The lower limit of detection. I.e. mutant must appear in at least this number of
-    simulated reads to be counted as detected.
-    :param binom_params: The parameters (tuple) for numpy.random.negative_binomial if binom=True
-    :param remove_initial_clones: If True, will remove any clones present at the start of the simulation from the
-    final results.
-    :param heterozygous: If True, will assume every mutation is on one of two copies of the chromosome. So a mutant in
-    the entire biopsy will have a VAF of 0.5 instead of 1. If False, will assume the mutants are all homozygous.
-    To make other assumptions (such as a different copy number per gene), run the biopsy_sample function instead to
-    get the raw counts of mutant cells, which can then be processed further with the assumptions you need.
-    :return: dictionary of clone_id: VAF
+    Parameters
+    ----------
+    grid : NDArray
+        Simulated grid of cells.
+    sim : BaseHexagonalGridSim
+        The simulation object associated with the grid.
+    biopsy : Biopsy | None
+        Biopsy object defining the position and size of the biopsy. If None, the entire grid is used.
+    detection_limit : int | None
+        Lower limit of detection; a mutant must appear in at least this many simulated reads to be counted.
+    coverage : int | None
+        Sequencing depth for fixed-coverage sampling. If None and ``binom_params`` is None, perfect sampling is used.
+    binom_params : tuple[int, float] | None
+        Parameters for ``numpy.random.negative_binomial`` when using negative-binomial sampling. Set to use variable coverage 
+        instead of fixed coverage.
+    remove_initial_clones : bool
+        If True, remove clones present at the start of the simulation from the final result.
+    heterozygous : bool
+        If True, assume mutations are heterozygous, giving a maximum VAF of 0.5 for fully occupied biopsy cells. 
+        If False, all mutants are assumed to be homozygous. 
+        To make other assumptions, run the biopsy_sample function to get raw counts of mutant cells and then apply your own VAF conversion.
+
+    Returns
+    -------
+    dict[int, float]
+        Mapping from clone id to observed VAF.
     """
     clones = biopsy_sample(grid, sim, biopsy, remove_initial_clones=remove_initial_clones)
     vaf_denominator = _get_vaf_denominator(biopsy, heterozygous, sim)
@@ -163,16 +206,25 @@ def get_vafs(grid: NDArray, sim: BaseHexagonalGridSim, biopsy: Biopsy, detection
     return vafs
 
 
-def biopsy_sample(grid: NDArray, sim: BaseHexagonalGridSim, biopsy: Biopsy, remove_initial_clones: bool=True) \
+def biopsy_sample(grid: NDArray, sim: BaseHexagonalGridSim, biopsy: Biopsy | None, remove_initial_clones: bool=True) \
         -> dict[int, int]:
-    """
-    Find all number of cells in each mutant clone in the biopsy.
-    :param grid: Simulated grid of cells.
-    :param sim: The simulation object associated with the grid.
-    :param biopsy: Biopsy object defining the position and size of the biopsy. Biopsy(origin=(x, y), shape=(w, h))
-    :param remove_initial_clones: If True, will remove any clones present at the start of the simulation from the
-    final results.
-    :return: Dictionary,  clone_id: cell_count
+    """Count cells in each mutant clone within a biopsy sample.
+
+    Parameters
+    ----------
+    grid : NDArray
+        Simulated grid of cells.
+    sim : BaseHexagonalGridSim
+        The simulation object associated with the grid.
+    biopsy : Biopsy | None
+        Biopsy object defining the position and size of the biopsy. If None, the full grid is sampled.
+    remove_initial_clones : bool
+        If True, remove clones present at the start of the simulation from the final results.
+
+    Returns
+    -------
+    dict[int, int]
+        Mapping from clone id to cell count in the biopsy.
     """
     if biopsy is not None:
         biopsy_grid = biopsy.slice_grid(grid)
@@ -189,13 +241,23 @@ def biopsy_sample(grid: NDArray, sim: BaseHexagonalGridSim, biopsy: Biopsy, remo
 
 
 def small_detection_limit(clones: dict[int, int], coverage: int, limit: int, vaf_denominator: float) -> dict[int, float]:
-    """
-    Converts clone size in cell number to a noisy VAF, assuming a fixed sequencing depth and binomial sampling.
-    :param clones: Dictionary of clone_id: cell_count
-    :param coverage: Int. Sequencing depth.
-    :param limit: Int. Lower limit of detection.
-    :param vaf_denominator: Float or Int. Number used to divide clone cell count in order to convert to VAF.
-    :return: Dictionary. clone_id: VAF
+    """Convert clone cell counts to observed VAF using fixed coverage and binomial sampling.
+
+    Parameters
+    ----------
+    clones : dict[int, int]
+        Mapping from clone id to cell count.
+    coverage : int
+        Sequencing depth.
+    limit : int
+        Lower limit of detection; clones with fewer observed reads are excluded.
+    vaf_denominator : float
+        Value used to convert clone cell count into an expected VAF.
+
+    Returns
+    -------
+    dict[int, float]
+        Mapping from clone id to observed VAF for detected clones.
     """
     observed = {}
     for c, size in clones.items():
@@ -209,14 +271,23 @@ def small_detection_limit(clones: dict[int, int], coverage: int, limit: int, vaf
 
 def small_detection_limit_nbin(clones: dict[int, int], binom_params: tuple[int, float], limit: int,
                                vaf_denominator: float) -> dict[int, float]:
-    """
-    Converts clone size in cell number to a noisy VAF, assuming a negative binomial sequencing depth
-    and binomial sampling.
-    :param clones: Dictionary of clone_id: cell_count
-    :param binom_params: Tuple. Parameters for numpy.random.negative_binomial for the sequencing depth.
-    :param limit: Int. Lower limit of detection.
-    :param vaf_denominator: Float or Int. Number used to divide clone cell count in order to convert to VAF.
-    :return: Dictionary. clone_id: VAF
+    """Convert clone cell counts to observed VAF using negative binomial coverage and binomial sampling.
+
+    Parameters
+    ----------
+    clones : dict[int, int]
+        Mapping from clone id to cell count.
+    binom_params : tuple[int, float]
+        Parameters for ``numpy.random.negative_binomial`` that define sequencing depth variability.
+    limit : int
+        Lower limit of detection; clones with fewer observed reads are excluded.
+    vaf_denominator : float
+        Value used to convert clone cell count into an expected VAF.
+
+    Returns
+    -------
+    dict[int, float]
+        Mapping from clone id to observed VAF for detected clones.
     """
     observed = {}
     for c, size in clones.items():
@@ -230,10 +301,22 @@ def small_detection_limit_nbin(clones: dict[int, int], binom_params: tuple[int, 
 
 
 def _get_vaf_denominator(biopsy: Biopsy | None, heterozygous: bool, sim: BaseHexagonalGridSim) -> int:
-    """
-    Get the total number of copies of the chromosomes in the sample, i.e. the copy number multiplied by the cell number
-    :param heterozygous: Assumes the mutant is on one of two copies of the chromosome
-    :return: Int.
+    """Return the total number of copies of chromosomes in the sample, e.g. the copy number multiplied by the number of cells. 
+    This serves as the denominator for calculating VAFs.
+
+    Parameters
+    ----------
+    biopsy : Biopsy | None
+        Biopsy sample defining the region size. If None, the full simulation population is used.
+    heterozygous : bool
+        If True, account for two chromosome copies per cell.
+    sim : BaseHexagonalGridSim
+        The simulation object from which to obtain population size.
+
+    Returns
+    -------
+    int
+        Total number of chromosome copies in the sample.
     """
     if biopsy is None:
         d = sim.total_pop
@@ -249,14 +332,21 @@ def _get_vaf_denominator(biopsy: Biopsy | None, heterozygous: bool, sim: BaseHex
 
 def get_mutants_from_clone_number(sim: BaseHexagonalGridSim, clone_number: int, remove_initial_clones: bool=True) \
         -> list[int]:
-    """
-    Each clone may contain many mutants. This returns a list of the mutations present in a particular clone (defined
-    using the clone_id of the clone that they formed when they first appeared).
-    :param sim: The simulation.
-    :param clone_number: The clone_id.
-    :param remove_initial_clones: If True, will remove any clones present at the start of the simulation from the
-    final results.
-    :return: List of int.
+    """Return the mutant ids present in a clone.
+
+    Parameters
+    ----------
+    sim : BaseHexagonalGridSim
+        The simulation object.
+    clone_number : int
+        Clone id to inspect.
+    remove_initial_clones : bool
+        If True, exclude mutations present in initial clones from the returned list.
+
+    Returns
+    -------
+    list[int]
+        List of mutant ids present in the specified clone.
     """
     if remove_initial_clones:
         a = -2
@@ -267,12 +357,21 @@ def get_mutants_from_clone_number(sim: BaseHexagonalGridSim, clone_number: int, 
 
 
 def get_sample_dnds(observed_vafs: pd.DataFrame, sim: BaseHexagonalGridSim, gene: str | None=None) -> float:
-    """
-    Calculates a dN/dS ratio for a set of "observed" mutations.
-    :param observed_vafs: Dataframe of mutations (the output of the get_vafs_for_all_biopsies function).
-    :param sim: The simulation object.
-    :param gene: The gene to calculate dN/dS for. If None, will use all VAFs regardless of gene.
-    :return:
+    """Calculate dN/dS for observed mutations in a sample.
+
+    Parameters
+    ----------
+    observed_vafs : pd.DataFrame
+        Data frame of observed mutations, typically the output of ``get_vafs_for_all_biopsies``.
+    sim : BaseHexagonalGridSim
+        The simulation object used to determine synonymous mutation proportions.
+    gene : str | None
+        Name of the gene for which to compute dN/dS. If None, include all genes.
+
+    Returns
+    -------
+    float
+        The dN/dS ratio, or ``numpy.nan`` if the expected synonymous count is zero.
     """
     if gene is not None:
         observed_vafs = observed_vafs[observed_vafs['gene'] == gene]
