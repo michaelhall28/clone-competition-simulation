@@ -4,7 +4,7 @@ Fitness sampling and fitness-transformation classes.
 This module provides utilities for sampling mutation fitness effects, combining
 those effects across genes, and transforming raw clone fitness values.
 """
-from typing import Self
+from typing import Self, Callable
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -14,7 +14,12 @@ from pydantic import BaseModel, field_validator, ConfigDict, Field, model_valida
 
 from .fitness_distributions import DistributionProtocol
 from .fitness_transformations import FitnessTransform, UnboundedFitness
-from .fitness_combination import FitnessCombinationType, GeneCombinationType, multiply_fitness, multiply_array_fitness
+from .fitness_combination import (
+    FitnessCombinationType, 
+    GeneCombinationType, 
+    FITNESS_COMBINATION_FUNCTIONS, 
+    GENE_COMBINATION_FUNCTIONS
+)
 
 
 ################
@@ -110,9 +115,9 @@ class FitnessCalculator(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     genes: list[Gene]
-    combine_mutations: FitnessCombinationType = multiply_fitness
+    combine_mutations: FitnessCombinationType = FITNESS_COMBINATION_FUNCTIONS["multiply"]
     multi_gene_array: bool = False
-    combine_array: GeneCombinationType = multiply_array_fitness
+    combine_array: GeneCombinationType = GENE_COMBINATION_FUNCTIONS["multiply"]
     mutation_combination_class: FitnessTransform = Field(default_factory=UnboundedFitness)
     epistatics: list[EpistaticEffect] | None = None
 
@@ -126,10 +131,14 @@ class FitnessCalculator(BaseModel):
     epistatics_dict: dict[tuple[int, ...], EpistaticEffect] | None = None
     epistatic_cols: NDArray[np.int64] | None = None
 
-    @field_validator("combine_mutations")
+    @field_validator("combine_mutations", mode="before")
     @classmethod
-    def validate_combine_mutations(cls, func):
+    def validate_combine_mutations(cls, func: Callable | str):
         """Validate that the combine_mutations function is a callable"""
+        if isinstance(func, str):
+            if func not in FITNESS_COMBINATION_FUNCTIONS:
+                raise ValueError(f"combine_mutations must be one of {list(FITNESS_COMBINATION_FUNCTIONS.keys())}")
+            func = FITNESS_COMBINATION_FUNCTIONS[func]
         if not callable(func):
             raise ValueError("combine_mutations must be callable")
 
@@ -137,8 +146,12 @@ class FitnessCalculator(BaseModel):
 
     @field_validator("combine_array", mode="before")
     @classmethod
-    def validate_combine_array(cls, func):
+    def validate_combine_array(cls, func: Callable | str):
         """Validate that the combine_array function is a callable."""
+        if isinstance(func, str):
+            if func not in GENE_COMBINATION_FUNCTIONS:
+                raise ValueError(f"combine_array must be one of {list(GENE_COMBINATION_FUNCTIONS.keys())}")
+            func = GENE_COMBINATION_FUNCTIONS[func]
         if not callable(func):
             raise ValueError("combine_array must be callable")
 

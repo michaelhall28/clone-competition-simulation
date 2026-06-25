@@ -162,6 +162,8 @@ from clone_competition_simulation import (
 )
 ```
 
+These can also be assigned using the strings 'multiply', 'add', 'replace', 'max' and 'min' as the combine_mutations argument. 
+
 -----
 For example, to add fitness values
 
@@ -171,7 +173,7 @@ fit_calc = FitnessCalculator(
     genes=[
         Gene(name='Gene1', mutation_distribution=FixedValue(1.1), synonymous_proportion=0)
     ], 
-    combine_mutations=add_fitness  # Using add.
+    combine_mutations=add_fitness  # Using add. Can also use combine_mutations="add"
 )
 
 # The simulation is otherwise the same as before
@@ -710,6 +712,8 @@ from clone_competition_simulation import (
   min_array_fitness
 )
 ```
+
+These can also be assigned using the strings 'multiply', 'add', 'priority', 'max' and 'min' as the combine_array argument. 
 
 You can also write your own function. It should take a 2D NumPy array and return a 1D NumPy array. 
 

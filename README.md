@@ -89,6 +89,7 @@ p = Parameters(
 * A yml file can be used to supply parameters. These can be combined with `__init__` parameters.  
 * Biopsies are now Pydantic classes (`from clone_competition import Biopsy`) instead of dictionaries
 * Plot colours are specified in a new way
+* Custom functions can be used for combining fitness values from different mutations
 * Custom cell competition rules are now easier to implement
 
 See the [docs](https://michaelhall28.github.io/clone-competition-simulation/) for more details. 
