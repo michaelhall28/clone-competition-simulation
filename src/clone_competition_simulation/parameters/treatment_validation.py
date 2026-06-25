@@ -65,12 +65,33 @@ class TreatmentParameters(ParameterBase):
 
 
 class TreatmentValidator(TreatmentParameters, ValidationBase):
+    """Validate and compute simulation treatment parameters.
+
+    This validator reads treatment parameters from configuration and infers any
+    missing fields based on the chosen algorithm. Ensures that treatment timings 
+    and effects are consistent with the simulation setup, including multi-gene mutation scenarios.
+    Assigns a "neutral" treatment if no treatment is otherwise specified. 
+    """
     tag: Literal['Full']
     population: PopulationValidator
     fitness: FitnessValidator
     config_file_settings: TreatmentParameters | None = None
 
     def _validate_model(self):
+        """Validate treatment parameters and prepare treatment effects for simulation.
+
+        Validates that the treatment_timings and treatment_effects are consistent, 
+        applies defaults if necessary, and ensures that the treatment effects are 
+        compatible with the simulation's fitness model. 
+        If no treatment is specified, a neutral treatment is applied.
+
+        Raises
+        ------
+        ValueError
+            If treatment parameters are missing, inconsistent lengths, or incompatible with the
+            chosen algorithm.
+            
+        """
         self.treatment_timings = self.get_value_from_config("treatment_timings")
         self.treatment_effects = self.get_value_from_config("treatment_effects")
         self.treatment_replace_fitness = self.get_value_from_config("treatment_replace_fitness")

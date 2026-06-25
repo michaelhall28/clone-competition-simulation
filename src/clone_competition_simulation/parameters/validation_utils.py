@@ -9,6 +9,17 @@ from .algorithm_validation import Algorithm
 
 
 class ParameterBase(BaseModel):
+    """Base for all parameter classes. 
+
+    Parameters
+    ----------
+    _field_name : ClassVar[str]
+        The name of the field in the parent parameter class that this class validates.
+    tag : Literal['Base', 'Full']
+        A tag indicating whether this is a base parameter class (from the config file or user)
+        or a full parameter class (after validation and defaults have been applied). 
+        This is used to distinguish between parameter entry and parameter validation. 
+    """
     _field_name: ClassVar[str]
     tag: Literal['Base', 'Full']
 
@@ -17,6 +28,18 @@ class ParameterBase(BaseModel):
 
 
 class ValidationBase(BaseModel):
+    """Base for the parameter validation classes. 
+
+    Parameters:
+    -----------
+    algorithm: Algorithm
+        The algorithm to run. Used to validate the input parameters and return the correct simulation. 
+    validated: bool
+        Flag to indicate when the parameters are validated. To prevent duplication of validation. 
+    config_file_settings: ParameterBase
+        Settings read from the config file. Will be combined with any inputs from __init__, 
+        with __init__ parameters taking priority. 
+    """
     algorithm: Algorithm
     validated: bool = False
     config_file_settings: ParameterBase | None = None
@@ -25,17 +48,44 @@ class ValidationBase(BaseModel):
     model_config = ConfigDict(extra='ignore')
 
     def _validate_model(self) -> None:
+        """Overwritten by each of the validation classes. 
+        """
         raise NotImplementedError
 
     @model_validator(mode="after")
     def validate_model(self) -> Self:
+        """Runs validation of the parameters. 
+
+        Checks that the parameters have not already been validated before 
+        running _validate_model.
+
+        Returns
+        -------
+        Self
+            Validated parameters
+        """
         if self.validated:
             return self
         self._validate_model()
         self.validated = True
         return self
 
-    def get_value_from_config(self, field_name: str):
+    def get_value_from_config(self, field_name: str) -> Any:
+        """Get the parameter value for the field_name. 
+
+        Will get the value from the object attributes if set. 
+        Otherwise, will look for the value in the config file. 
+
+        Parameters
+        ----------
+        field_name : str
+            Name of the parameter field
+
+        Returns
+        -------
+        Any
+            The field value
+        """
         value = getattr(self, field_name)
         if value is None:
             return getattr(self.config_file_settings, field_name)
@@ -43,6 +93,23 @@ class ValidationBase(BaseModel):
     
 
 def assign_config_settings(value, info) -> dict[str, Any]:
+    """Assign any missing setting for parameter input and validation classes
+
+    Adds tags, previously validated parameters and the algorithm. 
+    
+
+    Parameters
+    ----------
+    value : 
+        ParameterBase subclass or dictionary of parameters or None
+    info : 
+        Pydantic validation info
+
+    Returns
+    -------
+    dict[str, Any]
+        Input values for the parameter or validation class
+    """
     if value is not None:
         if not isinstance(value, ParameterBase):
             # Run through the basic pydantic input validation if not done already
@@ -52,6 +119,7 @@ def assign_config_settings(value, info) -> dict[str, Any]:
     else:
         value = {}
     if info.config['title'] == "Parameters":
+        # This is for a validation class. Add the Full tag and any other parameters required. 
         value.update(info.data)  # Include any already-validated parameters as they might be needed
         config_settings = info.data.get("config_file_settings")
         value['config_file_settings'] = getattr(config_settings, info.field_name, {})
