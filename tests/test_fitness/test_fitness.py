@@ -173,7 +173,6 @@ def test_mutation_combination(method, expected):
     np.testing.assert_almost_equal(method(x), expected)
 
 
-
 def test_mutation_generation_validation(genes, epistatics):
     fit_calc = FitnessCalculator(
         genes=genes, epistatics=epistatics,
@@ -199,6 +198,38 @@ def test_mutation_generation_validation(genes, epistatics):
     np.testing.assert_equal(fit_calc.epistatic_cols, np.arange(6, 8))
     assert fit_calc.combine_mutations == add_fitness
     assert fit_calc.combine_array == multiply_array_fitness
+
+
+@pytest.mark.parametrize("method,expected", [
+    ("add", add_fitness),
+    ("multiply", multiply_fitness),
+    ("replace", replace_fitness),
+    ("max", max_fitness),
+    ("min", min_fitness)
+])
+def test_combine_mutations_validation(genes, epistatics, method, expected):
+    fit_calc = FitnessCalculator(
+        genes=genes, epistatics=epistatics,
+        combine_mutations=method,
+        combine_array=multiply_array_fitness
+    )
+    assert fit_calc.combine_mutations == expected
+
+
+@pytest.mark.parametrize("method,expected", [
+    ("add", add_array_fitness),
+    ("multiply", multiply_array_fitness),
+    ("priority", priority_array_fitness),
+    ("max", max_array_fitness),
+    ("min", min_array_fitness)
+])
+def test_combine_array_validation(genes, epistatics, method, expected):
+    fit_calc = FitnessCalculator(
+        genes=genes, epistatics=epistatics,
+        combine_mutations=multiply_fitness,
+        combine_array=method
+    )
+    assert fit_calc.combine_array == expected
 
 
 def test_custom_fitness_combination():
