@@ -79,11 +79,30 @@ class PopulationParameters(ParameterBase):
 
 
 class PopulationValidator(PopulationParameters, ValidationBase):
+    """Validate population parameters and prepare initial population arrays.
+
+    This validator reads population specification (cells, grid, or array),
+    ensures exactly one specification method is used, and converts it into
+    standardized arrays and grids suitable for the chosen algorithm.
+    """
     tag: Literal['Full']
     config_file_settings: PopulationParameters | None = None
 
     def _validate_model(self):
-        """Checks that only one population parameter has been given"""
+        """Validate and normalize population parameters.
+
+        Reads population parameters from configuration, checks that exactly
+        one population specification method is provided, and converts it to
+        standardized arrays and grids. Delegates to 2D or non-spatial setup
+        depending on the algorithm.
+
+        Raises
+        ------
+        ValueError
+            If no population specification is provided, if multiple
+            specifications are given, or if parameters are incompatible
+            with the chosen algorithm.
+        """
         self.initial_cells = self.get_value_from_config("initial_cells")
         self.initial_size_array = self.get_value_from_config("initial_size_array")
         self.grid_shape = self.get_value_from_config("grid_shape")
@@ -101,6 +120,19 @@ class PopulationValidator(PopulationParameters, ValidationBase):
             self._setup_initial_population_non_spatial()
 
     def _setup_2D_initial_population(self):
+        """Initialize and validate population arrays for 2D simulations.
+
+        Converts any population specification format (cells, grid, shape)
+        into standardized ``initial_grid`` and ``initial_size_array``.
+        Validates that the grid dimensions are even (required for hexagonal
+        grids) and that ``cell_in_own_neighbourhood`` is specified.
+
+        Raises
+        ------
+        ValueError
+            If dimensions are odd, if conflicting specifications are provided,
+            or if ``cell_in_own_neighbourhood`` is not defined.
+        """
         if self.initial_cells is not None:
             self._try_making_square_grid()
             self.initial_size_array = np.array([self.initial_cells], dtype=int)
@@ -133,6 +165,16 @@ class PopulationValidator(PopulationParameters, ValidationBase):
             raise ValueError("Must provide cell_in_own_neighbourhood to run a 2D simulation")
 
     def _try_making_square_grid(self):
+        """Attempt to create a square grid from the initial cell count.
+
+        Computes the square root of ``initial_cells`` and checks if it's a
+        perfect square. If so, sets ``grid_shape`` to a square grid dimension.
+
+        Raises
+        ------
+        ValueError
+            If ``initial_cells`` is not a perfect square.
+        """
         poss_grid_size = int(np.sqrt(self.initial_cells))
         if poss_grid_size ** 2 == self.initial_cells:
             self.grid_shape = (poss_grid_size, poss_grid_size)
@@ -142,7 +184,13 @@ class PopulationValidator(PopulationParameters, ValidationBase):
                              f'To run a rectangular grid provide a grid shape or initial grid')
 
     def _create_initial_size_array_from_grid(self):
-        """For the 2D simulations, if an initial grid of clone positions is provided, fill in the initial_size_array"""
+        """Extract clone sizes from the initial 2D grid.
+
+        For 2D simulations with a provided ``initial_grid``, count the
+        number of cells for each unique clone index and build the
+        ``initial_size_array``. Includes zero-count entries for missing
+        clone indices.
+        """
 
         # If the initial size array is not given, define it here.
         idx_counts = {k:v for k,v in zip(*np.unique(self.initial_grid, return_counts=True))}
@@ -155,6 +203,11 @@ class PopulationValidator(PopulationParameters, ValidationBase):
         self.initial_size_array = np.array(self.initial_size_array, dtype=int)
 
     def _setup_initial_population_non_spatial(self):
+        """Initialize population arrays for non-spatial simulations.
+
+        Converts between ``initial_cells`` (single value) and
+        ``initial_size_array`` (array format), ensuring both are set.
+        """
         if self.initial_cells is not None:
             self.initial_size_array = np.array([self.initial_cells], dtype=int)
         elif self.initial_size_array is not None:

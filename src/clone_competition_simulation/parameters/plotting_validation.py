@@ -8,7 +8,7 @@ from .validation_utils import (ParameterBase, ValidationBase,
 
 
 class PlottingParameters(ParameterBase):
-    """Parameters that control plotting options for simulation output.
+    """Parameters controlling plotting options for simulation output.
 
     Fields:
         figsize:
@@ -36,11 +36,22 @@ class PlottingParameters(ParameterBase):
 
 
 class PlottingValidator(PlottingParameters, ValidationBase):
+    """Validate and prepare plotting parameters for simulation output.
+
+    This validator reads plotting parameters from configuration and ensures
+    that colour maps are properly initialized with defaults if not provided.
+    """
     _default_strat_sim = 1
     tag: Literal['Full']
     config_file_settings: PlottingParameters | None = None
 
     def _validate_model(self):
+        """Validate and initialize plotting parameters.
+
+        Reads plotting parameters from configuration and applies defaults.
+        Initializes colour maps with a default PlotColourMaps object if
+        not explicitly provided.
+        """
         self.plot_colour_maps = self.get_value_from_config("plot_colour_maps")
         if self.plot_colour_maps is None:
             self.plot_colour_maps = PlotColourMaps()

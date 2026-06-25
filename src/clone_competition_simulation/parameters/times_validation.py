@@ -84,6 +84,14 @@ class TimeParameters(ParameterBase):
 
 
 class TimeValidator(TimeParameters, ValidationBase):
+    """Validate and compute simulation timing parameters.
+
+    This validator reads timing parameters from configuration and infers any
+    missing fields based on the chosen algorithm. Ensures that simulation
+    duration, step count, division rate, and sampling schedule are mutually
+    consistent. Computes sample points in simulation steps for Moran and WF
+    algorithms.
+    """
     _default_num_samples = 100
     tag: Literal['Full']
     population: PopulationValidator
@@ -92,6 +100,21 @@ class TimeValidator(TimeParameters, ValidationBase):
     sample_points: np.ndarray | None = None
 
     def _validate_model(self):
+        """Validate and infer all timing parameters.
+
+        Reads user-provided timing parameters from configuration and
+        validates their consistency. Infers missing parameters (e.g.,
+        division_rate from max_time and simulation_steps). For non-branching
+        algorithms, computes sample points in simulation steps. Adjusts sample
+        times to align with actual simulation steps.
+
+        Raises
+        ------
+        ValueError
+            If times are not in increasing order, if parameters are
+            inconsistent, if the branching algorithm is used with
+            simulation_steps, or if required parameters are missing.
+        """
         if self.times is not None:
             diff = np.diff(self.times)
             if np.any(diff <= 0):
@@ -149,6 +172,20 @@ class TimeValidator(TimeParameters, ValidationBase):
         self._get_sample_times()
 
     def _calculate_simulation_steps(self):
+        """Calculate total simulation steps from max_time, division_rate, and algorithm.
+
+        Returns
+        -------
+        int
+            Total number of simulation steps required to achieve the
+            specified max_time with the current division_rate.
+
+        Raises
+        ------
+        ValueError
+            If the algorithm is not supported or if simulation steps
+            would be zero.
+        """
         alg_class = self.algorithm.algorithm_class
         if alg_class == AlgorithmClass.MORAN:
             sim_steps = round(self.max_time * self.division_rate * self.population.initial_cells)
@@ -163,6 +200,19 @@ class TimeValidator(TimeParameters, ValidationBase):
         return sim_steps
 
     def _get_max_time(self):
+        """Calculate max_time from simulation_steps, division_rate, and algorithm.
+
+        Returns
+        -------
+        float
+            The simulation duration required to complete simulation_steps
+            at the current division_rate.
+
+        Raises
+        ------
+        ValueError
+            If the algorithm is not supported.
+        """
         alg_class = self.algorithm.algorithm_class
         if alg_class == AlgorithmClass.MORAN:
             max_time = self.simulation_steps/self.division_rate/self.population.initial_cells
@@ -175,6 +225,19 @@ class TimeValidator(TimeParameters, ValidationBase):
         return max_time
 
     def _get_division_rate(self):
+        """Calculate division_rate from simulation_steps, max_time, and algorithm.
+
+        Returns
+        -------
+        float
+            The division rate needed to complete simulation_steps
+            within max_time.
+
+        Raises
+        ------
+        ValueError
+            If the algorithm is not supported.
+        """
         alg_class = self.algorithm.algorithm_class
         if alg_class == AlgorithmClass.MORAN:
             div_rate = self.simulation_steps/self.max_time/self.population.initial_cells
@@ -186,6 +249,12 @@ class TimeValidator(TimeParameters, ValidationBase):
         return div_rate
 
     def _check_samples(self):
+        """Validate and normalize the number of output samples.
+
+        If explicit sample times are provided, samples is set to their count.
+        Otherwise, uses the provided samples value or applies the default.
+        Reduces samples if they exceed simulation_steps.
+        """
         if self.times is None:
             if self.samples is None:
                 self.samples = self.config_file_settings.samples
@@ -201,6 +270,13 @@ class TimeValidator(TimeParameters, ValidationBase):
                     logger.debug('Fewer simulation steps than number of time points requested!')
 
     def _get_sample_times(self):
+        """Compute actual sample times and simulation step indices.
+
+        For non-branching algorithms, converts sample times to simulation
+        steps and ensures times are aligned with the discrete step grid.
+        May adjust sample times to match simulation steps exactly. For
+        branching algorithms, keeps times as-is and sets sample_points to None.
+        """
         if self.times is None:
             # The time points at each sample.
             self.times = np.linspace(0, self.max_time, self.samples + 1)
