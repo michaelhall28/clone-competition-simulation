@@ -95,6 +95,12 @@ class FitnessParameters(ParameterBase):
 
 
 class FitnessValidator(FitnessParameters, ValidationBase):
+    """Validate fitness and mutation parameters and prepare arrays for simulation.
+
+    This validator reads fitness parameters from configuration, performs
+    compatibility checks, and reshapes the initial fitness and mutant gene
+    arrays into the format required by the simulation algorithm.
+    """
     _wt_fitness = 1.0
     _default_mutation_type = np.nan
     tag: Literal['Full']
@@ -103,6 +109,19 @@ class FitnessValidator(FitnessParameters, ValidationBase):
     config_file_settings: FitnessParameters | None = None
 
     def _validate_model(self):
+        """Validate and reshape fitness and mutation arrays.
+
+        Reads fitness and mutation parameters from configuration, applies
+        defaults, checks compatibility with the fitness calculator, and
+        reshapes initial fitness and mutant gene arrays to match the
+        simulation's expectations (1D for single-gene, 2D for multi-gene).
+
+        Raises
+        ------
+        ValueError
+            If parameters are missing, have incompatible dimensions, or are
+            incompatible with the selected fitness calculator.
+        """
         initial_size_array = self.population.initial_size_array
         self.initial_fitness_array = self.get_value_from_config("initial_fitness_array")
         if self.initial_fitness_array is None:
@@ -137,9 +156,9 @@ class FitnessValidator(FitnessParameters, ValidationBase):
                         # No mutant genes specified, so all fitness values in the first column (wild type fitness)
                         blank_fitness_array[:, 0] = self.initial_fitness_array
                     else:
-                        # The mutant genes are specified by the initial_mutant_gene_array. 
+                        # The mutant genes are specified by the initial_mutant_gene_array.
                         # The columns in the fitness array are shifted by one compared to the gene numbers because
-                        # of the wild type column at the start, so add 1 to the mutant gene numbers to get the right 
+                        # of the wild type column at the start, so add 1 to the mutant gene numbers to get the right
                         # column in the fitness array.
                         
                         # Add the wt value to the first column
@@ -160,27 +179,37 @@ class FitnessValidator(FitnessParameters, ValidationBase):
                 self.initial_fitness_array = np.full(len(initial_size_array), self.initial_fitness_array, dtype=float)
             elif len(self.initial_fitness_array) != len(initial_size_array):
                 raise ValueError('Inconsistent initial_size_array and fitness_array. Ensure same length.' +
-                                      '\nlen(initial_size_array): {}, len(fitness_array): {}'.format(
-                                          len(initial_size_array), len(self.initial_fitness_array)))
+                                 '\nlen(initial_size_array): {}, len(fitness_array): {}'.format(
+                                     len(initial_size_array), len(self.initial_fitness_array)))
 
         self._check_mutation_rates()
 
 
     def _check_initial_mutant_gene_array(self):
-        """Check that the initial mutant gene array is compatible with the fitness calculator and the initial size array. 
-        Convert the gene names to indices. 
+        """Validate and convert gene names to indices in the initial mutant array.
+
+        Checks that the initial mutant gene array matches the size of the
+        initial population and is compatible with the fitness calculator.
+        Converts gene names (strings) to numeric indices and handles ``None``
+        values (wild-type).
+
+        Raises
+        ------
+        ValueError
+            If no fitness calculator is provided, or if array length does not
+            match the initial population size.
         """
         if self.initial_mutant_gene_array is None:
             return  # No initial mutant genes, so nothing to check or convert
-        
+
         if self.fitness_calculator is None:
             raise ValueError('Cannot specify initial mutant gene array without a fitness calculator.')
-        
+
         if isinstance(self.initial_mutant_gene_array, str):
-            # Convert the gene name to the gene index, then make an array with one value per initial clone. 
+            # Convert the gene name to the gene index, then make an array with one value per initial clone.
             gene_number = self.fitness_calculator.get_gene_number(self.initial_mutant_gene_array)
             self.initial_mutant_gene_array = np.full_like(self.population.initial_size_array, gene_number)
-        elif len(self.initial_mutant_gene_array) != len(self.population.initial_size_array): 
+        elif len(self.initial_mutant_gene_array) != len(self.population.initial_size_array):
             raise ValueError('Inconsistent initial_size_array and initial_mutant_gene_array. Ensure same length.')
         else:
             # Convert gene names to indices
@@ -190,7 +219,18 @@ class FitnessValidator(FitnessParameters, ValidationBase):
             ])
 
     def _check_mutation_rates(self):
-        """If only a single mutation rate is give, convert to the numpy array to match the required format"""
+        """Validate and normalize mutation rate specification.
+
+        Converts scalar mutation rates to a 2D array format ``[[time, rate], ...]``.
+        Ensures rates start from time zero, adds zero-rate entries if needed,
+        and checks that mutation time points do not exceed the simulation end time.
+
+        Raises
+        ------
+        ValueError
+            If mutation rate changes at or beyond the end of the simulation, or
+            if mutations are specified but no fitness calculator is provided.
+        """
         if self.mutation_rates is None:
             self.mutation_rates = self.get_value_from_config("mutation_rates")
             if self.mutation_rates is None:
@@ -207,7 +247,7 @@ class FitnessValidator(FitnessParameters, ValidationBase):
             raise ValueError('Mutation rates change at point beyond end of simulation.')
 
         if np.any(self.mutation_rates[:, 1] > 0) and self.fitness_calculator is None:
-            raise ValueError('Cannot generate mutations without a mutation generator set.')
+            raise ValueError('Cannot generate mutations without a fitness calculator set.')
 
 
 fitness_validation_type = Annotated[
