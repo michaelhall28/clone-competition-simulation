@@ -34,7 +34,7 @@ p = Parameters(
     algorithm='Moran',  # We will run a non-spatial Moran simulation. 
     times=TimeParameters(
         max_time=25,  # Run for 25 time units
-        division_rate=1.4  # Set average division rate for all cells to 1.7 per time unit
+        division_rate=1.4  # Set average division rate for all cells to 1.4 per time unit
     ), 
     population=PopulationParameters(  # Define the cell population
         initial_size_array=[100, 100, 100]  # There are three initial clones, with 100 cells in each
