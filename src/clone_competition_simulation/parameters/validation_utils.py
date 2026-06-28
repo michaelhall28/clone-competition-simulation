@@ -132,6 +132,23 @@ def assign_config_settings(value, info) -> dict[str, Any]:
 def find_subclass(cls: type[ParameterBase], field_name: str) -> type[ParameterBase]:
     """
     Find the right ParameterBase subclass for the parameter field
+
+    Parameters
+    ----------
+    cls : type[ParameterBase]
+        The superclass to find subclasses of
+    field_name : str
+        The value of the _field_name ClassVar attribute of the subclass.
+
+    Returns
+    -------
+    type[ParameterBase]
+        Subclass with the matching field_name
+
+    Raises
+    ------
+    ValueError
+        If no subclass with that field name exists
     """
     for subcls in cls.__subclasses__():
         if subcls._field_name == field_name:
@@ -143,12 +160,20 @@ def convert_to_array(value, dtype=None) -> Any | int | float | NDArray[np.float6
     """
     Numbers and None are returned unchanged, otherwise
     convert anything "array like" to a numpy array.
-    Args:
-        value:
 
-    Returns:
+    Parameters
+    ----------
+    value : 
+        input object
+    dtype : _type_, optional
+        array type 
 
+    Returns
+    -------
+    Any | int | float | NDArray[np.float64] | NDArray[np.int_]
+        Array, or original value if nor array like. 
     """
+    
     if value is None or isinstance(value, (int, float)):
         return value
     if not isinstance(value, np.ndarray):
