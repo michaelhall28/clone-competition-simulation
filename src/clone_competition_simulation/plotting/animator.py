@@ -10,7 +10,7 @@ import random
 import subprocess
 
 import matplotlib.animation as animation
-import matplotlib.pyplot as Axes
+import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import collections, transforms, text, colors, axes
 from numpy.typing import NDArray
@@ -59,9 +59,9 @@ class HexAnimator:
              The x-dimension of the video/figure, by default 5. If figsize not given, the y-dimension will be calculated 
              automatically based on the dimensions of the grid. If figsize is also defined, then figxsize will be ignored.
         figsize : tuple[float, float], optional
-            The figure size to use. If given, will ignore figsize.
+            The figure size to use. If given, will ignore figxsize.
         dpi : int, optional
-             DPI for the video, by default 100
+            DPI for the video, by default 100
         bitrate : int, optional
             Bitrate for the video, by default 500
         fps : int, optional
@@ -70,11 +70,11 @@ class HexAnimator:
             If True, will use subprocess to call ffmpeg and make the video instead of using
             matplotlib.animation.FuncAnimation. May sometimes be quicker. By default False
         fixed_label_text : str, optional
-             Text to add as a label over the video, by default None
+            Text to add as a label over the video, by default None
         fixed_label_loc : tuple[float, float], optional
             The location for the fixed_label_text, by default (0, 0)
         fixed_label_kwargs : dict, optional
-             Any kwargs to pass to ax.text for the fixed_label_text, by default None
+            Any kwargs to pass to ax.text for the fixed_label_text, by default None
         show_time_label : bool, optional
             If True, will show the time of each frame overlaid on the video. The time will be based
             on the times from the simulation (which may not be the frame number). By default False
@@ -88,9 +88,9 @@ class HexAnimator:
         time_label_kwargs : dict, optional
             Any kwargs to pass to ax.text for the time label, by default None
         equal_aspect : bool, optional
-             If True, will force the aspect ratio of the x and y axes to have the same scale. However,
-             this will not look equal aspect in terms of the number of cells per unit due to the 
-             tesselation of the hexagons. By default False
+            If True, will force the aspect ratio of the x and y axes to have the same scale. However,
+            this will not look equal aspect in terms of the number of cells per unit due to the 
+            tesselation of the hexagons. By default False
         """
         self.sim = sim
         if self.sim.colours is None:
@@ -295,7 +295,7 @@ class HexAnimator:
 
         Parameters
         ----------
-        ax : _type_, optional
+        ax : axes.Axes, optional
             Axis to plot onto, by default None and a new figure will be created
         """
 

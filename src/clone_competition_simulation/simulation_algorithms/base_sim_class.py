@@ -125,11 +125,22 @@ class BaseSimClass(ABC, SimulationSetupMixin, SimulationLoopMixin,
         self.stop_function = parameters.end_condition_function
 
 
-def pickle_load(filename, change_sparse_to_csr=True):
-    """
-    Load a simulation from a gzipped pickle
-    :param filename:
-    :return:
+def pickle_load(filename: str, change_sparse_to_csr: bool=True) \
+        -> BaseSimClass:
+    """Load a simulation from a gzipped pickle
+
+    Parameters
+    ----------
+    filename : str
+        Name of the pickle file containing the simulation
+    change_sparse_to_csr : bool, optional
+        Convert population array to CSR format after loading. 
+        By default True
+
+    Returns
+    -------
+    BaseSimClass
+        A simulation object
     """
     with gzip.open(filename, 'rb') as f:
         sim = pickle.load(f)
