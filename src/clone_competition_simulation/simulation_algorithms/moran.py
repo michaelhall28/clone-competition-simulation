@@ -3,9 +3,10 @@ A class to run Moran-style simulations.
 """
 import numpy as np
 from numpy.typing import ArrayLike
+
+from ..utils import find_ge
 from .base_sim_class import BaseSimClass
 from .current_data import NonSpatialCurrentData
-from ..utils import find_ge
 
 
 class Moran(BaseSimClass):
@@ -15,25 +16,33 @@ class Moran(BaseSimClass):
     """
     current_data_cls = NonSpatialCurrentData
 
-    def __init__(self, parameters):
-
-        super().__init__(parameters)
-
     def _adjust_raw_times(self, array: ArrayLike) -> np.ndarray[tuple[int], np.dtype[np.float64]]:
-        """
-        Takes an array of time points and converts to number of simulation steps
-        This is for the Moran simulations. Overwrite for the other cases
-        :param array: Numpy array or list of time points.
+        """Takes an array of time points and converts to number of simulation steps
+
+        Parameters
+        ----------
+        array : ArrayLike
+            Numpy array or list of time points.
+
+        Returns
+        -------
+        np.ndarray[tuple[int], np.dtype[np.float64]]
+            Time/sample points in simulation steps
         """
         if array is not None:
             array = np.array(array) * self.division_rate * self.total_pop
         return array
 
     def _precalculate_mutations(self) -> tuple[int, np.ndarray[tuple[int], np.dtype[np.int_]]]:
-        """
-        The timing of mutations that occur during the simulation can be calculated in advance.
+        """Calculate timings of all mutations
+
+        This can be calculated in advance.
         This speeds up the simulation a little.
-        :return:
+
+        Returns
+        -------
+        tuple[int, np.ndarray[tuple[int], np.dtype[np.int_]]]
+            Total number of mutations, mutations per simulation step
         """
         total_divisions = self.sample_points[-1]  # Length of the simulation
         mms = []
@@ -49,9 +58,27 @@ class Moran(BaseSimClass):
         new_mutation_count = mutations_to_add.sum()
         return new_mutation_count, mutations_to_add
 
-    def _sim_step(self, i, current_data: NonSpatialCurrentData) -> NonSpatialCurrentData:
-        """One cell is selected to die at random. Another cell is selected to replicate and replace the dead cell
-        with its offspring. The replicating cell is selected in proportion with its relative fitness"""
+    def _sim_step(self, i: int, current_data: NonSpatialCurrentData) \
+            -> NonSpatialCurrentData:
+        """Run one step of the simulation
+
+        One cell is selected to die at random. 
+        Another cell is selected to replicate and replace the dead cell
+        with its offspring. The replicating cell is selected in 
+        proportion with its relative fitness.
+
+        Parameters
+        ----------
+        i : int
+            Current step number
+        current_data : NonSpatialCurrentData
+            Current state of the simulation
+
+        Returns
+        -------
+        NonSpatialCurrentData
+            Updating state of the simulation
+        """
 
         birth_idx = self.get_dividing_cell(current_data=current_data) # Clone to add a cell
 
@@ -89,11 +116,16 @@ class Moran(BaseSimClass):
 
         This selects the clone based on the clone fitness and the number of cells in the clone. 
 
-        Args:
-            current_data (CurrentData): Contains the current clone cell populations and the indices of the living clones
+        Parameters
+        ----------
+        current_data : NonSpatialCurrentData
+            ontains the current clone cell populations and the indices of the living clones
 
-        Returns:
-            int: The index of the clone that will divide (index of the current_population array)
+        Returns
+        -------
+        int
+            The index of the clone that will divide (index of the current_population array)
+
         """
         # Select population to replicate cell
         # Select random number to select which population
@@ -113,13 +145,18 @@ class Moran(BaseSimClass):
     def get_differentiating_cell(self, current_data: NonSpatialCurrentData) -> int:
         """This selects the clone that will lose a cell in this simulation step 
 
-        The cell is selected at random from the entire population (so the selection of the clone is proportional to the clone size)
+        The cell is selected at random from the entire population 
+        (so the selection of the clone is proportional to the clone size)
 
-        Args:
-            current_data (CurrentData): Contains the current clone cell populations and the indices of the living clones
+        Parameters
+        ----------
+        current_data : NonSpatialCurrentData
+            Contains the current clone cell populations and the indices of the living clones
 
-        Returns:
-            int: The index of the clone that will lost a cell (index of the current_population array)
+        Returns
+        -------
+        int
+            The index of the clone that will lost a cell (index of the current_population array)
         """
         # Select replaced population
         # death_idx is the index for the current population. The clone number is non_zero_clones[death_idx]
