@@ -1,5 +1,5 @@
-from .base_sim_class import pickle_load, EndConditionError, NonSpatialCurrentData, BaseSimClass
-from .current_data import CurrentData
+from .base_sim_class import pickle_load, BaseSimClass
+from .current_data import CurrentData, NonSpatialCurrentData
 from .exceptions import EndConditionError
 from .base_2D_class import SpatialCurrentData
 from .branching_process import Branching

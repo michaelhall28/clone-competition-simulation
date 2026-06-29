@@ -140,10 +140,13 @@ class SimulationLoopMixin:
 
     def _take_sample(self, current_data: "CurrentData") -> None:
         """Store the current state of the simulation in the population array.  
-        If storing partially completed simulation states, dump the simulation to a pickle. 
+        If storing partially completed simulation states, dump the 
+        simulation to a pickle. 
 
-        Args:
-            current_data (CurrentData): _description_
+        Parameters
+        ----------
+        current_data : CurrentData
+            Current state of the simulation
         """
         current_data.update_population_array(self.population_array, self.plot_idx)
         self.plot_idx += 1

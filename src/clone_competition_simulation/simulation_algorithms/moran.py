@@ -3,7 +3,8 @@ A class to run Moran-style simulations.
 """
 import numpy as np
 from numpy.typing import ArrayLike
-from .base_sim_class import BaseSimClass, NonSpatialCurrentData
+from .base_sim_class import BaseSimClass
+from .current_data import NonSpatialCurrentData
 from ..utils import find_ge
 
 

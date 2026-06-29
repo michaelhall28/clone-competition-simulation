@@ -2,7 +2,8 @@
 A class to run non-spatial Wright-Fisher-style simulations
 """
 
-from .base_sim_class import BaseSimClass, NonSpatialCurrentData
+from .base_sim_class import BaseSimClass
+from .current_data import NonSpatialCurrentData
 import numpy as np
 from numpy.typing import ArrayLike
 
