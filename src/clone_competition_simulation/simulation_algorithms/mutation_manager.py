@@ -68,7 +68,7 @@ class MutationManagerMixin:
         """
         Add some labelling at the current label frequency.
         The labelling is not exact, so each cell has same chance.
-        Use a Poisson distribution of events for each clone.
+        Use a binomial distribution for each cell
         """
         # Random draw for each clone base on clone size
         labels_per_clone = np.random.binomial(current_data.current_population, label_frequency)
@@ -102,7 +102,7 @@ class MutationManagerMixin:
                             non_zero_clones=non_zero_clones)
         return current_data
 
-    def _add_labelled_clone(self, parent_idx: int, label: int, label_fitness: float, label_gene_name: str | None) -> None:
+    def _add_labelled_clone(self, parent_idx: int, label: int, label_fitness: float | None, label_gene_name: str | None) -> None:
         """Select a fitness for the new mutation and the cell in which the mutation occurs
         parent_idx = the id of the clone in which the mutation occurs
         """

@@ -11,12 +11,10 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 import gzip
 import dill as pickle
-import numpy as np
 from loguru import logger
 from scipy.sparse import SparseEfficiencyWarning
 
-from .current_data import CurrentData, NonSpatialCurrentData
-from .exceptions import EndConditionError
+from .current_data import CurrentData
 from .mutation_manager import MutationManagerMixin
 from .simulation_analysis import SimulationAnalysisMixin
 from .simulation_loop import SimulationLoopMixin

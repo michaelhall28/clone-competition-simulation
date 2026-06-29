@@ -10,7 +10,6 @@ from matplotlib import axes, cm
 from scipy.sparse import lil_matrix
 from ..plotting.animator import HexAnimator, HexFitnessAnimator
 from .base_sim_class import CurrentData, BaseSimClass
-from ..fitness import Gene
 
 
 @dataclass
