@@ -17,13 +17,20 @@ console = Console()
 
 
 class SimulationLoopMixin:
+    """Functions for the simulation loop and sampling
+    """
     def run_sim(self, continue_sim: bool=False) -> None:
-        """Main function for running simulations. Sets up the simulation and then runs through all
+        """Main function for running simulations. 
+        
+        Sets up the simulation and then runs through all
         the simulation steps. 
 
-        Args:
-            continue_sim (bool, optional): Continues a simulation from a previous state. 
-             Defaults to False. Should run through sim.continue_sim() instead of running this function directly. 
+        Parameters
+        ----------
+        continue_sim : bool, optional
+            Continues a simulation from a previous state. 
+            Defaults to False. Should run through sim.continue_sim() 
+            instead of running this function directly. 
         """
         if self.i > 0:
             # Not the first time it has been run
@@ -91,7 +98,9 @@ class SimulationLoopMixin:
         self.finished = True
 
     def continue_sim(self) -> None:
-        """Continue a simulation from a previous state (e.g. saved to a pickle part way through a simulation). 
+        """Continue a simulation from a previous state 
+        
+        (e.g. saved to a pickle part way through a simulation). 
         Restores the random state.
         """
         if self.random_state is not None:
@@ -99,38 +108,54 @@ class SimulationLoopMixin:
         self.run_sim(continue_sim=True)
 
     def _sim_step(self, i: int, current_data: "CurrentData") -> "CurrentData":
-        """Runs a single step of a simulation. Will vary depending on the algorithm. 
+        """Runs a single step of a simulation. 
+        
+        Will vary depending on the algorithm. 
         Overwritten by each algorithm class.
 
-        Args:
-            i (int): the current simulation step.
-            current_data (CurrentData): Object storing the current state of the simulation, e.g. 
-             the current clone sizes or grid array. Will vary depending on the algorithm. 
+        Parameters
+        ----------
+        i : int
+            the current simulation step.
+        current_data : CurrentData
+            Object storing the current state of the simulation, 
+            e.g. the current clone sizes or grid array. 
+            Will vary depending on the algorithm. 
 
-        Returns:
-            CurrentData: the current data updated following the simnulation step. 
+        Returns
+        -------
+        CurrentData
+            the current data updated following the simnulation step. 
         """
         raise NotImplementedError()
 
     def _finish_up(self) -> None:
-        """
+        """Tidy up following the simulation end
+
         Some of the algorithms may require some tidying up at the end,
-        for example, removing unused rows in the arrays. Overwritten where relevant. 
-        :return:
+        for example, removing unused rows in the arrays. 
+        Overwritten where relevant. 
         """
         pass
 
-    def _record_results(self, i: int, current_data: "CurrentData", progress: Progress, task: int) -> None:
-        """
-        Check if the current step is one of the sample points
+    def _record_results(self, i: int, current_data: "CurrentData", 
+                        progress: Progress, task: int) -> None:
+        """Record the current state of the simulation
+
+        Check if the current step is one of the sample points.
         Record the results at the point the simulation is up to.
         Update the progress bar.
 
-        :param i (int): The current simulation step.
-        :param current_population (CurrentData):
-        :param progress: The progress object for the progress bar. 
-        :param task: The task number for the progress bar.
-        :return:
+        Parameters
+        ----------
+        i : int
+            The current simulation step
+        current_data : CurrentData
+            The current state of the simulation
+        progress : Progress
+            The progress object for the progress bar. 
+        task : int
+            The task number for the progress bar.
         """
         if i == self.sample_points[self.plot_idx]:
             self._take_sample(current_data)
@@ -140,6 +165,7 @@ class SimulationLoopMixin:
 
     def _take_sample(self, current_data: "CurrentData") -> None:
         """Store the current state of the simulation in the population array.  
+
         If storing partially completed simulation states, dump the 
         simulation to a pickle. 
 
@@ -160,10 +186,13 @@ class SimulationLoopMixin:
 
     def pickle_dump(self, filename: str) -> None:
         """Stores the simulation in a pickle file. 
+        
         Stores the current random state so it can be restored when reloading. 
 
-        Args:
-            filename (str): The name of the file to store the pickle in.
+        Parameters
+        ----------
+        filename : str
+            The name of the file to store the pickle in.
         """
         self.random_state = np.random.get_state()
         with gzip.open(filename, 'wb') as f:
