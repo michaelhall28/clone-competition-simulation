@@ -4,34 +4,21 @@ Check that the code from the documentation runs.
 Not checking simulation results in detail (that is done in other tests), 
 just that changes to the code have not broken the documentation examples
 """
-import numpy as np
-from clone_competition_simulation import (
-    Parameters, 
-    TimeParameters, 
-    PopulationParameters, 
-    FitnessParameters,
-    Gene, 
-    FitnessCalculator, 
-    FixedValue, 
-    multiply_fitness
-)
-from clone_competition_simulation import (
-  multiply_fitness, add_fitness, replace_fitness, max_fitness, min_fitness
-)
-from clone_competition_simulation import multiply_array_fitness
-from clone_competition_simulation import add_array_fitness
-from clone_competition_simulation import (
-  multiply_array_fitness, 
-  add_array_fitness, 
-  priority_array_fitness, 
-  max_array_fitness, 
-  min_array_fitness
-)
-from clone_competition_simulation import EpistaticEffect
 import matplotlib.pyplot as plt
-from clone_competition_simulation import UniformDist
-from clone_competition_simulation import BoundedLogisticFitness
+import numpy as np
 
+from clone_competition_simulation import (BoundedLogisticFitness,
+                                          EpistaticEffect, FitnessCalculator,
+                                          FitnessParameters, FixedValue, Gene,
+                                          Parameters, PopulationParameters,
+                                          TimeParameters, UniformDist,
+                                          add_array_fitness, add_fitness,
+                                          max_array_fitness, max_fitness,
+                                          min_array_fitness, min_fitness,
+                                          multiply_array_fitness,
+                                          multiply_fitness,
+                                          priority_array_fitness,
+                                          replace_fitness)
 
 
 def test_mutations():
