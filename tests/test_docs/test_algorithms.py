@@ -140,8 +140,7 @@ def test_algorithm_example9():
     grid[row, col] = 1
     neighbours = get_neighbour_coords_2D(s, row, col)
     grid[neighbours[:, 0], neighbours[:, 1]] = 2
-    s.plot_grid(grid=grid, figsize=(3, 3))
-
+    s.plot_grid(grid=grid)
 
 def test_algorithm_example10():
     p = Parameters(
@@ -165,3 +164,29 @@ def test_algorithm_example11():
     s = p.get_simulator()
     s.run_sim()
     s.muller_plot(figsize=(5, 5), allow_y_extension=True)
+
+
+def test_algorithm_example12():
+    p = Parameters(
+        algorithm="WF2D", 
+        population=PopulationParameters(
+            initial_grid=np.repeat(np.arange(3), 20).reshape(10, 6), 
+            cell_in_own_neighbourhood=True),
+        times=TimeParameters(max_time=10, division_rate=2, samples=21)
+    )
+    s = p.get_simulator()
+    s.run_sim()
+    s.plot_grid() # Plot the final grid of the simulation
+    plt.show()
+
+    s.plot_grid(t=0)
+    s.plot_grid(t=0, index_given=True) 
+    s.plot_grid(grid=s.grid_results[0])
+
+    s.plot_grid(t=5)
+    s.plot_grid(t=10, index_given=True) 
+    s.plot_grid(grid=s.grid_results[10])
+
+    s.plot_grid(figsize=(3, 3))
+    s.plot_grid(figxsize=3)
+    
