@@ -187,7 +187,7 @@ class BaseHexagonalGridSim:
                 grid = self.grid_results[t]
 
         # The plotting uses the HexAnimator class (same process to produce a single frame of an animation)
-        animator = HexAnimator(self, figxsize=figxsize, figsize=figsize, dpi=dpi, bitrate=bitrate,
+        animator = HexAnimator(self, figxsize=figxsize, figsize=figsize, dpi=dpi, 
                                equal_aspect=equal_aspect)
         animator.plot_grid(grid, ax)
 
