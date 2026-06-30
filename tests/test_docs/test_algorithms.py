@@ -1,7 +1,7 @@
 """
 Check that the code from the documentation runs.  
 
-Not checking simulation results (that is done in other test), 
+Not checking simulation results (that is done in other tests), 
 just that changes to the code have not broken the documentation examples
 """
 import numpy as np
