@@ -4,13 +4,12 @@ Classes to control the colours used for Muller plots, plots the 2D grids and ani
 
 from collections import namedtuple
 from enum import Enum
-from typing import Callable, Any, Self, Iterable
+from typing import Any, Callable, Iterable, Self
 
 import matplotlib.cm as cm
 import numpy as np
 from matplotlib.colors import Normalize
 from pydantic import BaseModel, Field, field_validator
-
 
 
 def _convert_to_string_set(value: str | Iterable) -> set[str]:
@@ -32,6 +31,11 @@ def _convert_to_string_set(value: str | Iterable) -> set[str]:
 
 
 class CloneFeature(Enum):
+    """Enum for clones features used to assign colours
+
+    Each member has a value and a function to convert the feature 
+    into the consistent type for matching. 
+    """
     LABEL = 'label', float
     NS = 'ns', bool
     INITIAL = 'initial', bool
@@ -39,6 +43,20 @@ class CloneFeature(Enum):
     GENES_MUTATED = 'genes_mutated', _convert_to_string_set
 
     def __new__(cls, value, type_converter: Callable[[Any], Any]) -> Self:
+        """Apply the type_converter function to the enum members
+
+        Parameters
+        ----------
+        value : 
+            The enum value
+        type_converter : Callable[[Any], Any]
+            A function to convert a type
+
+        Returns
+        -------
+        Self
+            the member with the type_converter function
+        """
         obj = object.__new__(cls)
         obj._value_ = value
         obj.type_converter = type_converter
@@ -46,6 +64,13 @@ class CloneFeature(Enum):
 
 
 class FeatureValue(BaseModel):
+    """Combines a feature (CloneFeature) with a value.
+
+    Used to match clone features to a value. 
+    E.g. if clone_feature=CloneFeature.LABEL and the value=1, 
+    then clones with the label 1 will match, and all other clones
+    won't. 
+    """
     clone_feature: CloneFeature
     value: Any
 
@@ -61,16 +86,31 @@ class FeatureValue(BaseModel):
 
 
 class ColourRule(BaseModel):
-    # List of feature values for a clone to match to apply this rule. 
+    """Rule for matching clones with a colourmap
+
+    Parameters
+    ----------
+    rule_filter: list[FeatureValue]
+        List of feature values for a clone to match to apply this rule. 
+    colourmap: Callable[[float], Any]
+        A function that converts a float to a format matplotlib can interpret as a colour
+    """
     rule_filter: list[FeatureValue] = Field(default_factory=list)
-    colourmap: Callable[[float], Any]  # A function that converts a float to a 
-                                       # format matplotlib can interpret as a colour
+    colourmap: Callable[[float], Any] 
 
     def apply_filter(self, **kwargs) -> bool:   
         """Check that the information about the clone matches this set of filters
 
-        Returns:
-            bool: True if the rules don't exclude the clone. False otherwise.
+        Parameters
+        ----------
+        kwargs: dict[str, Any]
+            Dictionary of feature names and values. Used to compare to the rule_filter. 
+            Any features in the kwargs that are not in the rule_filter will be ignored. 
+
+        Returns
+        -------
+        bool
+            False if the rules exclude the clone. True otherwise.
         """
         for key, value in kwargs.items():
             for rule in self.rule_filter:
@@ -102,19 +142,32 @@ class PlotColourMaps:
 
     def __init__(self, colour_rules: list[ColourRule] | None = None, all_clones_noisy=False, use_fitness=False, 
                  random_noise_fn: Callable[[], float]=default_noise_fn):
-        """
-        This establishes the rules for the colours of clones in the Muller plots, grid plots and animations of the
+        """This establishes the rules for the colours of clones in the Muller plots, grid plots and animations of the
         simulations.
+
         Clones can be categorised using the labels, non-synonymous/synonymous, whether they existed at the start of
         the simulation of appeared later, and on the genes mutated in the clone.
         The colour can also depend on the clone fitness
-        :param colourmaps: A list of ColourRules. These will be applied in order. If a clone matches the criteria in the rule_filter), then the 
-        colourmap from that rule will be applied. If not, the next colour rule will be checked. See the docs for examples. 
-        :param all_clones_noisy: Will add a small amount of noise to the fitness so that different clones with the same
-        fitness can be distinguished. Will not apply if use_fitness=False. Warning: if clones have a similar fitness, using all_clone_noisy=True
-         may break the higher-fitness -> higher colour on the colourmap relationship. 
+
         :param use_fitness: If true, clones with a higher fitness will return higher value colours. If False, fitness will not affect the 
          colour for the clone. 
+
+        Parameters
+        ----------
+        colour_rules : list[ColourRule] | None, optional
+            Am optional list of ColourRules. These will be applied in order. If a clone matches the criteria in the rule_filter, then the 
+            colourmap from that rule will be applied. If not, the next colour rule will be checked. See the docs for examples. 
+            If None, the DEFAULT_COLOUR_RULE will be applied. 
+        all_clones_noisy : bool, optional
+            If True, will add a small amount of noise to the fitness so that different clones with the same fitness can be distinguished. 
+            Will not apply if use_fitness=False because in that case colours are already randomly drawn. 
+            Warning: if clones have similar fitness values, using all_clone_noisy=True may break the higher-fitness -> higher colour 
+            on the colourmap relationship. By default False.
+        use_fitness : bool, optional
+            If true, clones with a higher fitness will return higher value colours from the colourmap. If False, fitness will not affect the 
+            colour for the clone. By default False.
+        random_noise_fn : Callable[[], float], optional
+            Function used to apply random noise to the clone fitness if all_clones_noisy=True and use_fitness=True, by default default_noise_fn.
         """
         if colour_rules is None:
             colour_rules = [DEFAULT_COLOUR_RULE]
@@ -128,8 +181,33 @@ class PlotColourMaps:
         self.use_fitness = use_fitness
 
     def _get_colour(self, fitness: float, label: float, ns: bool, 
-                    initial: bool, last_mutated_gene: float, 
-                    genes_mutated: set[str]):
+                    initial: bool, last_mutated_gene: str | None, 
+                    genes_mutated: set[str]) -> Any:
+        """Gets a colour for a clone with the input arguments. 
+
+        Finds the colourmap that matches the clone features, then gets a colour
+        from that colourmap.
+
+        Parameters
+        ----------
+        fitness : float
+            The clone fitness. Can be used to assign the colour if self.use_fitness=True
+        label : float
+            The clone label
+        ns : bool
+            Whether the clone was formed by a non-synonymous mutation
+        initial : bool
+            Whether the clone existed from the start of the simulation
+        last_mutated_gene : str, optional
+            The name of the gene of the mutation which formed the clone
+        genes_mutated : set[str]
+            Set of gene names of genes mutated in the clone
+
+        Returns
+        -------
+        Any
+            Colour (as recognised by Matplotlib)
+        """
 
         cs = self._get_colourmap(
             label, ns, initial, last_mutated_gene, genes_mutated
@@ -148,9 +226,35 @@ class PlotColourMaps:
         
         return cs(value)
     
-    def _get_colourmap(self, label: int, ns: bool, 
+    def _get_colourmap(self, label: float, ns: bool, 
                        initial: bool, last_mutated_gene: str | None, 
                        genes_mutated: set[str]) -> Callable[[float], Any]:
+        """Find the first colour rule that matches the clone features and return its colourmap
+
+        Parameters
+        ----------
+        label : float
+            The clone label
+        ns : bool
+            Whether the clone was formed by a non-synonymous mutation
+        initial : bool
+            Whether the clone existed from the start of the simulation
+        last_mutated_gene : str | None
+            The name of the gene of the mutation which formed the clone
+        genes_mutated : set[str]
+            Set of gene names of genes mutated in the clone
+
+        Returns
+        -------
+        Callable[[float], Any]
+            Function which takes a float as an argument and returns a colour 
+            (in a format recognised by Matplotlib)
+
+        Raises
+        ------
+        ValueError
+            If no colour rule matches the clone features
+        """
         
         # Select the colour rule that applies to this clone
         for rule in self.colour_rules:

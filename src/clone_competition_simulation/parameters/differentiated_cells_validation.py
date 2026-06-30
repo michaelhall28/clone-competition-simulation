@@ -69,6 +69,27 @@ class DifferentiatedCellsParameters(ParameterBase):
 
 
 class DifferentiatedCellsValidator(DifferentiatedCellsParameters, ValidationBase):
+    """Validate and compute simulation timing for differentiated cell tracking.
+
+    This validator reads parameter values from the configuration and checks that
+    they are compatible with the chosen algorithm. If differentiated cell
+    parameters are supplied, the validator computes when differentiated-cell
+    simulation should start relative to sample points and stores the resulting
+    time/step intervals in ``diff_cell_sim_switches``.
+
+    Attributes
+    ----------
+    diff_cell_sim_switches : np.ndarray | list
+        Time or step boundaries indicating periods during which differentiated
+        cell simulation should be performed. May contain ``np.inf`` as a sentinel.
+    diff_sim_starts : np.ndarray | None
+        Computed start times for differentiated cell simulation.
+    diff_sim_ends : np.ndarray | None
+        Computed end times for differentiated cell simulation.
+    diff_cell_simulation : bool
+        True when differentiated-cell simulation is enabled based on provided
+        parameters.
+    """
     _default_strat_sim = 1
     tag: Literal['Full']
     times: TimeValidator
@@ -81,6 +102,20 @@ class DifferentiatedCellsValidator(DifferentiatedCellsParameters, ValidationBase
     diff_cell_simulation: bool = False
 
     def _validate_model(self):
+        """Validate differentiated-cell parameters and prepare simulation timing.
+
+        This method reads ``r``, ``gamma`` and ``stratification_sim_proportion``
+        from configuration, checks that they are compatible with the selected
+        algorithm, applies default values if necessary, and computes when
+        differentiated-cell simulation should be run.
+
+        Raises
+        ------
+        ValueError
+            If parameters are missing, out of range, or incompatible with the
+            chosen algorithm.
+        """
+
         self.r = self.get_value_from_config("r")
         self.gamma = self.get_value_from_config("gamma")
         self.stratification_sim_proportion = self.get_value_from_config("stratification_sim_proportion")
@@ -110,12 +145,19 @@ class DifferentiatedCellsValidator(DifferentiatedCellsParameters, ValidationBase
             self.diff_cell_simulation = True
 
     def _get_diff_cell_simulation_times(self):
-        """
-        Need to simulate for a period prior to the sample time.
-        Use a specified percentile of the exponential distribution of stratification times
-        to find the minimum time to simulate.
-        For the Moran models, find the last simulation step prior to this minimum time before the sample point.
-        For the Branching process, the times can be compared to the time of the next progenitor division
+        """Compute start/end times (or steps) for differentiated-cell simulation.
+
+        Determine the minimum interval that must be simulated prior to each
+        observation/sample point so that differentiated cells with sufficient
+        survival probability are included. For branching-process algorithms the
+        method computes absolute times; for Moran-style simulations it finds the 
+        last simulation step prior to the minimum interval before the sample point.
+
+        Notes
+        -----
+        Uses the percentile point function (PPF) of an exponential
+        distribution with scale=1/gamma to find the minimal time window based
+        on ``stratification_sim_proportion``.
         """
         if self.stratification_sim_proportion < 1:
             min_diff_sim_time = expon.ppf(self.stratification_sim_proportion, scale=1 / self.gamma)
@@ -133,7 +175,22 @@ class DifferentiatedCellsValidator(DifferentiatedCellsParameters, ValidationBase
         else:
             self.diff_cell_sim_switches = [0, np.inf]
 
-    def _merge_time_intervals(self, starts, ends):
+    def _merge_time_intervals(self, starts: list[float], ends: list[float]) -> list[float]:
+        """Merge adjacent/overlapping start/end intervals
+
+        Parameters
+        ----------
+        starts : array-like
+            Array of start times or step indices for intervals.
+        ends : array-like
+            Array of end times or step indices for intervals.
+
+        Returns
+        -------
+        list
+            Sorted list of merged interval boundaries: [s1, e1, s2, e2, ...].
+        """
+
         merged_starts = [starts[0]]
         merged_ends = []
         gaps = starts[1:] - ends[:-1]

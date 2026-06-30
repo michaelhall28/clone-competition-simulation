@@ -1,8 +1,8 @@
 """
 A class to run non-spatial Wright-Fisher-style simulations
 """
-
-from .base_sim_class import BaseSimClass, NonSpatialCurrentData
+from .base_sim_class import BaseSimClass
+from .current_data import NonSpatialCurrentData
 import numpy as np
 from numpy.typing import ArrayLike
 
@@ -11,37 +11,54 @@ class WF(BaseSimClass):
     """Runs a Wright-Fisher simulation of the clonal growth, mutation and competition"""
     current_data_cls = NonSpatialCurrentData
 
-    def __init__(self, parameters):
-        """
+    def _adjust_raw_times(self, array: ArrayLike) \
+            -> np.ndarray[tuple[int], np.dtype[np.float64]]:
+        """Takes an array of time points and converts to number of simulation steps
 
-        :param parameters: a Parameters object containing the settings for the simulation
-        """
-        super().__init__(parameters)
+        Parameters
+        ----------
+        array : ArrayLike
+            Numpy array or list of time points.
 
-    def _adjust_raw_times(self, array: ArrayLike) -> np.ndarray[tuple[int], np.dtype[np.float64]]:
-        """Takes an array of time points and converts to number of simulation steps"""
+        Returns
+        -------
+        np.ndarray[tuple[int], np.dtype[np.float64]]
+            Time/sample points in simulation steps
+        """
         if array is not None:
             array = np.array(array) * self.division_rate
 
         return array
 
-    def _sim_step(self, i, current_data: NonSpatialCurrentData) -> NonSpatialCurrentData:
-        """
-        A single step of the Wright-Fisher process.
+    def _sim_step(self, i: int, current_data: NonSpatialCurrentData) \
+            -> NonSpatialCurrentData:
+        """Run a single step of the Wright-Fisher process.
+
         At each step, we add mutations and then draw the new generation.
         Mutations are introduced at a certain rate.
         The number of mutations per step is drawn from a Poisson distribution
         The mutations are then assigned at random to any cells.
         The number of mutations at each generation is calculated prior to the main simulation starting.
 
-        The next generation is drawn from the previous in proportion to the population size and the cell fitnesses
-        We draw from a multinomial distribution. Selection of N from a list of probabilities
-        The probability of each clone is the clone population * clone fitness / sum(c' pop * c' fitness)
+        The next generation is drawn from the previous in proportion 
+        to the population size and the cell fitnesses.
+        We draw from a multinomial distribution. 
+        Selection of N from a list of probabilities
+        The probability of each clone is 
+        the clone population * clone fitness / sum(c' pop * c' fitness)
         where the sum is over all clones
-        :param i: Int. The simulation step number.
-        :param current_population: Array of clone sizes. Only for the clones with at least 1 cell.
-        :param non_zero_clones: Array of the clone numbers of the current clones that have at least 1 cell.
-        :return:
+
+        Parameters
+        ----------
+        i : int
+            The simulation step number.
+        current_data : NonSpatialCurrentData
+            Current state of the simulation. 
+
+        Returns
+        -------
+        NonSpatialCurrentData
+            Updated state of the simulation
         """
 
         # Get the number of mutations to add during this generation.
@@ -63,8 +80,16 @@ class WF(BaseSimClass):
         return current_data
 
     def _precalculate_mutations(self) -> tuple[int, np.ndarray[tuple[int], np.dtype[np.int_]]]:
-        """Before the full simulation starts, we can simulation the number of mutations introduced in each generation
-        We can then make the arrays the full size at the start."""
+        """Calculate timings of all mutations
+
+        This can be calculated in advance.
+        This speeds up the simulation a little.
+
+        Returns
+        -------
+        tuple[int, np.ndarray[tuple[int], np.dtype[np.int_]]]
+            Total number of mutations, mutations per simulation step
+        """
 
         generations = self.sample_points[-1]  # Length of the simulation
         mutations_to_add = []
@@ -98,23 +123,44 @@ class WF(BaseSimClass):
 
         return new_mutation_count, np.array(mutations_to_add)
 
-    def _calc_num_mutations(self, mutation_rate):
-        """
-        Draws the number of mutations from a poisson distribution
-        :param mutation_rate: Mutation rate per cell per generation
-        :return: Int.
+    def _calc_num_mutations(self, mutation_rate: float) -> int:
+        """Draws the number of mutations from a poisson distribution
+
+        Parameters
+        ----------
+        mutation_rate : float
+             Mutation rate per cell per generation
+
+        Returns
+        -------
+        int
+            Number of mutations
         """
         total_mutations = np.random.poisson(mutation_rate * self.total_pop)
         return total_mutations
 
-    def _assign_mutations(self, total_mutations, current_data: NonSpatialCurrentData) -> NonSpatialCurrentData:
-        """
-        Adds new mutations to cells.
+    def _assign_mutations(self, total_mutations: int, 
+                          current_data: NonSpatialCurrentData) -> NonSpatialCurrentData:
+        """Add new mutations to cells.
 
-        Note: it is possible for a more than one mutation to be added to the same cell in the same generation.
-        This would result in a clone added to the results with a zero population for the entire simulation, since
-        as soon as it is added, the only cell of the clone is mutated again and moved to a new clone.
-        :return:
+        Note: it is possible for a more than one mutation to be added 
+        to the same cell in the same generation.
+        This would result in a clone added to the results with a 
+        zero population for the entire simulation, since as soon as 
+        it is added, the only cell of the clone is mutated again 
+        and moved to a new clone.
+
+        Parameters
+        ----------
+        total_mutations : int
+            Number of mutations to add
+        current_data : NonSpatialCurrentData
+            Current state of the simulation
+
+        Returns
+        -------
+        NonSpatialCurrentData
+            Updated state of the simulation
         """
         current_population, non_zero_clones = current_data.current_population, current_data.non_zero_clones
 
@@ -168,11 +214,15 @@ class WF(BaseSimClass):
 
         Draws from each clone in proportion to the clone size and the clone fitness
 
-        Args:
-            current_data (CurrentData): contains the current clone cell populations and the indices of the living clones
+        Parameters
+        ----------
+        current_data : NonSpatialCurrentData
+            Current state of the simulation
 
-        Returns:
-            np.ndarray[tuple[int], np.dtype[np.int_]]: _description_
+        Returns
+        -------
+        np.ndarray[tuple[int], np.dtype[np.int_]]
+            Clone cell counts for the next generation
         """
         # Draw the new generation of cells from the old generation.
         # First, calculate the relative weight of each clone (population size multiplied by the fitness)
@@ -182,4 +232,3 @@ class WF(BaseSimClass):
         # Then draw the new population.
         new_population = np.random.multinomial(self.total_pop, relative_weights)
         return new_population
-        

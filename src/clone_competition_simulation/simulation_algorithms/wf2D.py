@@ -1,9 +1,13 @@
 """
-A class to run Moran-style simulations on a 2D hexagonal grid
+A class to run Wright-Fisher style simulations on a 2D hexagonal grid
 """
 from .wf import WF
 from .base_2D_class import BaseHexagonalGridSim, get_neighbour_map, SpatialCurrentData
 import numpy as np
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..parameters import Parameters
 
 
 class WF2D(BaseHexagonalGridSim, WF):
@@ -13,38 +17,52 @@ class WF2D(BaseHexagonalGridSim, WF):
     """
     current_data_cls = SpatialCurrentData
 
-    def __init__(self, parameters):
-        """
+    def __init__(self, parameters: "Parameters"):
+        """Set up the initial grid and neighbour map
 
-        :param parameters: a Parameters object containing the settings for the simulation
+        Calls super init first. 
+
+        Parameters
+        ----------
+        parameters : Parameters
+            Parameters used to create the simulation
         """
         super().__init__(parameters)
-        initial_grid = parameters.population.initial_grid.copy()
-        self.grid_array = np.ravel(initial_grid)
         self.grid_shape = parameters.population.grid_shape
         self.neighbour_map = get_neighbour_map(
             grid_shape=self.grid_shape,
             cell_in_own_neighbourhood=parameters.population.cell_in_own_neighbourhood
         )
-
+        initial_grid = parameters.population.initial_grid.copy()
         self.grid_results = [initial_grid]
 
-    def _sim_step(self, i, current_data: SpatialCurrentData) -> SpatialCurrentData:
-        """
-        A single step of the 2D Wright-Fisher process.
+    def _sim_step(self, i: int, current_data: SpatialCurrentData) -> SpatialCurrentData:
+        """Run a single step of the 2D Wright-Fisher process.
+
         At each step, we add mutations and then draw the new generation.
         Mutations are introduced at a certain rate.
         The number of mutations per step is drawn from a Poisson distribution
         The mutations are then assigned at random to any cells.
-        The number of mutations at each generation is calculated prior to the main simulation starting.
+        The number of mutations at each generation is calculated prior 
+        to the main simulation starting.
 
-        The next generation is drawn from the previous in proportion to the population size and the cell fitnesses
-        The principle is the same as the non-spatial Wright-Fisher process, but the parent cells are restricted to the
+        The next generation is drawn from the previous in proportion 
+        to the population size and the cell fitnesses
+        The principle is the same as the non-spatial Wright-Fisher 
+        process, but the parent cells are restricted to the
         immediate neighbourhood of the offspring cells.
 
-        :param i: Int. The simulation step number.
-        :param current_data: The current state of the grid and population counts
-        :return:
+        Parameters
+        ----------
+        i : int
+            The simulation step number.
+        current_data : SpatialCurrentData
+            The current state of the grid and population counts
+
+        Returns
+        -------
+        SpatialCurrentData
+            Updated state of the grid and population counts
         """
 
         # Get the number of mutations to add in this generation
@@ -63,12 +81,27 @@ class WF2D(BaseHexagonalGridSim, WF):
 
         return current_data
 
-    def _assign_mutations(self, total_mutations, current_data: SpatialCurrentData) -> SpatialCurrentData:
-        """
-        Note: it is possible for a more than one mutation to be added to the same cell in the same generation.
-        This would result in a clone added to the results with a zero population for the entire simulation, since
-        as soon as it is added, the only cell of the clone is mutated again and moved to a new clone.
-        :return:
+    def _assign_mutations(self, total_mutations: int, current_data: SpatialCurrentData) -> SpatialCurrentData:
+        """Add mutations for this step
+
+        Note: it is possible for a more than one mutation to be added 
+        to the same cell in the same generation.
+        This would result in a clone added to the results with 
+        a zero population for the entire simulation, since as soon as 
+        it is added, the only cell of the clone is mutated again 
+        and moved to a new clone.
+
+        Parameters
+        ----------
+        total_mutations : int
+            Number of mutations to add
+        current_data : SpatialCurrentData
+            Current state of the simulation
+
+        Returns
+        -------
+        SpatialCurrentData
+            Updated state of the simulation
         """
         grid_array = current_data.grid_array
 
@@ -102,14 +135,27 @@ class WF2D(BaseHexagonalGridSim, WF):
         current_data.update(grid_array=grid_array)
         return current_data
 
-    def _select_dividors(self, rel_weights, neighbour_clones):
-        """
-        Select the new cells.
-        :param rel_weights: An array of the relative fitness values of the neighbourhood cells for every grid position.
-        A row for each cell position in the grid, and a column for each neighbour position (6 or 7 columns)
-        :param neighbour_clones: Array of the clone ids for all of the neighbour cells.
-        Same dimensions as the rel_weights array.
-        :return: Array. Length of the total number of cells in the grid.
+    def _select_dividors(
+            self, rel_weights: np.ndarray[tuple[int, int], np.dtype[np.float64]], 
+            neighbour_clones: np.ndarray[tuple[int, int], np.dtype[np.int_]]) \
+                -> np.ndarray[tuple[int], np.dtype[np.int_]]:
+        """Select the cells to divide
+
+        Parameters
+        ----------
+        rel_weights : np.ndarray[tuple[int, int], np.dtype[np.float64]]
+            An array of the relative fitness values of the 
+            neighbourhood cells for every grid position.
+            A row for each cell position in the grid, and a column 
+            for each neighbour position (6 or 7 columns)
+        neighbour_clones : np.ndarray[tuple[int, int], np.dtype[np.int_]]
+            Array of the clone ids for all of the neighbour cells.
+            Same dimensions as the rel_weights array.
+
+        Returns
+        -------
+        np.ndarray[tuple[int], np.dtype[np.int_]]
+            Selected clone ids. 
         """
         # From Warren Weckesser on stack overflow
         # https://stackoverflow.com/questions/34187130/fast-random-weighted-selection-across-all-rows-of-a-stochastic-matrix/34190035#34190035
@@ -118,10 +164,19 @@ class WF2D(BaseHexagonalGridSim, WF):
         k = (s < r).sum(axis=1)
         return neighbour_clones[np.arange(self.total_pop), k]
 
-    def get_next_generation(self, current_data: SpatialCurrentData) -> np.ndarray[tuple[int], np.dtype[np.int_]]:
-        """
-        Draw the new generation of cells.
-        :return:
+    def get_next_generation(self, current_data: SpatialCurrentData)\
+            -> np.ndarray[tuple[int], np.dtype[np.int_]]:
+        """Draw the new generation of cells.
+        
+        Parameters
+        ----------
+        current_data : SpatialCurrentData
+            Current state of the simulation
+
+        Returns
+        -------
+        np.ndarray[tuple[int], np.dtype[np.int_]]
+            New grid of clone ids
         """
         # Make an array of the clone ids of all cell neighbourhoods
         # A row for each cell position in the grid, and a column for each neighbour position (6 or 7 columns)

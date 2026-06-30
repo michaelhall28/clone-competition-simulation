@@ -111,6 +111,15 @@ def min_fitness(old_fitnesses: NDArray[np.float64], new_mutation_fitnesses: NDAr
     return np.minimum(old_fitnesses, new_mutation_fitnesses)
 
 
+FITNESS_COMBINATION_FUNCTIONS = {
+    "add": add_fitness,
+    "multiply": multiply_fitness,
+    "replace": replace_fitness,
+    "max": max_fitness,
+    "min": min_fitness,
+}
+
+
 # Type for the functions which combine fitness across genes. 
 GeneCombinationType = Callable[[NDArray[np.float64]], NDArray[np.float64]]
 
@@ -218,3 +227,12 @@ def min_array_fitness(fitness_arrays: NDArray[np.float64]) -> NDArray[np.float64
         Combined fitness values for each row.
     """
     return np.nanmin(fitness_arrays, axis=1)
+
+
+GENE_COMBINATION_FUNCTIONS = {
+    "add": add_array_fitness,
+    "multiply": multiply_array_fitness,
+    "priority": priority_array_fitness,
+    "max": max_array_fitness,
+    "min": min_array_fitness,
+}

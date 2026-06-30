@@ -31,6 +31,26 @@ class Moran2D(BaseHexagonalGridSim, Moran):
         self.death_coords = np.random.randint(0, self.total_pop, size=self.parameters.times.simulation_steps)
 
     def _sim_step(self, i: int, current_data: SpatialCurrentData) -> SpatialCurrentData:
+        """Run one step of the simulation
+
+        One cell is selected to die at random. 
+        Another cell is selected to replicate and replace the dead cell
+        with its offspring. The replicating cell is selected in 
+        proportion with its relative fitness from the neighbourhood of 
+        the dying cell
+
+        Parameters
+        ----------
+        i : int
+            Current step number
+        current_data : SpatialCurrentData
+            Current state of the simulation (i.e. the grid of cells)
+
+        Returns
+        -------
+        SpatialCurrentData
+            Updated state of the simulation
+        """
 
         coord = self.get_differentiating_cell(i, current_data=current_data)
         birth_idx = self.get_dividing_cell(coord, current_data=current_data)
@@ -65,22 +85,36 @@ class Moran2D(BaseHexagonalGridSim, Moran):
 
         These have been precalculated at the start of the simulation for efficiency.
 
-        Args:
-            i (int): The simulation step
-            current_data (SpatialCurrentData): Contains the current grid array. (Not used here, 
-              but made available for any custom functions)
+        Parameters
+        ----------
+        i : int
+            Current step number
+        current_data : SpatialCurrentData
+            Contains the current grid array. (Not used here, 
+            but made available for any custom functions)
 
-        Returns:
-            int: the coordinate of the differentiating cell
-        """        
+        Returns
+        -------
+        int
+            the coordinate of the differentiating cell
+        """
         coord = self.death_coords[i]
         return coord
 
     def get_dividing_cell(self, coord: int, current_data: SpatialCurrentData) -> int:
-        """
-        Selects the cell that will divide to fill the gap left by self._random_death
-        :param coord: Position of the dividing cell in the 1-D map of the grid.
-        :return: coord of the neighbouring dividing cell (int).
+        """Select the cell that will divide to fill the gap left by self._random_death
+
+        Parameters
+        ----------
+        coord : int
+            Position of the dividing cell in the 1-D map of the grid.
+        current_data : SpatialCurrentData
+            Current state of the simulation (i.e. the grid_array)
+
+        Returns
+        -------
+        int
+            coord of the neighbouring dividing cell
         """
         # Get the indices of the neighbouring cells.
         neighbour_clones = current_data.grid_array[self.neighbour_map[coord]]

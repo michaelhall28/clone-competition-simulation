@@ -7,10 +7,10 @@ from src.clone_competition_simulation import (
     Moran2D, 
     WF, 
     WF2D, 
-    Branching
+    Branching, 
+    NonSpatialCurrentData, 
+    SpatialCurrentData
 )
-from clone_competition_simulation.simulation_algorithms.base_sim_class import NonSpatialCurrentData
-from clone_competition_simulation.simulation_algorithms.base_2D_class import SpatialCurrentData
 
 
 def test_custom_moran():

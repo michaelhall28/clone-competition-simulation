@@ -16,7 +16,9 @@ from .fitness_combination import (
     add_array_fitness,
     max_array_fitness,
     min_array_fitness,
-    priority_array_fitness
+    priority_array_fitness, 
+    FITNESS_COMBINATION_FUNCTIONS,
+    GENE_COMBINATION_FUNCTIONS
 )
 from .fitness_transformations import (
     FitnessTransform,

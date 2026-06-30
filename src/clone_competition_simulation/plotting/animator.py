@@ -5,13 +5,15 @@ Intended for the 2D simulations on hexagonal grids. Also includes a class for re
 a non-spatial simulation on a 2D grid. This is unreliable and unmaintained, but is left for those who are interested.
 """
 
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-from matplotlib import collections, transforms
-import subprocess
 import math
 import random
+import subprocess
+
+import matplotlib.animation as animation
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib import collections, transforms, text, colors, axes
+from numpy.typing import NDArray
 
 DIRECTIONS = [(0, 1), (0, -1), (1, 0), (-1, 0)]  # For the non-spatial 2D animation
 
@@ -22,10 +24,15 @@ class HexAnimator:
     Colours based on the clones each cell belong to and the colourscale chosen.
     Also can be used to plot individual grids as images.
     """
-    def __init__(self, sim, figxsize=5, figsize=None, dpi=100, bitrate=500, fps=5, external_call=False,
-                 fixed_label_text=None, fixed_label_loc=(0, 0), fixed_label_kwargs=None,
-                 show_time_label=False, time_label_units=None, time_label_decimal_places=0,
-                 time_label_loc=(0, 0), time_label_kwargs=None, equal_aspect=False
+
+    def __init__(self, sim, figxsize: float=5, figsize: tuple[float, float] | None=None, 
+                 dpi: int=100, bitrate: int=500, fps: int=5, external_call: bool=False,
+                 fixed_label_text: str | None=None, fixed_label_loc: tuple[float, float]=(0, 0), 
+                 fixed_label_kwargs: dict | None=None,
+                 show_time_label: bool=False, time_label_units: str | None=None, 
+                 time_label_decimal_places: int=0,
+                 time_label_loc: tuple[float, float]=(0, 0), 
+                 time_label_kwargs: dict | None=None, equal_aspect: bool=False
                  ):
         """
         To set up,
@@ -44,28 +51,46 @@ class HexAnimator:
         > sim.plot_grid()
         which will create the Hexanimator object for you.
 
-
-        :param sim: The simulation object (i.e. the object returned by Parameters.get_simulator()).
-        :param figxsize: The x-dimension of the video/figure. If figsize not given, the y-dimension will be picked
-        automatically based on the dimensions of the grid. If figsize is also defined, then figxsize will be ignored.
-        :param figsize: Tuple. The figure size to use. If given, will ignore figsize.
-        :param dpi: DPI for the video
-        :param bitrate: Bitrate for the videp
-        :param fps: Frames per second for the video.
-        :param external_call: If True, will use subprocess to call ffmpeg and make the video instead of using
-        matplotlib.animation.FuncAnimation. May sometimes be quicker.
-        :param fixed_label_text: Text to add as a label over the video.
-        :param fixed_label_loc: Tuple. The location for the fixed_label_text.
-        :param fixed_label_kwargs: Any kwargs to pass to ax.text for the fixed_label_text.
-        :param show_time_label: If True, will show the time of each frame overlaid on the video. The time will be based
-        on the times from the simulation (which may not be the frame number).
-        :param time_label_units: String, the units for the time label. Will not adjust the values, is just a string to
-        follow the number. E.g. 'days', 'weeks', 'years'.
-        :param time_label_decimal_places: Number of decimal places to show for the time label.
-        :param time_label_loc: Tuple. Location of the time label.
-        :param time_label_kwargs: Any kwargs to pass to ax.text for the time label.
-        :param equal_aspect: If True, will force the aspect ratio of the x and y axes to have the same scale. However,
-        this will not look equal aspect in terms of the number of cells per unit due to the tesselation of the hexagons.
+        Parameters
+        ----------
+        sim : 
+            The simulation object (i.e. the object returned by Parameters.get_simulator()).
+        figxsize : int, optional
+             The x-dimension of the video/figure, by default 5. If figsize not given, the y-dimension will be calculated 
+             automatically based on the dimensions of the grid. If figsize is also defined, then figxsize will be ignored.
+        figsize : tuple[float, float], optional
+            The figure size to use. If given, will ignore figxsize.
+        dpi : int, optional
+            DPI for the video, by default 100
+        bitrate : int, optional
+            Bitrate for the video, by default 500
+        fps : int, optional
+            Frames per second for the video, by default 5
+        external_call : bool, optional
+            If True, will use subprocess to call ffmpeg and make the video instead of using
+            matplotlib.animation.FuncAnimation. May sometimes be quicker. By default False
+        fixed_label_text : str, optional
+            Text to add as a label over the video, by default None
+        fixed_label_loc : tuple[float, float], optional
+            The location for the fixed_label_text, by default (0, 0)
+        fixed_label_kwargs : dict, optional
+            Any kwargs to pass to ax.text for the fixed_label_text, by default None
+        show_time_label : bool, optional
+            If True, will show the time of each frame overlaid on the video. The time will be based
+            on the times from the simulation (which may not be the frame number). By default False
+        time_label_units : str, optional
+            The units for the time label. Will not adjust the values, is just a string to follow 
+            the number. E.g. 'days', 'weeks', 'years'. By default None
+        time_label_decimal_places : int, optional
+            Number of decimal places to show for the time label, by default 0
+        time_label_loc : tuple, optional
+            Location of the time label, by default (0, 0)
+        time_label_kwargs : dict, optional
+            Any kwargs to pass to ax.text for the time label, by default None
+        equal_aspect : bool, optional
+            If True, will force the aspect ratio of the x and y axes to have the same scale. However,
+            this will not look equal aspect in terms of the number of cells per unit due to the 
+            tesselation of the hexagons. By default False
         """
         self.sim = sim
         if self.sim.colours is None:
@@ -104,25 +129,29 @@ class HexAnimator:
 
         self.col: collections.PolyCollection | None = None
 
-    def animate(self, animation_file):
-        """
-        Create a video from the grid_results of a simulation.
-        :param animation_file: String. Must end with the file format. E.g. "outfile.mp4"
-        :return: None
+    def animate(self, animation_file: str) -> None:
+        """Create a video from the grid_results of a simulation.
+
+        Parameters
+        ----------
+        animation_file : str
+            Must end with the file format. E.g. "outfile.mp4"
         """
         if self.external_call:
             self._animate_2d_hex_external_call(animation_file)
         else:
             self._animate_2d_hex(animation_file)
 
-    def plot_grid(self, grid, ax=None):
-        """
-        This function is not used in the animation but can be used to plot a grid
-        :param grid: A grid from a simulation. This is designed to work for grids from the simulation used when creating
-        the Hexanimator object. Other grids can be plotted, but they must have the same grid dimensions. It will also
-        fail if the colourscale of the simulation cannot produce a colour for all the clone numbers in the new grid.
-        :param ax: Axis to plot onto.
-        :return:
+    def plot_grid(self, grid: NDArray, ax: axes.Axes | None=None) -> None:
+        """This function is not used in the animation but can be used to plot a grid
+
+        Parameters
+        ----------
+        grid : NDArray
+            A grid from a simulation. This is designed to work for grids from the simulation object used when creating
+            the Hexanimator object. Other grids can be plotted, but they must have the same grid dimensions.
+        ax : Axes, optional
+            Axes to plot onto, by default None and a new figure will be created.
         """
         self._setup_frame(ax=ax)
 
@@ -134,7 +163,7 @@ class HexAnimator:
 
         self.col.set_facecolor(colours)  # Sets the colours for each polygon
 
-    def _get_figsize(self):
+    def _get_figsize(self) -> None:
         """
         Sets up the figure size for the video/plot.
         Makes sure that there is an even number of pixels on each axis, which is needed for ffmpeg.
@@ -148,11 +177,10 @@ class HexAnimator:
 
         self._adjust_figsize_for_dpi()
 
-    def _adjust_figsize_for_dpi(self):
+    def _adjust_figsize_for_dpi(self) -> None:
         """
         This adjusts the dpi so that the number of pixels in each axis is even (needed for ffmpeg)
         Increases the figsize slightly if needed.
-        :return:
         """
         pixx = self.figsize[0]*self.dpi
         pixy = self.figsize[1]*self.dpi
@@ -160,11 +188,10 @@ class HexAnimator:
             math.ceil(pixx/2) * 2 / self.dpi, math.ceil(pixy/2) * 2 / self.dpi
         )
 
-    def _setup_polygons_and_frame(self):
+    def _setup_polygons_and_frame(self) -> None:
         """
         Makes all of the hexagons in the grid. The animation then works by changing the colours of the hexagons.
         Based on the matplotlib code for the hexbin plots.
-        :return:
         """
 
         xmin, xmax = 0, self.x
@@ -234,13 +261,24 @@ class HexAnimator:
         # add the collection last
         self.ax.add_collection(self.col, autolim=False)
 
-    def _add_fixed_label(self):
+    def _add_fixed_label(self) -> None:
+        """Add a label to the frame
+        """
         self.ax.text(*self.fixed_label_loc, self.fixed_label_text, **self.fixed_label_kwargs)
 
-    def _add_time_label(self):
+    def _add_time_label(self) -> None:
+        """Add a time label to the frame
+        """
         self.time_label = self.ax.text(*self.time_label_loc, "", **self.time_label_kwargs)
 
-    def _update_time_label(self, frame_number):
+    def _update_time_label(self, frame_number: int) -> None:
+        """Update the time label for the current frame
+
+        Parameters
+        ----------
+        frame_number : int
+            The index of the frame
+        """
         # Get the time for the frame
         t = self.sim.times[frame_number]
 
@@ -250,12 +288,15 @@ class HexAnimator:
             text += " " + self.time_label_units
         self.time_label.set_text(text)
 
-    def _setup_frame(self, ax=None):
-        """
-        Initial setup of the figure.
+    def _setup_frame(self, ax: axes.Axes | None=None) -> None:
+        """Initial setup of the figure.
+
         Sets the figure size, adds the hexagons and any text labels.
-        :param ax: Axis to plot onto.
-        :return:
+
+        Parameters
+        ----------
+        ax : axes.Axes, optional
+            Axis to plot onto, by default None and a new figure will be created
         """
 
         self.x, self.y = self.sim.grid_shape
@@ -281,7 +322,14 @@ class HexAnimator:
     def _first_frame(self):
         return self._update(0)
 
-    def _animate_2d_hex(self, animation_file):
+    def _animate_2d_hex(self, animation_file: str) -> None:
+        """Animate using MatPlotLib FuncAnimation
+
+        Parameters
+        ----------
+        animation_file : str
+            File path. Must include the file type suffix. 
+        """
         self._setup_frame()
 
         ani = animation.FuncAnimation(self.fig, self._update, blit=True, init_func=self._first_frame,
@@ -290,10 +338,15 @@ class HexAnimator:
                  extra_args=['-pix_fmt','yuv420p'])
         plt.close('all')
 
-    def _animate_2d_hex_external_call(self, animation_file):
-        """
-        Use subprocess to call ffmpeg rather than using FuncAnimation
-        Generally seems to be quicker.
+    def _animate_2d_hex_external_call(self, animation_file: str):
+        """Use subprocess to call ffmpeg rather than using FuncAnimation
+        
+        Generally seems to be quicker than _animate_2d_hex
+
+        Parameters
+        ----------
+        animation_file : str
+            File path. Must include the file type suffix. 
         """
         self._setup_frame()
 
@@ -320,12 +373,19 @@ class HexAnimator:
         p.communicate()
         plt.close('all')
 
-    def _update_first(self, frame_number):
-        """
-        Creates the first frame of the simulation.
-        :param frame_number: This is going to be 0 for the videos. Allowing other values so other frames could be plotted
-        with this function if needed.
-        :return:
+    def _update_first(self, frame_number: int) -> tuple[collections.PolyCollection, text.Text] | tuple[collections.PolyCollection]:
+        """Creates the first frame of the animation
+
+        Parameters
+        ----------
+        frame_number : int
+            This is going to be 0 for the videos. Allowing other values so other frames could be plotted
+            with this function if needed.
+
+        Returns
+        -------
+        tuple[collections.PolyCollection, text.Text] | tuple[collections.PolyCollection]
+            PolyCollection of hexagons. Or the hexagons plus the time label text. 
         """
         grid = self.sim.grid_results[frame_number]
 
@@ -343,11 +403,19 @@ class HexAnimator:
         else:
             return self.col,
 
-    def _update(self, frame_number):
+    def _update(self, frame_number: int) -> tuple[collections.PolyCollection, text.Text] | tuple[collections.PolyCollection]:
         """
         Updates the plot for the next frame of the video.
-        :param frame_number: Int.
-        :return:
+
+        Parameters
+        ----------
+        frame_number : int
+            The index of the animation frame to create
+
+        Returns
+        -------
+        tuple[collections.PolyCollection, text.Text] | tuple[collections.PolyCollection]
+            PolyCollection of hexagons. Or the hexagons plus the time label text.
         """
         if frame_number == 0:
             return self._update_first(frame_number)
@@ -378,18 +446,29 @@ class HexFitnessAnimator(HexAnimator):
     fitness to a colour, and adds a colourbar.
     """
 
-    def __init__(self, sim, cmap, figxsize=5, figsize=None, dpi=100, bitrate=500, fps=5, min_fitness=0):
+    def __init__(self, sim, cmap: colors.Colormap, figxsize: float=5, figsize: tuple[float, float] | None=None, 
+                 dpi: int=100, bitrate: int=500, fps: int=5, min_fitness: float=0):
         """
 
-        :param sim: The simulation object (i.e. the object returned by Parameters.get_simulator()).
-        :param cmap: Colourmap for mapping fitness to a colour.
-        :param figxsize: The x-dimension of the video/figure. If figsize not given, the y-dimension will be picked
-        automatically based on the dimensions of the grid. If figsize is also defined, then figxsize will be ignored.
-        :param figsize: Tuple. The figure size to use. If given, will ignore figsize.
-        :param dpi: DPI for the video
-        :param bitrate: Bitrate for the videp
-        :param fps: Frames per second for the video.
-        :param min_fitness: Minimum fitness to use for the scaling of the colours.
+        Parameters
+        ----------
+        sim : 
+            The simulation object (i.e. the object returned by Parameters.get_simulator()).
+        cmap : colors.Colormap
+            Colourmap for mapping fitness to a colour.
+        figxsize : int, optional
+            The x-dimension of the video/figure, by default 5. If figsize not given, the y-dimension will be calculated
+            automatically based on the dimensions of the grid. If figsize is also defined, then figxsize will be ignored.
+        figsize : tuple[float, float], optional
+            The figure size to use. If given, will ignore figsize.
+        dpi : int, optional
+             DPI for the video, by default 100
+        bitrate : int, optional
+            Bitrate for the video, by default 500
+        fps : int, optional
+            Frames per second for the video, by default 5
+        min_fitness : float, optional
+            Minimum fitness to use for the scaling of the colours, by default 0
         """
         self.sim = sim
         if self.sim.colours is None:
@@ -405,12 +484,15 @@ class HexFitnessAnimator(HexAnimator):
         self.fps = fps
         self.min_fitness = min_fitness
 
-    def plot_grid(self, grid, ax=None):
-        """
-        This function is not used in the animation but can be used to plot a grid
-        :param grid: A grid of fitness values.
-        :param ax: Axis to plot onto.
-        :return:
+    def plot_grid(self, grid: NDArray, ax: axes.Axes | None=None) -> None:
+        """This function is not used in the animation but can be used to plot a grid
+
+        Parameters
+        ----------
+        grid : NDArray
+            A 2D array of fitness values.
+        ax : Axes, optional
+            Axes to plot onto, by default None and a new figure will be created
         """
         self._setup_frame(ax=ax)
 
@@ -424,21 +506,26 @@ class HexFitnessAnimator(HexAnimator):
         cb = self.fig.colorbar(self.col, cax=self.cbax)
         cb.set_label('Fitness')
 
-    def plot_fitness_grid_from_clones_grid(self, clones_grid):
-        """
-        Converts a grid from a simulation (where each entry is a clone_id) to a grid of fitness values, then plots.
-        :param clones_grid: 2D array of clone_ids. E.g. from simulation.grid_results
-        :return:
+    def plot_fitness_grid_from_clones_grid(self, clones_grid: NDArray) -> None:
+        """Converts a grid from a simulation (where each entry is a clone_id) to a grid of fitness values, then plots.
+
+        Parameters
+        ----------
+        clones_grid : NDArray
+            2D array of clone_ids. E.g. from simulation.grid_results
         """
         fitness_grid = self._get_fitness_grid(clones_grid)
         self.plot_grid(fitness_grid)
 
-    def _setup_frame(self, ax=None):
-        """
-        Initial setup of the figure.
+    def _setup_frame(self, ax: axes.Axes | None=None) -> None:
+        """Initial setup of the figure.
+
         Sets the figure size, adds the hexagons and colourbar.
-        :param ax: Axis to plot onto.
-        :return:
+
+        Parameters
+        ----------
+        ax : Axes, optional
+            Axes to plot onto, by default None and a new figure will be created
         """
         self.x, self.y = self.sim.grid.shape
         if ax is None:
@@ -459,11 +546,19 @@ class HexFitnessAnimator(HexAnimator):
         if not ax_given:
             self.ax.axis('off')
 
-    def _get_fitness_grid(self, clones_grid):
-        """
-        Converts a grid of clone_ids into a grid of cell fitness values based on the simulation (self.comp).
-        :param clones_grid:
-        :return:
+    def _get_fitness_grid(self, clones_grid: NDArray):
+        """Converts a grid of clone_ids into a grid of cell fitness values based on the simulation
+
+
+        Parameters
+        ----------
+        clones_grid : NDArray   
+            2D grid of clone ids
+
+        Returns
+        -------
+        NDArray
+            2D grid of fitness values
         """
         grid_shape = clones_grid.shape
         fitness_grid = np.empty(grid_shape, dtype=float)
@@ -474,13 +569,22 @@ class HexFitnessAnimator(HexAnimator):
         return fitness_grid
 
     def _first_frame(self):
+        """Generate the first frame of the simulation
+        """
         return self._update(0)
 
-    def _update(self, frame_number):
-        """
-        Updates the plot for the next frame of the video.
-        :param frame_number: Int.
-        :return:
+    def _update(self, frame_number: int) -> tuple[collections.PolyCollection]:
+        """Updates the plot for the next frame of the video.
+
+        Parameters
+        ----------
+        frame_number : int
+            The index of the animation frame to create
+
+        Returns
+        -------
+       tuple[collections.PolyCollection]
+            PolyCollection of hexagons coloured by fitness value
         """
         grid = self._get_fitness_grid(self.sim.grid_results[frame_number])
 
@@ -496,7 +600,14 @@ class HexFitnessAnimator(HexAnimator):
         cb.set_label('Fitness')
         return self.col,
 
-    def animate(self, animation_file):
+    def animate(self, animation_file: str) -> None:
+        """Create a video from the grid_results of a simulation showing the clone fitness values
+
+        Parameters
+        ----------
+        animation_file : str
+            Must end with the file format. E.g. "outfile.mp4"
+        """
         self._setup_frame()
 
         ani = animation.FuncAnimation(self.fig, self._update, blit=True, init_func=self._first_frame,

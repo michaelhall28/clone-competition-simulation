@@ -9,9 +9,12 @@ Uses Cython code (diff_cell_functions.pyx) to increase speed of the differentiat
 Not used or tested extensively, and not all functions will work well with these simulations.
 """
 from dataclasses import dataclass
-from typing import Self
+from typing import Self, Literal
+
+from matplotlib import axes
 import matplotlib.pyplot as plt
 import numpy as np
+from numpy.typing import ArrayLike
 from scipy.sparse import lil_matrix
 
 try:
@@ -19,14 +22,16 @@ try:
 except ImportError:
     diff_cell_functions = None
 
-from .branching_process import Branching
-from .base_sim_class import BaseSimClass, NonSpatialCurrentData
-from .base_2D_class import SpatialCurrentData
-from .moran import Moran
-from .moran2D import Moran2D
 from ..analysis.analysis import mean_clone_size, mean_clone_size_fit
 from ..parameters.algorithm_validation import AlgorithmClass
 from ..utils import find_ge
+from .base_2D_class import SpatialCurrentData
+from .base_sim_class import BaseSimClass
+from .branching_process import Branching
+from .current_data import NonSpatialCurrentData
+from .moran import Moran
+from .moran2D import Moran2D
+from loguru import logger
 
 
 @dataclass
@@ -35,6 +40,19 @@ class DiffNonSpatialCurrentData(NonSpatialCurrentData):
 
     @classmethod
     def from_sim(cls, sim: BaseSimClass) -> Self:
+        """Create DiffNonSpatialCurrentData object from simulation
+
+        Parameters
+        ----------
+        sim : BaseSimClass
+            A non-spatial differentiated cell simulation instance
+
+        Returns
+        -------
+        Self
+            DiffNonSpatialCurrentData, with the initial clone population
+            Starts with zero differentiated cells
+        """
         current_population = np.zeros(len(sim.clones_array), dtype=int)
         current_population[:sim.initial_clones] = sim.initial_size_array
         
@@ -51,11 +69,35 @@ class DiffNonSpatialCurrentData(NonSpatialCurrentData):
     def update(self, current_population: np.ndarray[tuple[int], np.dtype[np.int_]], 
                non_zero_clones: np.ndarray[tuple[int], np.dtype[np.int_]], 
                current_diff_cell_population: np.ndarray[tuple[int], np.dtype[np.int_]]) -> None:
+        """Update the current data
+
+        Parameters
+        ----------
+        current_population : np.ndarray[tuple[int], np.dtype[np.int_]]
+            New progenitor cell count for each clone
+        non_zero_clones : np.ndarray[tuple[int], np.dtype[np.int_]]
+            New array of ids of surviving clones
+        current_diff_cell_population : np.ndarray[tuple[int], np.dtype[np.int_]]
+            New differentiated cell count for each clone
+        """
         super().update(current_population=current_population, non_zero_clones=non_zero_clones)
         self.current_diff_cell_population = current_diff_cell_population
 
-    def update_diff_cell_population_array(self, diff_cell_population_array: lil_matrix, plot_idx: int) -> None:
-        diff_cell_population_array[self.non_zero_clones, plot_idx] = self.current_diff_cell_population
+    def update_diff_cell_population_array(
+            self, diff_cell_population_array: lil_matrix, plot_idx: int) -> None:
+        """Update the simulation differentiated cell population array 
+        with the current differentiated cell counts
+
+        Parameters
+        ----------
+        diff_cell_population_array : lil_matrix
+            Array storing differentiated cell counts for each clone at 
+            each sample point
+        plot_idx : int
+            The index of the column to update
+        """
+        diff_cell_population_array[
+            self.non_zero_clones, plot_idx] = self.current_diff_cell_population
 
 
 @dataclass
@@ -64,9 +106,23 @@ class DiffSpatialCurrentData(SpatialCurrentData):
 
     @classmethod
     def from_sim(cls, sim: BaseSimClass) -> Self:
+        """Create DiffSpatialCurrentData object from simulation
+
+        Parameters
+        ----------
+        sim : BaseSimClass
+            A spatial differentiated cell simulation instance
+
+        Returns
+        -------
+        Self
+            DiffSpatialCurrentData, with the initial clone population
+            Starts with zero differentiated cells
+        """
         grid_array = np.ravel(sim.parameters.population.initial_grid)
 
-        current_diff_cell_population = np.zeros(shape=len(sim.clones_array), dtype=np.int_)
+        current_diff_cell_population = np.zeros(
+            shape=len(sim.clones_array), dtype=np.int_)
 
         return cls(
             grid_array=grid_array, 
@@ -75,34 +131,67 @@ class DiffSpatialCurrentData(SpatialCurrentData):
 
     def update(self, grid_array: np.ndarray[tuple[int], np.dtype[np.int_]], 
                current_diff_cell_population: np.ndarray[tuple[int], np.dtype[np.int_]]) -> None:
+        """Update the current data
+
+        Parameters
+        ----------
+        grid_array : np.ndarray[tuple[int], np.dtype[np.int_]]
+            NEw clone grid array
+        current_diff_cell_population : np.ndarray[tuple[int], np.dtype[np.int_]]
+            New differentiated cell count for each clone
+        """
         super().update(grid_array=grid_array)
         self.current_diff_cell_population = current_diff_cell_population
 
     @property
     def current_population(self) -> np.ndarray[tuple[int], np.dtype[np.int_]]:
+        """Convert the grid array into an array of cell counts per clone
+
+        Returns
+        -------
+        np.ndarray[tuple[int], np.dtype[np.int_]]
+            Array of cell counts per clone
+        """
         return np.bincount(self.grid_array)
     
-    def update_diff_cell_population_array(self, diff_cell_population_array: lil_matrix, plot_idx: int) -> None:
+    def update_diff_cell_population_array(
+            self, diff_cell_population_array: lil_matrix, plot_idx: int) -> None:
+        """Update the simulation differentiated cell population array 
+        with the current differentiated cell counts
+
+        Parameters
+        ----------
+        diff_cell_population_array : lil_matrix
+            Array storing differentiated cell counts for each clone at 
+            each sample point
+        plot_idx : int
+            The index of the column to update
+        """
         non_zero = np.where(self.current_diff_cell_population > 0)[0]
-        diff_cell_population_array[non_zero, plot_idx] = self.current_diff_cell_population[non_zero]
+        diff_cell_population_array[
+            non_zero, plot_idx] = self.current_diff_cell_population[non_zero]
 
 
 class BaseSimDiffCells(BaseSimClass):
     """
-    In the single progenitor model proposed in Clayton et al 2007, there are differentiated cells that
-    remain in the basal layer for a short period before differentiating
-    It is assumed here that they do not affect clonal dynamics beyond adjusting clone sizes.
-    i.e. they do not affect what any other cells do.
-    They are therefore simulated in a non-spatial manner and it is assumed that the cells simulated
-    normally are all progenitor cells.
+    In the single progenitor model proposed in Clayton et al 2007, 
+    there are differentiated cells that remain in the basal layer for 
+    a short period before differentiating
+    It is assumed here that they do not affect clonal dynamics beyond 
+    adjusting clone sizes. i.e. they do not affect what any other cells do.
+    They are therefore simulated in a non-spatial manner and it is 
+    assumed that the cells simulated normally are all progenitor cells.
 
-    This class replaces a few functions to allow for simulation of differentiated cells in the basal layer
+    This class replaces a few functions to allow for simulation of 
+    differentiated cells in the basal layer
     """
 
     def __init__(self, parameters):
 
         if diff_cell_functions is None:
-            raise ImportError('Cython functions for simulating differentiated cells not found. Please compile diff_cell_functions.pyx to use this class.')
+            raise ImportError(
+                'Cython functions for simulating differentiated cells not found. ' \
+                'Please compile diff_cell_functions.pyx to use this class.')
 
         # r and gamma from the single progenitor model in Clayton et al
         self.r = parameters.differentiated_cells.r  # The proportion of symmetric divisions
@@ -140,10 +229,15 @@ class BaseSimDiffCells(BaseSimClass):
     ############ Functions for running simulations ############
 
     def _take_sample(self, current_data: DiffNonSpatialCurrentData | DiffSpatialCurrentData) -> None:
-        """
-        Record the results at the point the simulation is up to.
-        :param current_population:
-        :return:
+        """Store the current state of the simulation in the population arrays.  
+        
+        If storing partially completed simulation states, dump the 
+        simulation to a pickle. 
+
+        Parameters
+        ----------
+        current_data : DiffNonSpatialCurrentData | DiffSpatialCurrentData
+            Current state of the simulation
         """
         current_data.update_population_array(self.population_array, self.plot_idx)
         current_data.update_diff_cell_population_array(self.diff_cell_population, self.plot_idx)
@@ -157,7 +251,34 @@ class BaseSimDiffCells(BaseSimClass):
                 self.pickle_dump(self.tmp_store + '1')
                 self.store_rotation = 0
 
-    def _switch_diff_cell_simulations_on_off(self, current_population, current_diff_population):
+    def _switch_diff_cell_simulations_on_off(
+            self, current_population: np.ndarray[tuple[int], np.dtype[np.int_]], 
+            current_diff_population: np.ndarray[tuple[int], np.dtype[np.int_]]) \
+                -> np.ndarray[tuple[int], np.dtype[np.int_]]:
+        """Switch between simulating differentiated cells and not. 
+
+        If using stratification_sim_proportion<1, we only need to 
+        simulate the differentiated cells that are most likely to 
+        survive to a sampling time. 
+        If near a sampling time, turn the diff cell simulations on.  
+        If after a sampling time and not close to the next one, 
+        turn the diff cell simulations off.  
+
+        The times to switch have been calculated in advance and are 
+        stored in self.diff_cell_sim_switches.
+
+        Parameters
+        ----------
+        current_population : np.ndarray[tuple[int], np.dtype[np.int_]]
+            Array of current clone sizes (progenitor cells only)
+        current_diff_population : np.ndarray[tuple[int], np.dtype[np.int_]]
+            Array of current clone sizes (diff cells only)
+
+        Returns
+        -------
+        np.ndarray[tuple[int], np.dtype[np.int_]]
+            Array of current clone sizes (diff cells only)
+        """
         self.diff_cell_switch_idx += 1
         self.next_diff_cell_switch = self.diff_cell_sim_switches[self.diff_cell_switch_idx]
         self.sim_diff_cells = not self.sim_diff_cells
@@ -167,20 +288,46 @@ class BaseSimDiffCells(BaseSimClass):
 
     ############ Functions for post-processing simulations ############
     def change_sparse_to_csr(self):
+        """Convert lil arrays to CSR format for post-processing
+        """
         if self.is_lil:
-            self.population_array = self.population_array.tocsr()  # Convert back to numpy array
-            self.diff_cell_population = self.diff_cell_population.tocsr()  # Convert back to numpy array
+            self.population_array = self.population_array.tocsr()  
+            self.diff_cell_population = self.diff_cell_population.tocsr() 
         self.is_lil = False
 
-    def get_clone_size_distribution_for_non_mutation(self, t=None, index_given=False, label=None, include_diff_cells=False):
-        """
-        Gets the clone size frequencies. Not normalised.
+    def get_clone_size_distribution_for_non_mutation(
+            self, t: float | None=None, index_given: bool=False, 
+            label: int| None=None, include_diff_cells: bool=False) -> np.ndarray[tuple[int], np.dtype[np.int_]]:
+        """Gets the clone size frequencies. Not normalised.
+
         Clones here are defined by a unique set of mutations, not per mutation.
-        Therefore this is only really suitable for a simulation without mutations, where we want to track the sizes of
-        a number of initial clones.
+        Therefore this is only really suitable for a simulation without 
+        mutations, where we want to track the sizes of the initial clones.
+
         :param t: time or index of the sample to get the distribution for.
         :param index_given: True if t is the index
         :return:
+
+        Parameters
+        ----------
+        t : float | None, optional
+            time or index of the sample to get the distribution for. 
+            By default None and the final time point is used. 
+        index_given : bool, optional
+            True if t is the index, not the time. By default False
+        label : int | None, optional
+            If not None, only include clones with this label. 
+            By default None
+        include_diff_cells : bool, optional
+            If True, include differentiated cells in the clone sizes. 
+            By default False
+
+        Returns
+        -------
+        np.ndarray[tuple[int], np.dtype[np.int_]]
+            Count of clones of each size. The index of the array is the 
+            clone size, so the value at index 1 is the number of clones 
+            of size 1, etc.
         """
         if self.is_lil:
             self.change_sparse_to_csr()
@@ -211,9 +358,11 @@ class BaseSimDiffCells(BaseSimClass):
         return counts
 
     def _create_mutant_clone_array_diff_cell_only(self):
-        """
-        Create an array with the b cell clone sizes for each mutant across the entire simulation.
-        The populations will usually add up to more than the total since many clones will have multiple mutations
+        """Create an array with the b cell clone sizes for each mutant 
+        across the entire simulation.
+
+        The populations will usually add up to more than the total since
+        many clones will have multiple mutations.
         """
         mutant_clones = self._track_mutations(selection='non_zero')
         self.diff_cell_mutant_clone_array = lil_matrix(self.diff_cell_population.shape)
@@ -221,10 +370,12 @@ class BaseSimDiffCells(BaseSimClass):
             self.diff_cell_mutant_clone_array[mutant] = self.diff_cell_population[mutant_clones[mutant]].sum(axis=0)
 
     def _create_mutant_clone_array_basal_cells(self):
-        """
-        Create an array with the basal cell clone sizes for each mutant across the entire simulation.
-        Includes the progenitor and the differentiated cells.
-        The populations will usually add up to more than the total since many clones will have multiple mutations
+        """Create an array with the basal cell clone sizes for each 
+        mutant across the entire simulation.
+
+        Includes noth the progenitor and the differentiated cells.
+        The populations will usually add up to more than the total 
+        since many clones will have multiple mutations
         """
         if self.mutant_clone_array is None:
             self._create_mutant_clone_array()
@@ -232,19 +383,40 @@ class BaseSimDiffCells(BaseSimClass):
             self._create_mutant_clone_array_diff_cell_only()
         self.basal_cell_mutant_clone_array = self.mutant_clone_array + self.diff_cell_mutant_clone_array
 
-    def get_mutant_clone_sizes(self, t=None, selection='all', index_given=False, gene_mutated=None,
-                               include_diff_cells=False, non_zero_only=False):
-        """
-        Get an array of mutant clone sizes at a particular time
+    def get_mutant_clone_sizes(self, t: float | None=None, 
+                               selection: Literal['all', 'ns', 's']='all', 
+                               index_given: bool=False, 
+                               gene_mutated: str | None=None,
+                               include_diff_cells: bool=False, 
+                               non_zero_only: bool=False) -> np.ndarray[tuple[int], np.dtype[np.int_]]:
+        """Get an array of mutant clone sizes at a particular time
+
         WARNING: This may not work exactly as expected if there were multiple initial clones!
-        :param t: time/sample index
-        :param selection: 'all', 'ns', 's'. All/non-synonymous only/synonymous only.
-        :param index_given: True if t is an index of the sample, False if t is a time.
-        :param gene_mutated: Int. Only return clone sizes for a particular additional label.
-        For example to only get mutations for a single gene.
-        :param include_diff_cells: Add the differentiated cell counts to the proliferative cell counts
-        :param non_zero_only: Only return mutants with a positive cell count.
-        :return: np.array of ints
+
+        Parameters
+        ----------
+        t : float | None, optional
+            time/sample index, by default None and the final time will be used
+        selection : Literal['all', 'ns', 's'], optional
+            Set to ns or s to include only non-synonmous or synonymous 
+            clones respectively. By default 'all'.
+        index_given : bool, optional
+            True if t is an index of the sample, False if t is a time.
+            By default False
+        gene_mutated : str | None, optional
+            Only return clones of this gene. Must match a gene name. 
+            By default None and mutations from all genes will be included.
+        include_diff_cells : bool, optional
+            If True, add the differentiated cell counts to the 
+            proliferative cell counts. By default False
+        non_zero_only : bool, optional
+            If True, only return mutants with a positive cell count.
+            By default False
+
+        Returns
+        -------
+        np.ndarray[tuple[int], np.dtype[np.int_]]
+            Array of mutant clone sizes
         """
         if t is None:
             t = self.max_time
@@ -281,17 +453,36 @@ class BaseSimDiffCells(BaseSimClass):
         else:
             return mutant_clones
 
-    def get_mutant_clone_size_distribution(self, t=None, selection='all', index_given=False, gene_mutated=None,
-                                           include_diff_cells=False):
-        """
-        Get the frequencies of mutant clone sizes. Not normalised.
-        :param t: time/sample index
-        :param selection: 'all', 'ns', 's'. All/non-synonymous only/synonymous only.
-        :param index_given: True if t is an index of the sample, False if t is a time.
-        :param gene_mutated: Int. Only return clone sizes for a particular additional label.
-        For example to only get mutations for a single gene.
-        :param include_diff_cells: Add the differentiated cell counts to the proliferative cell counts
-        :return: np.array of ints.
+    def get_mutant_clone_size_distribution(
+            self, t: float | None=None, 
+            selection: Literal['all', 'ns', 's']='all', 
+            index_given: bool=False, gene_mutated: str | None=None,
+            include_diff_cells: bool=False) -> np.ndarray[tuple[int], np.dtype[np.int_]]:
+        """Get the frequencies of mutant clone sizes. Not normalised.
+
+        Parameters
+        ----------
+        t : float | None, optional
+            time/sample index, by default None and the final time will be used
+        selection : Literal['all', 'ns', 's'], optional
+            Set to ns or s to include only non-synonmous or synonymous 
+            clones respectively. By default 'all'.
+        index_given : bool, optional
+            True if t is an index of the sample, False if t is a time.
+            By default False
+        gene_mutated : str | None, optional
+            Only return clones of this gene. Must match a gene name. 
+            By default None and mutations from all genes will be included.
+        include_diff_cells : bool, optional
+            If True, add the differentiated cell counts to the 
+            proliferative cell counts. By default False
+
+        Returns
+        -------
+        np.ndarray[tuple[int], np.dtype[np.int_]]
+            Count of mutant clones of each size. The index of the array is the 
+            clone size, so the value at index 1 is the number of clones 
+            of size 1, etc.
         """
         if t is None:
             t = self.max_time
@@ -306,14 +497,14 @@ class BaseSimDiffCells(BaseSimClass):
             elif self.s_muts and not self.ns_muts:
                 selection = 's'
             elif not self.s_muts and not self.ns_muts:
-                print('No mutations at all')
-                return None
+                logger.debug('No mutations at all')
+                return np.array([])
         elif selection == 'ns' and not self.ns_muts:
-            print('No non-synonymous mutations')
-            return None
+            logger.debug('No non-synonymous mutations')
+            return np.array([])
         elif selection == 's' and not self.s_muts:
-            print('No synonymous mutations')
-            return None
+            logger.debug('No synonymous mutations')
+            return np.array([])
 
         clones = self.get_mutant_clone_sizes(i, selection=selection, index_given=True,
                                                  gene_mutated=gene_mutated, include_diff_cells=include_diff_cells)
@@ -322,34 +513,92 @@ class BaseSimDiffCells(BaseSimClass):
         return counts
 
     ############ Plotting functions ############
-    def plot_clone_size_distribution_for_non_mutation(self, t=None, label=None, include_diff_cells=False):
+    def plot_clone_size_distribution_for_non_mutation(
+            self, t: float | None=None, label: int| None=None, 
+            include_diff_cells: bool=False) -> None:
         """
-        Plots the clone size distribution, with the clones defined by the clones_array - i.e. not one clone per
-        mutation, one clone per unique set of mutations.
-        WARNING - Only really suitable for the case of no mutations, where we want to track the growth of a number of
+        Plots the clone size distribution, with the clones defined by 
+        the clones_array i.e. one clone per unique set of mutations.
+
+        WARNING - Only really suitable for the case of no mutations, 
+        where we want to track the growth of a number of
         initial clones over time.
+
+        Parameters
+        ----------
+        t : float | None, optional
+            time or index of the sample to get the distribution for. 
+            By default None and the final time point is used. 
+        label : int | None, optional
+            If not None, only include clones with this label. 
+            By default None
+        include_diff_cells : bool, optional
+            If True, include differentiated cells in the clone sizes. 
+            By default False
         """
         if t is None:
             t = self.max_time
-        csd = self.get_clone_size_distribution_for_non_mutation(t, label=label, include_diff_cells=include_diff_cells)
+        csd = self.get_clone_size_distribution_for_non_mutation(
+            t, label=label, include_diff_cells=include_diff_cells
+        )
         csd = csd / csd[1:].sum()
         plt.scatter(range(1, len(csd)), csd[1:])
 
-    def plot_mean_clone_size_graph_for_non_mutation(self, times=None, label=None, show_spm_fit=True, spm_fit_rate=None,
-                                                    legend_label=None, legend_label_fit=None, include_diff_cells=False,
-                                                    plot_kwargs=None, ax=None):
+    def plot_mean_clone_size_graph_for_non_mutation(
+            self, times: ArrayLike | None=None, 
+            label: int| None=None, show_spm_fit: bool=True, 
+            spm_fit_rate: float | None=None, 
+            legend_label: str | None=None, 
+            legend_label_fit: str | None=None, 
+            include_diff_cells: bool=False,
+            plot_kwargs: dict | None=None, ax: axes.Axes | None=None) -> None:
+        """Plot the mean clone size over time
+
+        Follows the mean clone sizes of each row in the clone array. 
+        This is a clone defined by a unique set of mutations.
+        Therefore, this function is only suitable for tracking the 
+        progress of clones growing without any mutations.
+        For comparing to single progenitor model in lineage tracing.
+
+        Parameters
+        ----------
+        times : ArrayLike | None, optional
+            List of array of times to plot. By default None and the 
+            times from the simulation will be used. 
+        label : int | None, optional
+            If not None, only include clones with this label. 
+            By default None
+        show_spm_fit : bool, optional
+            Show the expected mean clone size for the single progenitor 
+            model, by default True
+        spm_fit_rate : float | None, optional
+            The slope of the expected mean clone size. 
+            By default None, and the division rate will be used. 
+        legend_label : str | None, optional
+            Legend label for the simulated mean clone sizes. 
+            By default None
+        legend_label_fit : str | None, optional
+            Legend label for the expected mean clone size, by default None
+        include_diff_cells : bool, optional
+            If True, include differentiated cells in the clone sizes. 
+            By default False
+        plot_kwargs : dict | None, optional
+            Any additional arguments to pass to the MatPlotLib scatter 
+            function. By default None
+        ax : axes.Axes | None, optional
+            Axes to add the traces to. By default None and a new figure 
+            will be created. 
         """
-        Follows the mean clone sizes of each row in the clone array. This is a clone defined by a unique set of
-        mutations, not be a particular mutation.
-        Therefore, this function is only suitable for tracking the progress of clones growing without any mutations.
-        For comparing to single progenitor model in lineage tracing."""
         if times is None:
             times = self.times
 
         means = []
         for t in times:
-            means.append(mean_clone_size(self.get_clone_size_distribution_for_non_mutation(t, label=label,
-                                                                            include_diff_cells=include_diff_cells)))
+            means.append(mean_clone_size(
+                self.get_clone_size_distribution_for_non_mutation(
+                    t, label=label,include_diff_cells=include_diff_cells
+                )
+            ))
 
         if ax is None:
             fig, ax = plt.subplots()
@@ -357,7 +606,8 @@ class BaseSimDiffCells(BaseSimClass):
             if spm_fit_rate is None:
                 spm_fit_rate = self.division_rate
             # Plot the theoretical mean clone size from the single progenitor model
-            ax.plot(times, mean_clone_size_fit(times, spm_fit_rate), 'r--', label=legend_label_fit)
+            ax.plot(times, mean_clone_size_fit(times, spm_fit_rate), 
+                    'r--', label=legend_label_fit)
         ax.set_xlabel('Time')
         ax.set_ylabel('Mean clone size of surviving clones')
         if plot_kwargs is None:
@@ -367,18 +617,37 @@ class BaseSimDiffCells(BaseSimClass):
 
 class MoranWithDiffCells(Moran, BaseSimDiffCells):
     """
-    The fixed population refers to the number of progenitor cells.
-    The number of differentiated cells is allowed to vary and does not effect the dynamics of the progenitor
-    population.
+    The fixed population only applies to the number of progenitor cells.
+    The number of differentiated cells is allowed to vary and 
+    does not effect the dynamics of the progenitor population.
     Allows for values of rho and r other than 0.5 and 0.25
 
     Assume we always start without any differentiated cells.
     """
     current_data_cls = DiffNonSpatialCurrentData
 
-    def _sim_step(self, i, current_data: DiffNonSpatialCurrentData) -> DiffNonSpatialCurrentData:
-        """One cell is selected to die at random. Another cell is selected to replicate and replace the dead cell
-        with its offspring. The replicating cell is selected in proportion with its relative fitness"""
+    def _sim_step(self, i: int, current_data: DiffNonSpatialCurrentData) \
+        -> DiffNonSpatialCurrentData:
+        """Run a single step fo the Moran simulation
+
+        One cell is selected to die at random. 
+        Another cell is selected to replicate and replace the dead cell
+        with its offspring. 
+        The replicating cell is selected in proportion with 
+        its relative fitness
+
+        Parameters
+        ----------
+        i : int
+            The step number
+        current_data : DiffNonSpatialCurrentData
+            The current state of the simulation (the clone sizes)
+
+        Returns
+        -------
+        DiffNonSpatialCurrentData
+            The updated state of the simulation
+        """
 
         current_population, non_zero_clones, current_diff_cell_population = (
             current_data.current_population, 
@@ -387,23 +656,31 @@ class MoranWithDiffCells(Moran, BaseSimDiffCells):
         )
 
         if i > self.next_diff_cell_switch:
-            current_diff_cell_population = self._switch_diff_cell_simulations_on_off(current_population,
-                                                                                     current_diff_cell_population)
+            current_diff_cell_population = \
+                self._switch_diff_cell_simulations_on_off(
+                    current_population, current_diff_cell_population)
         if self.sim_diff_cells:
-            current_diff_cell_population = diff_cell_functions.bcell_cy(current_population, current_diff_cell_population,
-                                                                        self.time_step, self.asym_div_rate, self.gamma)
+            current_diff_cell_population = \
+                diff_cell_functions.bcell_cy(
+                    current_population, current_diff_cell_population,
+                    self.time_step, self.asym_div_rate, self.gamma
+                )
 
         # Select population to replicate cell
         # Select random number to select which population
         birth_selector = np.random.random()
         # make cumulative list of the fitnesses
-        fitness_cumsum = np.cumsum(current_population * self.clones_array[non_zero_clones, self.fitness_idx], axis=0)
+        fitness_cumsum = np.cumsum(
+            current_population * self.clones_array[non_zero_clones, self.fitness_idx], 
+            axis=0)
         # Pick out the selected population
-        # birth_idx is the index for the current population. The clone number is non_zero_clones[birth_idx]
+        # birth_idx is the index for the current population. 
+        # The clone number is non_zero_clones[birth_idx]
         birth_idx = find_ge(fitness_cumsum, birth_selector * fitness_cumsum[-1])
 
         # Select replaced population
-        # death_idx is the index for the current population. The clone number is non_zero_clones[death_idx]
+        # death_idx is the index for the current population. 
+        # The clone number is non_zero_clones[death_idx]
         death_selector = np.random.random()
         cumsum = np.cumsum(current_population, axis=0)
         death_idx = find_ge(cumsum, death_selector * cumsum[-1])
@@ -443,9 +720,39 @@ class MoranWithDiffCells(Moran, BaseSimDiffCells):
 
 
 class Moran2DWithDiffcells(Moran2D, BaseSimDiffCells):
+    """
+    The fixed population only applies to the number of progenitor cells.
+    The number of differentiated cells is allowed to vary and 
+    does not effect the dynamics of the progenitor population.
+    Allows for values of rho and r other than 0.5 and 0.25
+
+    Assume we always start without any differentiated cells.
+    """
+
     current_data_cls = DiffSpatialCurrentData
 
-    def _sim_step(self, i, current_data: DiffSpatialCurrentData) -> DiffSpatialCurrentData:
+    def _sim_step(self, i: int, current_data: DiffSpatialCurrentData) \
+        -> DiffSpatialCurrentData:
+        """Run a single step fo the Moran simulation
+
+        One cell is selected to die at random. 
+        Another cell is selected to replicate and replace the dead cell
+        with its offspring. 
+        The replicating cell is selected in proportion with 
+        its relative fitness
+
+        Parameters
+        ----------
+        i : int
+            The step number
+        current_data : DiffSpatialCurrentData
+            The current state of the simulation (the cell grid)
+
+        Returns
+        -------
+        DiffSpatialCurrentData
+            The updated state of the simulation
+        """
 
         grid_array, current_diff_cell_population = (
             current_data.grid_array, 
@@ -454,11 +761,14 @@ class Moran2DWithDiffcells(Moran2D, BaseSimDiffCells):
         current_population = current_data.current_population
 
         if i > self.next_diff_cell_switch:
-            current_diff_cell_population = self._switch_diff_cell_simulations_on_off(current_population,
-                                                                                     current_diff_cell_population)
+            current_diff_cell_population = \
+                self._switch_diff_cell_simulations_on_off(
+                    current_population, current_diff_cell_population)
         if self.sim_diff_cells:
-            current_diff_cell_population = diff_cell_functions.bcell_cy(current_population, current_diff_cell_population,
-                                                                        self.time_step, self.asym_div_rate, self.gamma)
+            current_diff_cell_population = \
+                diff_cell_functions.bcell_cy(
+                    current_population, current_diff_cell_population,
+                    self.time_step, self.asym_div_rate, self.gamma)
 
         coord = self.get_differentiating_cell(i, current_data)
         death_idx = grid_array[coord]
@@ -492,7 +802,16 @@ class Moran2DWithDiffcells(Moran2D, BaseSimDiffCells):
 
 class BranchingWithDiffCells(Branching, BaseSimDiffCells):
 
-    def _run_for_clone(self, clone_id, start_time):
+    def _run_for_clone(self, clone_id: int, start_time: float) -> None:
+        """Simulated one  clone
+
+        Parameters
+        ----------
+        clone_id : int
+            Id of the clone to simulate
+        start_time : float
+            Birth time of the clone
+        """
         self._reset_to_start(start_time)
         self._reset_diff_cell_params()
         if clone_id < len(self.initial_size_array):
@@ -562,7 +881,9 @@ class BranchingWithDiffCells(Branching, BaseSimDiffCells):
 
         self._record_results(clone_id, clone_sizes, clone_sizes_diff, clone_times)
 
-    def _reset_diff_cell_params(self):
+    def _reset_diff_cell_params(self) -> None:
+        """Reset the differentiate cell simulation state 
+        """
         if self.diff_cell_sim_switches[0] == 0:
             # Differentiated cells simulated from start
             self.sim_diff_cells = True
@@ -572,20 +893,65 @@ class BranchingWithDiffCells(Branching, BaseSimDiffCells):
             self.diff_cell_switch_idx = 0
         self.next_diff_cell_switch = self.diff_cell_sim_switches[self.diff_cell_switch_idx]
 
-    def _diff_cell_check_and_run(self, current_population, current_diff_cell_population, current_time, last_time):
+    def _diff_cell_check_and_run(
+            self, current_population: int, 
+            current_diff_cell_population: int, 
+            current_time: float, last_time: float) -> int:
+        """Check if differentiated cells need simulating, and if so, do so
+
+        Parameters
+        ----------
+        current_population : int
+            Current progenitor cell population of the clone
+        current_diff_cell_population : int
+            Current diff cell population of the clone
+        current_time : float
+            Current time. The time to simulate up to. 
+        last_time : float
+            The time to simulate from
+
+        Returns
+        -------
+        int
+            The updated number of differentiated cells in the clone
+        """
         while current_time > self.next_diff_cell_switch:
-            current_diff_cell_population = self._switch_diff_cell_simulations_on_off(current_population,
-                                                                                     current_diff_cell_population)
+            current_diff_cell_population = \
+                self._switch_diff_cell_simulations_on_off(
+                    current_population, current_diff_cell_population)
+            
         if self.sim_diff_cells:
-            current_diff_cell_population = diff_cell_functions.single_gillespie_cy_with_check(current_population,
-                                                                                              current_diff_cell_population,
-                                                                                              time_step=current_time - last_time,
-                                                                                              asym_div_rate=self.asym_div_rate,
-                                                                                              gamma=self.gamma)
+            current_diff_cell_population = \
+                diff_cell_functions.single_gillespie_cy_with_check(
+                    current_population, current_diff_cell_population,
+                    time_step=current_time - last_time,
+                    asym_div_rate=self.asym_div_rate,
+                    gamma=self.gamma)
 
         return current_diff_cell_population
 
-    def _sim_step(self, clone_id, current_population, current_diff_cell_population):
+    def _sim_step(self, clone_id: int, current_population: int, 
+                  current_diff_cell_population: int) -> tuple[int, int, list[float], list[float]]:
+        """Run one simulation step for a single clone
+
+
+        Parameters
+        ----------
+        clone_id : int
+            Id of the clone
+        current_population : int
+            Current progenitor cell population of the clone
+        current_diff_cell_population : int
+            Current differentiated cell population of the clone
+
+        Returns
+        -------
+        tuple[int, int, list[float], list[float]]
+            Updated progenitor cell population, 
+            updated diff cell population, 
+            sample times passed during the step, 
+            diff cell populations at each of those sample time
+        """
 
         # Division rate is taken as r*lambda.
         # The rate of either a symmetric AA or BB division is then 2*r*lambda = 2*division_rate
@@ -655,18 +1021,57 @@ class BranchingWithDiffCells(Branching, BaseSimDiffCells):
             current_population -= 1
             current_diff_cell_population += 2
 
-        return current_population, current_diff_cell_population, intermediate_times, intermediate_diff_cell_pops
+        return current_population, current_diff_cell_population, \
+            intermediate_times, intermediate_diff_cell_pops
 
-    def _switch_diff_cell_simulations_on_off(self, current_population, current_diff_population):
+    def _switch_diff_cell_simulations_on_off(
+            self, current_population: int, current_diff_population: int) -> int:
+        """Switch between simulating differentiated cells and not. 
+
+        If using stratification_sim_proportion<1, we only need to 
+        simulate the differentiated cells that are most likely to 
+        survive to a sampling time. 
+        If near a sampling time, turn the diff cell simulations on.  
+        If after a sampling time and not close to the next one, 
+        turn the diff cell simulations off.  
+
+        The times to switch have been calculated in advance and are 
+        stored in self.diff_cell_sim_switches.
+
+        Parameters
+        ----------
+        current_population : int
+            Current progenitor cell count
+        current_diff_population : int
+            Current diff cell count
+
+        Returns
+        -------
+        int
+            New diff cell count (0)
+        """
         self.diff_cell_switch_idx += 1
         self.next_diff_cell_switch = self.diff_cell_sim_switches[self.diff_cell_switch_idx]
         self.sim_diff_cells = not self.sim_diff_cells
         return 0
 
-    def _extend_arrays(self, clone_id, min_extension=1):
-        """
-        We cannot pre-calculate the number of mutations (and therefore clones) as the population is not fixed
-        so we must extend the arrays once they get full
+    def _extend_arrays(self, clone_id: int, min_extension: int=1) -> None:
+        """Add more rows to the progenitor population, diff cell population, 
+        clones and raw fitness arrays
+        
+        We cannot pre-calculate the number of mutations (and therefore 
+        clones) for this algorithm as the population is not fixed, 
+        so we must extend the arrays once they get full.
+
+        Base the extension size on the initial population, 
+        the mutation rate and the number of remaining clones to simulate.
+
+        Parameters
+        ----------
+        clone_id : int
+            ID of the clone
+        min_extension : int, optional
+            Minimum number of rows to add, by default 1
         """
         remaining_clones = max(len(self.initial_size_array) - clone_id, 0) + len(self.new_mutations)
         starting_clones = len(self.initial_size_array)
@@ -690,22 +1095,33 @@ class BranchingWithDiffCells(Branching, BaseSimDiffCells):
         new_diff_pop_array[:s] = self.diff_cell_population
         self.diff_cell_population = new_diff_pop_array
 
-    def _finish_up(self):
-        """
-        Some of the plotting/post processing steps assume that all rows in the arrays are used in the simulation
-        Remove rows that have not been used
+    def _finish_up(self) -> None:
+        """Remove unused rows from arrays
+        
+        Some of the plotting/post processing steps assume that all rows 
+        in the arrays are used in the simulation, so remove rows that 
+        have not been used
         """
         self.clones_array = self.clones_array[:self.next_mutation_index]
         self.population_array = self.population_array[:self.next_mutation_index]
         self.raw_fitness_array = self.raw_fitness_array[:self.next_mutation_index]
         self.diff_cell_population = self.diff_cell_population[:self.next_mutation_index]
 
-    def _record_results(self, clone_id, clone_sizes, clone_sizes_diff, clone_times):
-        """
-        Record the results at the point the simulation is up to.
-        :param i:
-        :param current_population:
-        :return:
+    def _record_results(self, clone_id: int, clone_sizes: list[int], 
+                        clone_sizes_diff: list[int], 
+                        clone_times: list[float]) -> None:
+        """Record the results at the point the simulation is up to.
+
+        Parameters
+        ----------
+        clone_id : int
+            Clone id
+        clone_sizes : list[int]
+            Progenitor cell counts at each of the clone_times
+        clone_sizes_diff : list[int]
+            Diff cell counts at each of the clone_times
+        clone_times : list[float]
+            List of times the clone was alive for. 
         """
         j = 0
         a = []
@@ -720,5 +1136,14 @@ class BranchingWithDiffCells(Branching, BaseSimDiffCells):
         self.diff_cell_population[clone_id] = b
 
 
-def set_gsl_random_seed(s):
+def set_gsl_random_seed(s: int) -> None:
+    """Set the random seed for GSL random functions 
+    
+    Used for diff cell simulation
+
+    Parameters
+    ----------
+    s : int
+        Seed
+    """
     diff_cell_functions.set_random_seed(s)

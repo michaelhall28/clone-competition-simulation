@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.typing import ArrayLike
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -6,13 +7,23 @@ if TYPE_CHECKING:
 
 
 class MutationManagerMixin:
+    """Functions for adding mutations and labels
+    """
+
     def _check_treatment_time(self) -> bool:
         """Returns True if it is time to switch treatment, False otherwise"""
         return self.i >= self.next_treatment_time
 
     def _change_treatment(self, initial: bool=False) -> None:
         """Switches to the next treatment and updates the fitness of all clones accordingly. 
-        Also used at the start of the simulation to calculate the initial fitness of clones."""
+
+        Also used at the start of the simulation to calculate the initial fitness of clones
+
+        Parameters
+        ----------
+        initial : bool, optional
+            True if at the start of the simulation, by default False
+        """
         self.treatment_count += 1
         self.current_fitness_multiplier = self.treatment_effects[self.treatment_count]
         self.next_treatment_time = self.treatment_timings[self.treatment_count + 1]
@@ -29,10 +40,28 @@ class MutationManagerMixin:
             else:
                 self.clones_array[:, self.fitness_idx] = self._apply_treatment(fitness_values=self.raw_fitness_array)
 
-    def _apply_treatment(self, fitness_values=None, fitness_arrays=None):
-        # Apply the treatment affects to an array of fitnesses
-        # fitness_values is 1D array of overall fitness for each clone
-        # fitness_arrays is a 2D array with one row per clone and one column per gene plus a column for wild type
+    def _apply_treatment(
+            self, 
+            fitness_values: np.ndarray[tuple[int], np.dtype[np.float64]] | None=None, 
+            fitness_arrays: np.ndarray[tuple[int, int], np.dtype[np.float64]] | None=None) \
+                -> np.ndarray[tuple[int], np.dtype[np.float64]]:
+        """Modify clone fitness based on the current treatment
+
+        Parameters
+        ----------
+        fitness_values : np.ndarray[tuple[int], np.dtype[np.float64]] | None, optional
+            1D array of overall fitness for each clone.
+            Used if not separating fitness by genes. 
+            By default None
+        fitness_arrays : np.ndarray[tuple[int, int], np.dtype[np.float64]] | None, optional
+            2D array with one row per clone and one column per gene plus a column for wild type. 
+            By default None
+
+        Returns
+        -------
+        np.ndarray[tuple[int], np.dtype[np.float64]]
+            1D array of clone fitness values under the current treatment
+        """
         if self.fitness_calculator and self.fitness_calculator.multi_gene_array:
             # Apply the treatment to the genes, then calculate the overall fitness.
             if not self.treatment_replace_fitness:
@@ -60,15 +89,42 @@ class MutationManagerMixin:
                 new_fitness_values[np.isnan(new_fitness_values)] = fitness_values[np.isnan(new_fitness_values), 0]
                 return new_fitness_values
 
-    def _check_label_time(self):
+    def _check_label_time(self) -> bool:
+        """Check if the simulation step has reached the next label time
+
+        Returns
+        -------
+        bool
+            True if the next label time has been reached. False otherwise.  
+        """
         return self.i >= self.next_label_time
 
     def _add_label(self, current_data: "CurrentData", label_frequency: float, label: int,
-                   label_fitness: float, label_gene_name: str | None) -> "CurrentData":
-        """
-        Add some labelling at the current label frequency.
-        The labelling is not exact, so each cell has same chance.
-        Use a Poisson distribution of events for each clone.
+                   label_fitness: float | None, label_gene_name: str | None) -> "CurrentData":
+        """Label cells at the current label frequency.
+
+
+        The labelling is not exact - each cell has same chance.
+        Using a binomial distribution 
+        Parameters
+
+        ----------
+        current_data : CurrentData
+            Current state of the simulation
+        label_frequency : float
+            Proportion of cells to label (on average)
+        label : int
+            The label to use
+        label_fitness : float, optional
+            Fitness to associate with the label.
+        label_gene_name : str | None
+            Gene to associate with the fitness change if 
+            label_fitness is True
+
+        Returns
+        -------
+        CurrentData
+            Updated state of the simulation
         """
         # Random draw for each clone base on clone size
         labels_per_clone = np.random.binomial(current_data.current_population, label_frequency)
@@ -102,9 +158,25 @@ class MutationManagerMixin:
                             non_zero_clones=non_zero_clones)
         return current_data
 
-    def _add_labelled_clone(self, parent_idx: int, label: int, label_fitness: float, label_gene_name: str | None) -> None:
-        """Select a fitness for the new mutation and the cell in which the mutation occurs
-        parent_idx = the id of the clone in which the mutation occurs
+    def _add_labelled_clone(self, parent_idx: int, label: int, 
+                            label_fitness: float | None, 
+                            label_gene_name: str | None) -> None:
+        """Create a new clone with the given label
+        
+        Select a fitness for the new mutation and the cell in which 
+        the mutation occurs. 
+        
+        Parameters
+        ----------
+        parent_idx : int
+            Clone id of the cell in which the label occurs
+        label : int
+            The label to use
+        label_fitness : float, optional
+            Fitness to associate with the label.
+        label_gene_name : str | None
+            Gene to associate with the fitness change if 
+            label_fitness is True
         """
         selected_clone = self.clones_array[parent_idx]
         old_fitness = selected_clone[self.fitness_idx]
@@ -115,10 +187,13 @@ class MutationManagerMixin:
             fitness_arr_col = 0
         else:
             gene_mutated = self.fitness_calculator.get_gene_number(label_gene_name)
-            fitness_arr_col = gene_mutated + 1  # The first column of the fitness array is the wild type fitness, so add 1 to get the right column for the gene
+            # The first column of the fitness array is the wild type fitness, 
+            # so add 1 to get the right column for the gene
+            fitness_arr_col = gene_mutated + 1  
         if label_fitness is not None:  # Fitness will replace what went before for that gene/wild type
             new_fitness_array[fitness_arr_col] = label_fitness
-            new_fitness, self.raw_fitness_array[self.next_mutation_index] = self.fitness_calculator.combine_vectors(np.atleast_2d(new_fitness_array))
+            new_fitness, self.raw_fitness_array[self.next_mutation_index] = \
+                self.fitness_calculator.combine_vectors(np.atleast_2d(new_fitness_array))
             new_fitness = new_fitness[0]  # We are only adding one clone at a time.
         else:
             new_fitness = old_fitness
@@ -137,22 +212,42 @@ class MutationManagerMixin:
 
         self.next_mutation_index += 1
 
-    def _draw_mutations_for_single_cell(self, parent_idxs) -> None:
-        """
-        For the case where a single or multiple mutations are added to the same cell.
-        If multiple, they must be added one at a time so that they combine fitness with each other correctly
+    def _draw_mutations_for_single_cell(
+            self, parent_idxs: np.ndarray[tuple[int], np.dtype[np.int_]]) -> None:
+        """Add mutations into a single cell
 
-        :param parent_idxs:
-        :return:
+        For the case where one or more mutations are added to the same cell.
+        If multiple, they must be added one at a time so that they 
+        combine fitness with each other correctly. 
+
+        Each mutation will create a new clone, so the parent ids will be 
+        the original clone that had the mutation and then any any new 
+        clones created if they get further mutations.
+
+        Parameters
+        ----------
+        parent_idxs : np.ndarray[tuple[int], np.dtype[np.int_]]
+            Array of clone ids the mutations appear in
         """
         for p in parent_idxs:
             self._draw_multiple_mutations_and_add_to_array([p])
 
-    def _draw_multiple_mutations_and_add_to_array(self, parent_idxs) -> None:
-        """Select a fitness for the new mutation and the cell in which the mutation occurs
-        parent_idx = the id of the clone in which the mutation occurs
+    def _draw_multiple_mutations_and_add_to_array(
+            self, parent_idxs: ArrayLike) -> None:
+        """Add new mutations
+        
+        Select a fitness for the new mutation and the cell in which the 
+        mutation occurs
+        parent_idx is the id of the clone in which the mutation occurs
 
-        For multiple mutations at once. Need the new mutation generator
+        All the mutations here should be added to separate cells. 
+        If multiple mutations need adding to the same cell, 
+        use _draw_mutations_for_single_cell
+
+        Parameters
+        ----------
+        parent_idxs : ArrayLike
+            Clone ids for the cells the mutations will appear in
         """
         selected_clones = self.clones_array[parent_idxs]
         new_types = selected_clones[:, self.label_idx]  # Are the new clones labelled or not
@@ -170,7 +265,7 @@ class MutationManagerMixin:
         self.s_muts.update(mutation_indices[s])
         self.ns_muts.update(mutation_indices[ns])
 
-        # Add the new clone to the clone_array
+        # Add the new clones to the clone_array
         new_fitness_values = self._apply_treatment(new_fitness_values, new_fitness_arrays)
         new_array = np.array([mutation_indices, new_types, new_fitness_values,
                               np.full(len(parent_idxs), self.plot_idx), parent_idxs, genes_mutated]).T
@@ -185,6 +280,3 @@ class MutationManagerMixin:
 
         self.next_mutation_index += len(parent_idxs)
 
-    def _store_any_extras(self, new_growth_rate, synonymous, gene_mutated, parent_idx):
-        # A function to be used if more information needs storing after a mutation
-        pass

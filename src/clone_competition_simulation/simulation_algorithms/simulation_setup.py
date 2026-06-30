@@ -1,20 +1,30 @@
-import numpy as np
 from abc import abstractmethod
-from scipy.sparse import lil_matrix
-from treelib import Tree
 from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from .base_sim_class import BaseSimClass
+import numpy as np
+from numpy.typing import ArrayLike
+from scipy.sparse import lil_matrix
+from treelib import Tree
 
+if TYPE_CHECKING:
+    from ..parameters import Parameters
 
 class SimulationSetupMixin:
+    """Functions to set up simulations
+    """
     def _calculate_search_times(self) -> None:
-        """Calculates slightly adjusted times so floating point errors do not lead to incorrect time point selection
-        To fix the cases where we are searching for the time before or equal to t and we exclude t.0000000001. 
-        The times are adjusted by a small value to account for this floating point error. 
+        """Create adjusted version of times to prevent floating point errors
+        when searching
+
+        Calculates slightly adjusted times so floating point errors do 
+        not lead to incorrect time point selection
+        To fix the cases where we are searching for the time before 
+        or equal to t and we exclude t.0000000001. 
+        The times are adjusted by a small value to account 
+        for this floating point error. 
         
-        Generally not used - finds the closest time instead.
+        Generally not used - by default the closest time 
+        is found instead
         """
         if len(self.times) > 1:
             min_diff = np.diff(self.times).min()
@@ -23,8 +33,10 @@ class SimulationSetupMixin:
         self._search_times = self.times - min_diff / 100
 
     def _setup_label_times(self) -> None:
-        """Convert the input label times to the simulation step at which they will be applied.
-        Also sets the next_label_time attribute to the first label time."""
+        """Convert the input label times to simulation steps 
+
+        Also sets the next_label_time attribute to the first label time.
+        """
         self.label_times = self._adjust_raw_times(self.label_times)
         if self.label_times is not None:
             self.next_label_time = self.label_times[0]
@@ -32,8 +44,15 @@ class SimulationSetupMixin:
             self.next_label_time = np.inf
 
     def _setup_treatment(self, parameters: "Parameters") -> None:
-        """Convert the input treatment times to the simulation step at which they will be applied.
-        Also sets the next_treatment_time attribute to the first treatment time."""
+        """Convert input treatment times to simulation steps
+
+        Also sets the next_treatment_time attribute to the first treatment time.
+
+        Parameters
+        ----------
+        parameters : Parameters
+            Parameters object used to create the simulation
+        """
         self.treatment_count = -1
         if parameters.treatment.treatment_timings is None:
             # No treatment applied. But this set up means the initial fitness is set correctly then not changed
@@ -54,29 +73,52 @@ class SimulationSetupMixin:
         self.tree.create_node(str(-1), -1)  # Make a root node that isn't a clone.
     
     @abstractmethod
-    def _adjust_raw_times(self, array: np.ndarray) -> np.ndarray[tuple[int], np.dtype[np.float64]]:
-        """
-        Takes an array of time points and converts to number of simulation steps
+    def _adjust_raw_times(self, array: ArrayLike) \
+            -> np.ndarray[tuple[int], np.dtype[np.float64]]:
+        """Converts times to number of simulation steps
+
         Varies depending on the algorithm, so is defined in the subclasses. 
-        
-        :param array: Numpy array or list of time points.
+
+        Parameters
+        ----------
+        array : ArrayLike
+            Time points
+
+        Returns
+        -------
+        np.ndarray[tuple[int], np.dtype[np.float64]]
+            Array of simulation step indices
         """
         raise NotImplementedError()
 
     @abstractmethod
     def _precalculate_mutations(self) -> tuple[int, np.ndarray[tuple[int], np.dtype[np.int_]]]:
-        """Calculates the number of mutations to add at each simulation step
+        """Calculate the number of mutations to add at each simulation step
 
-        Should return the total new_mutation_count and mutations_to_add (an array of the number of mutations to add 
-        at each simulation step)
-        :return:
+        Returns
+        -------
+        tuple[int, np.ndarray[tuple[int], np.dtype[np.int_]]]
+            the total new_mutation_count, 
+            array of the number of mutations to add at each simulation step
+
         """
         raise NotImplementedError()
 
-    def _init_arrays(self, labels_array, initial_mutant_gene_array, input_fitness_array) -> None:
-        """
-        Defines self.clones_array, self.population_array and self.raw_fitness_array
+    def _init_arrays(self, labels_array: ArrayLike | None, 
+                     initial_mutant_gene_array: ArrayLike | None, 
+                     input_fitness_array: ArrayLike) -> None:
+        """Defines self.clones_array, self.population_array and self.raw_fitness_array
+
         Fills self.clones_array with any information given about the initial cells.
+
+        Parameters
+        ----------
+        labels_array : ArrayLike | None
+            Labels array for initial cloens
+        initial_mutant_gene_array : ArrayLike | None
+            Mutant genes for initial clones
+        input_fitness_array : ArrayLike
+            Fitness for initial clones
         """
         self.clones_array = np.zeros((self.total_clone_count, 6))
         self.clones_array[:, self.id_idx] = np.arange(len(self.clones_array))  # Give clones an identifier
@@ -124,15 +166,28 @@ class SimulationSetupMixin:
         for i in range(self.initial_clones):
             self.tree.create_node(str(i), i, parent=-1)  # Directly descended from the root node
 
-    def _extend_arrays_fixed_amount(self, extension):
-        """Add new rows to the population and clones arrays. For when the labels are added."""
+    def _extend_arrays_fixed_amount(self, extension: int) -> None:
+        """Add new rows to the population and clones arrays. 
+        
+        For when labels are added.
+
+        Parameters
+        ----------
+        extension : int
+            The number of rows to add
+        """
         s = self.population_array.shape[0]
         new_pop_array = lil_matrix((s + extension, self.sim_length))
         new_pop_array[:s] = self.population_array
         self.population_array = new_pop_array
 
-        self.clones_array = np.concatenate([self.clones_array, np.zeros((extension, 6))], axis=0)
+        self.clones_array = np.concatenate([self.clones_array, 
+                                            np.zeros((extension, 6))], axis=0)
 
-        self.raw_fitness_array = np.concatenate([self.raw_fitness_array,
-                                                 np.full((extension, self.raw_fitness_array.shape[1]), np.nan)],
-                                                axis=0)
+        self.raw_fitness_array = np.concatenate(
+            [
+                self.raw_fitness_array,
+                np.full((extension, self.raw_fitness_array.shape[1]), 
+                        np.nan)
+            ],
+        axis=0)

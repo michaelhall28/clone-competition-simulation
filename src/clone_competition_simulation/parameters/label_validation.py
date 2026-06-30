@@ -104,6 +104,13 @@ class LabelParameters(ParameterBase):
 
 
 class LabelValidator(LabelParameters, ValidationBase):
+    """Validate label parameters and prepare label arrays for simulation.
+
+    This validator reads label parameters from configuration, checks that
+    all required fields are consistent and properly defined, and converts
+    label times, frequencies, values, fitness effects, and genes into the
+    arrays required by the simulation engine.
+    """
     _default_label = 0
     tag: Literal['Full']
     population: PopulationValidator
@@ -111,6 +118,21 @@ class LabelValidator(LabelParameters, ValidationBase):
     config_file_settings: LabelParameters | None = None
 
     def _validate_model(self):
+        """Validate and normalize label parameters for simulation.
+
+        Reads label parameters from configuration and converts them to arrays
+        matching the lengths of label times. Checks consistency of label times,
+        frequencies, values, fitness effects, and gene indices. Verifies that
+        multi-label fitness effects and gene-specific labels are compatible
+        with the fitness calculator configuration.
+
+        Raises
+        ------
+        ValueError
+            If label definitions are incomplete (e.g., times without frequencies),
+            if array lengths are inconsistent, or if label fitness/genes require
+            features not enabled in the fitness calculator.
+        """
         self.initial_label_array = self.get_value_from_config("initial_label_array")
         initial_size_array = self.population.initial_size_array
         if self.initial_label_array is None:
@@ -139,7 +161,7 @@ class LabelValidator(LabelParameters, ValidationBase):
 
             if self.label_fitness is not None and len(self.label_frequencies) > 1 and self.fitness.fitness_calculator is None:
                 raise ValueError(
-                    'Applying multiple labels with fitness effects requires a mutation generator to define ' \
+                    'Applying multiple labels with fitness effects requires a fitness calculator to define '
                     'how fitness combines across labels and mutations.')
 
             if self.label_fitness is None:
@@ -156,7 +178,7 @@ class LabelValidator(LabelParameters, ValidationBase):
                     # Requires multi-gene setup
                     if self.fitness.fitness_calculator and not self.fitness.fitness_calculator.multi_gene_array:
                         raise ValueError('Applying labels with mutations to particular genes requires a '
-                                                 'mutation generator with multi_gene_array=True')
+                                         'fitness calculator with multi_gene_array=True')
 
             if len(self.label_times) != len(self.label_frequencies) or len(self.label_times) != len(self.label_values) \
                     or len(self.label_times) != len(self.label_fitness):
