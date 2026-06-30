@@ -184,7 +184,6 @@ class FitnessValidator(FitnessParameters, ValidationBase):
 
         self._check_mutation_rates()
 
-
     def _check_initial_mutant_gene_array(self):
         """Validate and convert gene names to indices in the initial mutant array.
 
