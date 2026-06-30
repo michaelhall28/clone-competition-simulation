@@ -1,6 +1,6 @@
 import itertools
 from collections import Counter
-from typing import TYPE_CHECKING, Iterable, Literal
+from typing import Iterable, Literal
 
 import matplotlib.pyplot as plt
 from matplotlib import axes
@@ -11,14 +11,27 @@ from ..analysis.analysis import (add_incom_to_plot, incomplete_moment,
                                  mean_clone_size, mean_clone_size_fit,
                                  surviving_clones_fit)
 from ..plotting.animator import NonSpatialToGridAnimator
-
-if TYPE_CHECKING:
-    from .base_sim_class import BaseSimClass
+from ..plotting.plot_colours import PlotColourMaps
 
 
 class SimulationPlottingMixin:
     """Functions for plotting simulation results
     """
+    def set_colour_maps(self, plot_colour_maps: PlotColourMaps, 
+                        regenerate_colours: bool=True) -> None:
+        """Replace the plot colours with a new set
+
+        Parameters
+        ----------
+        plot_colour_maps : PlotColourMaps
+            The new colour rules to use
+        regenerate_colours : bool, optional
+            Replace any colours already set, by default True. 
+        """
+        self.plot_colour_maps = plot_colour_maps
+        if regenerate_colours:
+            self._get_colours(self.clones_array, force_regenerate=True)
+
     def _get_colours(self, clones_array: np.ndarray, force_regenerate=False) -> None:
         """Generate the colours for the clones plot. 
         

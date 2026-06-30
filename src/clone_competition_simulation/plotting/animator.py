@@ -530,7 +530,7 @@ class HexFitnessAnimator(HexAnimator):
         ax : Axes, optional
             Axes to plot onto, by default None and a new figure will be created
         """
-        self.x, self.y = self.sim.grid.shape
+        self.x, self.y = self.sim.grid_shape
         if ax is None:
             ax_given = False
             self._get_figsize()
