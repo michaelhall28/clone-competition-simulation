@@ -177,7 +177,6 @@ def test_algorithm_example12():
     s = p.get_simulator()
     s.run_sim()
     s.plot_grid() # Plot the final grid of the simulation
-    plt.show()
 
     s.plot_grid(t=0)
     s.plot_grid(t=0, index_given=True) 

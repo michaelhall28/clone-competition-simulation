@@ -207,7 +207,7 @@ print(s.get_mutant_clone_size_distribution())
 There is 1 mutant of size 0, 2 clones of size 2, 1 clone of size 9, and one clone of size 44
 
 
-# Clone ancestors/descendants
+## Clone ancestors/descendants
 
 The clone lineages are stored in a Tree (`s.tree`).   
 
@@ -227,7 +227,7 @@ print(s.get_clone_descendants(1))
 ```
     [1, 3, 5]
 
-# Muller plots
+## Muller plots
 
 These plots can be very messy for simulations with a lot of clones, and can also take a long time to plot.   
 To reduce the time taken, or to make the plots clearer, you can hide small clones.   
@@ -278,7 +278,7 @@ plt.show()
 ![png](8.Mutations2_files/8.Mutations2_18_1.png)
     
 
-# Incomplete moments
+## Incomplete moments
 
 There are plots for showing the incomplete moments of the clone sizes. 
 

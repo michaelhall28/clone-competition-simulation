@@ -297,7 +297,7 @@ fit_calc = FitnessCalculator(
 ```
 
 
-# multi_gene_array=True
+## multi_gene_array=True
 
 This allows much more control on the combination of fitness, but is also more complicated.   
 
@@ -719,7 +719,7 @@ You can also write your own function. It should take a 2D NumPy array and return
 
 
 
-# Epistatic effects
+## Epistatic effects
 
 The combination of mutations in different genes may be more complex than simply addition or multiplication.   
 Defining epistatic effects allows more control of the combinations of fitness.  
@@ -880,7 +880,7 @@ print(s.view_clone_info(include_raw_fitness=True))
 
 Note that for the last three clones, their fitness is 3 because both genes are mutated. 
 
-# Checking fitness rules are correct
+## Checking fitness rules are correct
 
 It can be a complex system for defining the rules for mutation combinations.   
 To check that the fitness values are what is intended, you can plot the (mean) fitness of the combination of gene mutations.  
@@ -966,7 +966,7 @@ plt.show()
 ![png](9.Mutations3_files/9.Mutations3_23_1.png)
     
 
-# Assigning genes to the initial mutations
+## Assigning genes to the initial mutations
 
 You can start a simulation with multiple clones and assign a gene to each of them.    
 This may be useful for lineage tracing style simulations in which a mutant is induced (defined at the start), and then subsequent mutations can appear on top of the initial mutations.  
@@ -1006,10 +1006,10 @@ p = Parameters(
         fitness_calculator=fit_calc,     
         
         # The initial_mutant_gene_array defines the genes to be associated with the gene
-        # The value is the index of the Gene in FitnessCalculator.genes
-        # Use -1 for the clones with no mutation/associated gene
-        initial_mutant_gene_array=[-1, 0, 0, 0, 0],  
-        
+        # The value is the name of the Gene
+        # Use None for the clones with no mutation/associated gene
+        initial_mutant_gene_array=[None, "Gene1", "Gene1", "Gene1", "Gene1"], 
+    
         # Also need to define the fitness array or all initial clones will have a fitness=1
         # These fitness values do not have to equal the fitness values from the Gene assigned. 
         initial_fitness_array=[1, 1.1, 1.1, 1.1, 1.1],
@@ -1201,7 +1201,7 @@ print(s.view_clone_info(include_raw_fitness=True))
 
 The initial clones (generation_born=0) now can have epistatic interactions. 
 
-# Diminishing returns
+## Diminishing returns
 
 As a clone gains more mutations and becomes fitter, there may be less and less room for improvement.  
 You can apply a transformation of the combined fitness effects of all mutations to introduce diminishing returns 
