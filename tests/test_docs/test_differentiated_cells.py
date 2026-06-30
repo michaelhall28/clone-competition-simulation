@@ -4,16 +4,16 @@ Check that the code from the documentation runs.
 Not checking simulation results in detail (that is done in other tests), 
 just that changes to the code have not broken the documentation examples
 """
-import numpy as np
-from clone_competition_simulation import Parameters, TimeParameters, PopulationParameters, DifferentiatedCellsParameters
-import matplotlib.pyplot as plt
-from clone_competition_simulation import (
-    FitnessParameters, 
-    Gene, 
-    FitnessCalculator, 
-    NormalDist
-)
 import time
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+from clone_competition_simulation import (DifferentiatedCellsParameters,
+                                          FitnessCalculator, FitnessParameters,
+                                          Gene, NormalDist, Parameters,
+                                          PopulationParameters, TimeParameters)
+
 
 def test_diff_cells():
     np.random.seed(0)
