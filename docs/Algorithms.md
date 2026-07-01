@@ -3,11 +3,13 @@
 There are five algorithms that can be run.  
 
 Non-spatial algorithms:
+
 - "Branching". A branching process based on the single progenitor model from Clayton, et al. "A single type of progenitor cell maintains normal epidermis." Nature 446.7132 (2007): 185-189.
 - "Moran". A Moran-style model. At each simulation step, one cell dies and another cell divides, maintaining the overall population.  
 - "WF". A Wright-Fisher style model. At each simulation step an entire generation of cells is produced from the previous generation.
 
 2D algorithms:
+
 - "Moran2D". A Moran-style model constrained to a 2D hexagonal grid. At each simulation step, one cell dies and a *cell from an adjacent location in the grid* divides.
 - "WF2D". A Wright-Fisher style model constrained to a 2D hexagonal grid. At each simulation step an entire generation of cells is produced from the previous generation, where cell parents must be from the local neighbourhood in the grid.
 
@@ -234,13 +236,14 @@ s = p.get_simulator()
 
 
 # Will colour a cell and its neighbourhood to show the hexagonal neighbours. 
-from clone_competition_simulation.simulation_algorithms.general_2D_class import get_neighbour_coords_2D
+from clone_competition_simulation import get_neighbour_coords_2D
 row, col = 2, 3
-s.grid[row, col] = 1
+# Get a grid from the sim. Grid snapshots are stored in s.grid_results.
+grid = s.grid_results[0]
+grid[row, col] = 1
 neighbours = get_neighbour_coords_2D(s, row, col)
-s.grid[neighbours[:, 0], neighbours[:, 1]] = 2
-s.plot_grid(grid=s.grid, figsize=(3, 3))
-plt.show()
+grid[neighbours[:, 0], neighbours[:, 1]] = 2
+s.plot_grid(grid=grid)
 ```
     
 ![png](2.Algorithms_files/2.Algorithms_20_1.png)
@@ -287,3 +290,73 @@ plt.show()
 ![png](2.Algorithms_files/2.Algorithms_23_0.png)
     
 You can however, use either neighbourhood option with both algorithms. 
+
+## Plotting grid snapshots
+
+The 2D simulations store snapshots of the grid at each sample point
+in `s.grid_results`.  
+The `s.plot_grid` function can be used to plot those grids. 
+
+By default, the final grid will be plotted.
+```python
+p = Parameters(
+    algorithm="WF2D", 
+    population=PopulationParameters(
+        initial_grid=np.repeat(np.arange(3), 20).reshape(10, 6), 
+        cell_in_own_neighbourhood=True),
+    times=TimeParameters(max_time=10, division_rate=1, samples=21)
+)
+s = p.get_simulator()
+s.run_sim()
+s.plot_grid() # Plot the final grid of the simulation
+```
+![png](2.Algorithms_files/plot_grid1.png)
+
+----
+
+You can select an earlier time point by either supplying the 
+time point, sample index or a grid from the simulation. 
+
+```python 
+# Plot the initial grid. 
+s.plot_grid(t=0)
+# These are equivalent methods
+# s.plot_grid(t=0, index_given=True) 
+# s.plot_grid(grid=s.grid_results[0])
+```
+![png](2.Algorithms_files/plot_grid2.png)
+
+----
+
+```python
+# Plot a grid from the middle of the simulation
+s.plot_grid(t=5)
+
+# These are equivalent. Time 5 is at the 10th index for this sim
+# s.plot_grid(t=10, index_given=True) 
+# s.plot_grid(grid=s.grid_results[10])
+```
+![png](2.Algorithms_files/plot_grid3.png)
+
+----
+
+The figure size can be supplied either with both dimensions, or by just
+giving the x-dimension and the y-dimension will be calculated based on 
+the grid shape. 
+
+```python
+s.plot_grid(figsize=(3, 3))  # Both dimensions
+```
+
+![png](2.Algorithms_files/plot_grid4.png)
+
+The cells look misshapen because the grid dimensions aren't square.
+
+----
+
+```python
+s.plot_grid(figxsize=3)  # Just giving the x direction
+```
+![png](2.Algorithms_files/plot_grid5.png)
+
+The y dimension is selected to fit the grid shape. 

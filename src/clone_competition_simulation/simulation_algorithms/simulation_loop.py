@@ -34,33 +34,39 @@ class SimulationLoopMixin:
         """
         if self.i > 0:
             # Not the first time it has been run
-            if self.finished:
-                print('Simulation already run')
+            if self._finished:
+                logger.warning('Simulation already run')
                 return
             elif continue_sim:
-                print('Continuing from step', self.i)
+                logger.info(f'Continuing from step {self.i}')
+                # restore the current data
+                current_data = self._current_data_checkpoint
             else:
-                print('Simulation already started but incomplete')
+                logger.warning(
+                    'Simulation already started but incomplete. ' \
+                    'Use sim.continue_sim() to continue from the last state.')
                 return
+        else:
+            # Set up the data to hold the current state of the simulation.
+            # The state of this data will be recorded at each sample point
+            current_data = self.current_data_cls.from_sim(self)
 
-        # Set up the data to hold the current state of the simulation.
-        # The state of this data will be recorded at each sample point
-        current_data = self.current_data_cls.from_sim(self)
+            # Change treatment if required (can change fitness of clones)
+            if self._check_treatment_time():
+                self._change_treatment(initial=True)
 
-        # Change treatment if required (can change fitness of clones)
-        if self._check_treatment_time():
-            self._change_treatment(initial=True)
-
-        # Add a label (similar to a lineage tracing label) if requested
-        if self._check_label_time():
-            current_data = self._add_label(current_data,
-                                           self.label_frequencies[self.label_count],
-                                           self.label_values[self.label_count],
-                                           self.label_fitness[self.label_count],
-                                           self.label_genes[self.label_count])
+            # Add a label (similar to a lineage tracing label) if requested
+            if self._check_label_time():
+                current_data = self._add_label(current_data,
+                                            self.label_frequencies[self.label_count],
+                                            self.label_values[self.label_count],
+                                            self.label_fitness[self.label_count],
+                                            self.label_genes[self.label_count])
 
         with Progress(console=console, redirect_stdout=True, redirect_stderr=True) as progress:
-            task = progress.add_task("Running simulation...", total=self.sim_length)
+            task = progress.add_task("Running simulation...", 
+                                     total=self.sim_length, 
+                                     completed=self.plot_idx)
             try:
                 while self.plot_idx < self.sim_length:
                     # Run step of the simulation
@@ -95,7 +101,7 @@ class SimulationLoopMixin:
 
         # Clean up the results arrays
         self._finish_up()
-        self.finished = True
+        self._finished = True
 
     def continue_sim(self) -> None:
         """Continue a simulation from a previous state 
@@ -103,8 +109,8 @@ class SimulationLoopMixin:
         (e.g. saved to a pickle part way through a simulation). 
         Restores the random state.
         """
-        if self.random_state is not None:
-            np.random.set_state(self.random_state)
+        if self._random_state is not None:
+            np.random.set_state(self._random_state)
         self.run_sim(continue_sim=True)
 
     def _sim_step(self, i: int, current_data: "CurrentData") -> "CurrentData":
@@ -176,24 +182,31 @@ class SimulationLoopMixin:
         """
         current_data.update_population_array(self.population_array, self.plot_idx)
         self.plot_idx += 1
-        if self.tmp_store is not None:
-            if self.store_rotation == 0:
-                self.pickle_dump(self.tmp_store)
-                self.store_rotation = 1
+        if self._tmp_store is not None:
+            if self._store_rotation == 0:
+                self.pickle_dump(self._tmp_store, current_data)
+                self._store_rotation = 1
             else:
-                self.pickle_dump(str(self.tmp_store) + '1')
-                self.store_rotation = 0
+                self.pickle_dump(str(self._tmp_store) + '1', 
+                                 current_data)
+                self._store_rotation = 0
 
-    def pickle_dump(self, filename: str) -> None:
+    def pickle_dump(self, filename: str, 
+                    current_data: "CurrentData | None"=None) -> None:
         """Stores the simulation in a pickle file. 
         
-        Stores the current random state so it can be restored when reloading. 
+        Stores the current random state so it can be restored when 
+        reloading. 
 
         Parameters
         ----------
         filename : str
             The name of the file to store the pickle in.
+        current_data : CurrentData, optional
+            Current state of the simulation
         """
-        self.random_state = np.random.get_state()
+        self._random_state = np.random.get_state()
+        if current_data is not None:
+            self._current_data_checkpoint = current_data
         with gzip.open(filename, 'wb') as f:
             pickle.dump(self, f, protocol=4)

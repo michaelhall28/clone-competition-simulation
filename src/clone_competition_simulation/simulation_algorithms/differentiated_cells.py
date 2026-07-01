@@ -243,13 +243,13 @@ class BaseSimDiffCells(BaseSimClass):
         current_data.update_diff_cell_population_array(self.diff_cell_population, self.plot_idx)
 
         self.plot_idx += 1
-        if self.tmp_store is not None:  # Store current state of the simulation.
-            if self.store_rotation == 0:
-                self.pickle_dump(self.tmp_store)
-                self.store_rotation = 1
+        if self._tmp_store is not None:  # Store current state of the simulation.
+            if self._store_rotation == 0:
+                self.pickle_dump(self._tmp_store, current_data)
+                self._store_rotation = 1
             else:
-                self.pickle_dump(self.tmp_store + '1')
-                self.store_rotation = 0
+                self.pickle_dump(self._tmp_store + '1', current_data)
+                self._store_rotation = 0
 
     def _switch_diff_cell_simulations_on_off(
             self, current_population: np.ndarray[tuple[int], np.dtype[np.int_]], 
@@ -290,10 +290,10 @@ class BaseSimDiffCells(BaseSimClass):
     def change_sparse_to_csr(self):
         """Convert lil arrays to CSR format for post-processing
         """
-        if self.is_lil:
+        if self._is_lil:
             self.population_array = self.population_array.tocsr()  
             self.diff_cell_population = self.diff_cell_population.tocsr() 
-        self.is_lil = False
+        self._is_lil = False
 
     def get_clone_size_distribution_for_non_mutation(
             self, t: float | None=None, index_given: bool=False, 
@@ -329,7 +329,7 @@ class BaseSimDiffCells(BaseSimClass):
             clone size, so the value at index 1 is the number of clones 
             of size 1, etc.
         """
-        if self.is_lil:
+        if self._is_lil:
             self.change_sparse_to_csr()
 
         if t is None:

@@ -32,6 +32,14 @@ class MockFitnessCalculator:
     @staticmethod
     def get_gene_number(gene: str) -> int:
         return 0
+    
+    def get_gene_name(self, gene_number: int) -> str | None:
+        if gene_number is None or np.isnan(gene_number):
+            return None
+        if gene_number < 0:
+            raise ValueError(
+                f"Gene number {gene_number} is invalid. Must be non-negative or None.")
+        return self.genes[int(gene_number)].name
 
 
 @dataclass()

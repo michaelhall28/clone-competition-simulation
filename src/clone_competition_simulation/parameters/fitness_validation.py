@@ -164,8 +164,12 @@ class FitnessValidator(FitnessParameters, ValidationBase):
                         # Add the wt value to the first column
                         blank_fitness_array[:, 0] = self._wt_fitness
                         # Add the initial fitness values to the appropriate columns based on the mutant gene array
+                        mutant_locs = self.initial_mutant_gene_array.copy()
+                        mutant_locs[np.isnan(mutant_locs)] = -1  # Replace nan with -1 to indicate the WT col - 1
+                        mutant_locs += 1  # Convert gene index to fitness array column index
+                        mutant_locs = mutant_locs.astype(np.int_)
                         blank_fitness_array[
-                            np.arange(len(initial_size_array)), self.initial_mutant_gene_array + 1] = self.initial_fitness_array
+                            np.arange(len(initial_size_array)), mutant_locs] = self.initial_fitness_array
 
                     self.initial_fitness_array = blank_fitness_array
                 elif self.initial_fitness_array.shape == (len(initial_size_array), len(self.fitness_calculator.genes)+1):

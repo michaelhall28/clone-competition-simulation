@@ -1,5 +1,3 @@
-from tests.conftest import fitness_calculator
-
 # Treatments 
 
 The cells in the simulations have a fitness value that determines their behaviour.   
@@ -172,7 +170,7 @@ p = Parameters(
     population=PopulationParameters(initial_size_array=[300, 300, 300]),  # Start with equal clone sizes
     fitness=FitnessParameters(
         initial_fitness_array=[1, 2, 3],  # Have to define the initial fitness values
-        initial_mutant_gene_array=[0, 1, 2],   # And define the genes mutated for each clone
+        initial_mutant_gene_array=["Gene1", "Gene2", "Gene3"],   # And define the genes mutated for each clone
         fitness_calculator=fit_calc
     )
 )
@@ -197,7 +195,7 @@ p = Parameters(
     population=PopulationParameters(initial_size_array=[300, 300, 300]),  # Start with equal clone sizes
     fitness=FitnessParameters(
         initial_fitness_array=[1, 2, 3],  # Have to define the initial fitness values
-        initial_mutant_gene_array=[0, 1, 2],   # And define the genes mutated for each clone
+        initial_mutant_gene_array=["Gene1", "Gene2", "Gene3"],   # And define the genes mutated for each clone
         fitness_calculator=fit_calc
     ), 
     treatment=TreatmentParameters(
@@ -301,7 +299,7 @@ p = Parameters(
         ],  
         treatment_replace_fitness=True   # The `treatment_effects` will replace the previous fitness
     ), 
-    plotting=PlottingParameters(plot_colour_maps=cm)
+    plotting=PlottingParameters(plot_colour_maps=cm2)
 )
 s = p.get_simulator()
 s.run_sim()

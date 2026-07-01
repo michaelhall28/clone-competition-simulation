@@ -113,8 +113,6 @@ def get_vafs_for_all_biopsies(sim: BaseHexagonalGridSim, biopsies: list[Biopsy],
         sample_num = -1
     grid = sim.grid_results[sample_num]
 
-    mutant_gene_map = {i: int(clone[sim.gene_mutated_idx]) for i, clone in enumerate(sim.clones_array)}
-
     names = []
     vafs = []
     genes = []
@@ -128,7 +126,11 @@ def get_vafs_for_all_biopsies(sim: BaseHexagonalGridSim, biopsies: list[Biopsy],
             for clone, vaf in biopsy_vafs.items():
                 names.append(i)
                 vafs.append(vaf)
-                genes.append(sim.fitness_calculator.genes[mutant_gene_map[clone]].name)
+                genes.append(
+                    sim.fitness_calculator.get_gene_name(
+                        sim.clones_array[clone, sim.gene_mutated_idx]
+                    )
+                )
                 clone_ids.append(clone)
     else:
         biopsy_vafs = get_vafs(grid, sim, None, detection_limit=detection_limit, coverage=coverage,
@@ -137,7 +139,11 @@ def get_vafs_for_all_biopsies(sim: BaseHexagonalGridSim, biopsies: list[Biopsy],
         for clone, vaf in biopsy_vafs.items():
             names.append(0)
             vafs.append(vaf)
-            genes.append(sim.fitness_calculator.genes[mutant_gene_map[clone]].name)
+            genes.append(
+                sim.fitness_calculator.get_gene_name(
+                    sim.clones_array[clone, sim.gene_mutated_idx]
+                )
+            )
             clone_ids.append(clone)
 
     df = pd.DataFrame({
@@ -379,8 +385,13 @@ def get_sample_dnds(observed_vafs: pd.DataFrame, sim: BaseHexagonalGridSim, gene
     ns = observed_vafs['clone_id'].isin(sim.ns_muts).sum()
     s = len(observed_vafs) - ns
 
+    if gene is not None:
+        gene_number = sim.fitness_calculator.get_gene_number(gene)
+    else:
+        gene_number = None
+
     expected_ns = s * (1 / sim.fitness_calculator.get_synonymous_proportion(
-        sim.fitness_calculator.get_gene_number(gene)
+        gene_number
     ) - 1)
     try:
         dnds = ns / expected_ns

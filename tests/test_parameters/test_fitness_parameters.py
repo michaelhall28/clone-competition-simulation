@@ -143,3 +143,38 @@ def test_fitness_validation_mutant_array3(empty_fitness_params, validated_time_p
         )
 
     assert 'Gene name gene2 not found' in str(exc_info)
+
+
+def test_initial_mutant_genes(empty_fitness_params, validated_time_parameters, empty_population_parameters):
+    fit_calc = FitnessCalculator(
+        genes=[
+            Gene(name='Gene1', mutation_distribution=FixedValue(1.1), synonymous_proportion=0, weight=0), 
+            Gene(name='Gene2', mutation_distribution=FixedValue(1.05), synonymous_proportion=0)
+        ],
+
+        multi_gene_array=True,
+    )
+    p = FitnessValidator(
+        algorithm="WF2D", tag="Full",
+        config_file_settings=empty_fitness_params,
+        times=validated_time_parameters,
+        population=PopulationValidator(
+            tag="Full",
+            algorithm="WF",
+            config_file_settings=empty_population_parameters,
+            initial_size_array=[10, 10, 10, 10, 10]
+        ), 
+        fitness_calculator=fit_calc,
+        initial_mutant_gene_array=[None, "Gene1", "Gene1", "Gene2", "Gene1"],
+        initial_fitness_array=[1, 1.1, 1.2, 1.3, 1.1],
+        mutation_rates=0.08, 
+    )
+
+    np.testing.assert_almost_equal(
+        p.initial_fitness_array, 
+        [[1. , np.nan, np.nan],
+         [1. , 1.1, np.nan],
+         [1. , 1.2, np.nan],
+         [1. , np.nan, 1.3],
+         [1. , 1.1, np.nan]]
+    )

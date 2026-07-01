@@ -130,7 +130,7 @@ plot_colour_maps = PlotColourMaps(
 fit_calc = FitnessCalculator(
     genes=[Gene(name="Gene1", mutation_distribution=NormalDist(0.1), synonymous_proportion=0.5)],
 )
-# Plot using the viridis colormap
+
 p = Parameters(
     algorithm='Moran',
     times=TimeParameters(max_time=10, division_rate=1), 
@@ -428,6 +428,8 @@ plt.show()
 Colouring based on the combination of genes mutated in the clone. 
 
 ```python
+from clone_competition_simulation import FixedValue
+
 # Define two genes
 fit_calc = FitnessCalculator(
     genes=[

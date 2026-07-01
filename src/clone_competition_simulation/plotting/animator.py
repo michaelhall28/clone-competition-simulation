@@ -164,14 +164,16 @@ class HexAnimator:
         self.col.set_facecolor(colours)  # Sets the colours for each polygon
 
     def _get_figsize(self) -> None:
-        """
-        Sets up the figure size for the video/plot.
-        Makes sure that there is an even number of pixels on each axis, which is needed for ffmpeg.
-        :return:
+        """Sets up the figure size for the video/plot.
+
+        Raises
+        ------
+        ValueError
+            If self.figsize and self.figxsize are both undefined
         """
         if self.figsize is None:
             if self.figxsize is not None:
-                self.figsize = self.figxsize, self.figxsize * self.y / self.x / 2
+                self.figsize = self.figxsize, self.figxsize * self.y / self.x
             else:
                 raise ValueError('Either figsize or figxsize must be defined for the animator')
 
@@ -179,7 +181,8 @@ class HexAnimator:
 
     def _adjust_figsize_for_dpi(self) -> None:
         """
-        This adjusts the dpi so that the number of pixels in each axis is even (needed for ffmpeg)
+        This adjusts the dpi so that the number of pixels in each axis 
+        is even (needed for ffmpeg)
         Increases the figsize slightly if needed.
         """
         pixx = self.figsize[0]*self.dpi
@@ -190,7 +193,8 @@ class HexAnimator:
 
     def _setup_polygons_and_frame(self) -> None:
         """
-        Makes all of the hexagons in the grid. The animation then works by changing the colours of the hexagons.
+        Makes all of the hexagons in the grid. 
+        The animation then works by changing the colours of the hexagons.
         Based on the matplotlib code for the hexbin plots.
         """
 
@@ -253,7 +257,6 @@ class HexAnimator:
         corners = ((xmin, ymin), (xmax, ymax))
         self.ax.update_datalim(corners)
         self.ax._request_autoscale_view(tight=True)
-        self.ax.set_aspect('equal')
 
         plt.margins(0, 0)
         self.ax.autoscale_view(tight=True)
@@ -527,7 +530,7 @@ class HexFitnessAnimator(HexAnimator):
         ax : Axes, optional
             Axes to plot onto, by default None and a new figure will be created
         """
-        self.x, self.y = self.sim.grid.shape
+        self.x, self.y = self.sim.grid_shape
         if ax is None:
             ax_given = False
             self._get_figsize()

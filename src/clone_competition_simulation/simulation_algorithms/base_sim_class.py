@@ -100,11 +100,12 @@ class BaseSimClass(ABC, SimulationSetupMixin, SimulationLoopMixin,
         self.sampled_clones = None  # The clones which are observed at sample points.  
 
         # A few attributes to help with the simulation running and storage
-        self.tmp_store = parameters.tmp_store
-        self.store_rotation = 0  # Alternates between two tmp stores (0, 1) in case error occurs during pickle dump.
-        self.is_lil = True  # Is the population array stored in scipy.sparse.lil_matrix (True) or numpy array (False)
-        self.finished = False
-        self.random_state = None  # For storing the state of the random sequence for continuing
+        self._tmp_store = parameters.tmp_store
+        self._store_rotation = 0  # Alternates between two tmp stores (0, 1) in case error occurs during pickle dump.
+        self._is_lil = True  # Is the population array stored in scipy.sparse.lil_matrix (True) or numpy array (False)
+        self._finished = False
+        self._random_state = None  # For storing the state of the random sequence for continuing
+        self._current_data_checkpoint: CurrentData | None = None  # For storing the current data for continuing
 
         # Setup the various initial arrays
         self._calculate_search_times()
