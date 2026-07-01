@@ -4,7 +4,41 @@ times:
   max_time: 10
   samples: 100
 population:
-  initial_cells: 100
+  initial_size_array: [100, 100]
 fitness:
-  initial_fitness_array: 1  # For initial clones. Integers be converted to a list
+  initial_fitness_array: [1, 2]
   mutation_rates: 0
+  initial_mutant_gene_array: [Gene1, Gene2]
+  fitness_calculator: 
+    genes:
+      - name: Gene1
+        mutation_distribution: 
+          cls: NormalDist
+          var: 1.1
+          mean: 1.2
+        synonymous_proportion: 0.5
+        weight: 1
+      - name: Gene2
+        mutation_distribution: 
+          cls: FixedValue
+          value: 1.1
+        synonymous_proportion: 0.8
+        weight: 2
+    combine_mutations: multiply
+    multi_gene_array: true
+    combine_array: add
+    mutation_combination_class:
+      cls: BoundedLogisticFitness
+      a: 1.2
+      b: 2.3
+    epistatics: 
+      - name: Epi1
+        gene_names: [Gene1, Gene2]
+        fitness_distribution:
+          cls: ExponentialDist
+          mean: 1.5
+          offset: 1.1
+differentiated_cells:
+  r: 0.1
+  gamma: 1.4
+  stratification_sim_proportion: 0.99

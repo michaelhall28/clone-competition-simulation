@@ -23,12 +23,14 @@ from .fitness_combination import (
 from .fitness_transformations import (
     FitnessTransform,
     UnboundedFitness,
-    BoundedLogisticFitness
+    BoundedLogisticFitness, 
+    PREDEFINED_TRANSFORMATIONS
 )
 from .fitness_distributions import (
     DistributionProtocol,
     NormalDist,
     FixedValue,
     UniformDist,
-    ExponentialDist
+    ExponentialDist, 
+    PREDEFINED_DISTRIBUTIONS
 )

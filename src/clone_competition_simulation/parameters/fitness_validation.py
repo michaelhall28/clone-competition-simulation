@@ -1,21 +1,20 @@
 from mimetypes import init
 from typing import Annotated, Literal
+
 import numpy as np
-from pydantic import (
-    ConfigDict,
-    Tag,
-    BeforeValidator
-)
-from .validation_utils import (
-    assign_config_settings,
-    ValidationBase,
-    ParameterBase,
-    FloatOrArrayParameter,
-    AlwaysValidateNoneField
-)
-from .times_validation import TimeValidator
+from pydantic import BeforeValidator, ConfigDict, Tag
+
+from ..fitness import (PREDEFINED_DISTRIBUTIONS, 
+                       PREDEFINED_TRANSFORMATIONS,
+                       DistributionProtocol,
+                       FitnessTransform,
+                       FitnessCalculator, 
+                       Gene, EpistaticEffect)
 from .population_validation import PopulationValidator
-from ..fitness import FitnessCalculator
+from .times_validation import TimeValidator
+from .validation_utils import (AlwaysValidateNoneField, FloatOrArrayParameter,
+                               ParameterBase, ValidationBase,
+                               assign_config_settings)
 
 
 class FitnessParameters(ParameterBase):
@@ -88,7 +87,7 @@ class FitnessParameters(ParameterBase):
     _field_name = "fitness"
     tag: Literal['Base'] = 'Base'
     model_config = ConfigDict(arbitrary_types_allowed=True)
-    fitness_calculator: FitnessCalculator | None = AlwaysValidateNoneField
+    fitness_calculator: FitnessCalculator | dict | None = AlwaysValidateNoneField
     mutation_rates: FloatOrArrayParameter = AlwaysValidateNoneField
     initial_fitness_array: FloatOrArrayParameter = AlwaysValidateNoneField
     initial_mutant_gene_array: str | list | None | np.ndarray[tuple[int], np.int_] = AlwaysValidateNoneField
@@ -128,7 +127,7 @@ class FitnessValidator(FitnessParameters, ValidationBase):
             self.initial_fitness_array = self._wt_fitness  # Assume all with neutral fitness if not otherwise specified
 
         if self.fitness_calculator is None:
-            self.fitness_calculator = self.config_file_settings.fitness_calculator
+            self.fitness_calculator = self._get_fitness_calculator_from_config_file()
 
         self._check_initial_mutant_gene_array()
 
@@ -188,6 +187,34 @@ class FitnessValidator(FitnessParameters, ValidationBase):
 
         self._check_mutation_rates()
 
+    def _get_fitness_calculator_from_config_file(self) -> FitnessCalculator:
+        """Read FitnessCalculator parameters from the config file
+
+        Create Gene and fitness distribution objects
+
+        Returns
+        -------
+        FitnessCalculator
+            FitnessCalculator with settings from the config file
+        """
+        fitness_settings = self.config_file_settings.fitness_calculator
+        # Replace the gene definitions with objects
+        fitness_settings['genes'] = [
+            _create_gene_obj_from_config_file(gene_dict) for 
+            gene_dict in fitness_settings['genes']
+        ]
+        fitness_settings['epistatics'] = [
+            _create_epistatic_effect_from_config_file(epistatic_dict) for 
+            epistatic_dict in fitness_settings['epistatics']
+        ]
+        fitness_settings['mutation_combination_class'] = \
+            _create_fitness_transform_from_config_file(
+                fitness_settings['mutation_combination_class']
+            )
+        return FitnessCalculator(
+            **fitness_settings
+        )
+
     def _check_initial_mutant_gene_array(self):
         """Validate and convert gene names to indices in the initial mutant array.
 
@@ -203,7 +230,10 @@ class FitnessValidator(FitnessParameters, ValidationBase):
             match the initial population size.
         """
         if self.initial_mutant_gene_array is None:
-            return  # No initial mutant genes, so nothing to check or convert
+            self.initial_mutant_gene_array = self.get_value_from_config(
+                "initial_mutant_gene_array")
+            if self.initial_mutant_gene_array is None:
+                return  # No initial mutant genes, so nothing to check or convert
 
         if self.fitness_calculator is None:
             raise ValueError('Cannot specify initial mutant gene array without a fitness calculator.')
@@ -257,3 +287,98 @@ fitness_validation_type = Annotated[
     (Annotated[FitnessParameters, Tag("Base")] | Annotated[FitnessValidator, Tag("Full")]),
     BeforeValidator(assign_config_settings)
 ]
+
+
+def _create_gene_obj_from_config_file(gene_dict: dict) -> Gene:
+    """Create a gene object from config file settings
+
+    Parameters
+    ----------
+    gene_dict : dict
+        Dictionary of gene parameters from the config file.
+
+    Returns
+    -------
+    Gene
+        A Gene object initialized with the provided parameters.
+    """
+    gene_dict['mutation_distribution'] = \
+        _create_mutation_distribution_from_config_file(
+            gene_dict['mutation_distribution']
+        )
+    gene = Gene(
+        **gene_dict
+    )
+    return gene
+
+
+def _create_epistatic_effect_from_config_file(epistatic_dict: dict) -> EpistaticEffect:
+    """Create an EpistaticEffect object from config file settings
+
+    Parameters
+    ----------
+    epistatic_dict : dict
+        Dictionary of epistatic effect parameters from the config file.
+
+    Returns
+    -------
+    EpistaticEffect
+        An EpistaticEffect object initialized with the provided parameters
+    """
+    epistatic_dict['fitness_distribution'] = \
+        _create_mutation_distribution_from_config_file(
+            epistatic_dict['fitness_distribution']
+        )
+    epistatic_effect = EpistaticEffect(
+        **epistatic_dict
+    )
+    return epistatic_effect
+
+
+def _create_mutation_distribution_from_config_file(mut_dist_dict: dict) -> DistributionProtocol:
+    """Create a DistributionProtocol object from config file settings.
+
+    Parameters
+    ----------
+    mut_dist_dict : dict
+        Dictionary of mutation distribution parameters from the config file.
+
+    Returns
+    -------
+    DistributionProtocol
+        A DistributionProtocol object initialized with the provided parameters.
+    """
+    try:
+        dist_class = PREDEFINED_DISTRIBUTIONS[mut_dist_dict['cls']]
+    except KeyError:
+        raise ValueError(f"Unknown distribution type: {mut_dist_dict['cls']}. "
+                         f"Valid types are: {list(PREDEFINED_DISTRIBUTIONS.keys())}")
+    mut_dist_dict.pop('cls')
+    return dist_class(
+        **mut_dist_dict
+    )
+
+
+def _create_fitness_transform_from_config_file(fitness_transform_dict: dict) -> FitnessTransform:
+    """Create a FitnessTransform object from config file settings
+
+    Parameters
+    ----------
+    fitness_transform_dict : dict
+        Dictionary of fitness transform parameters from the config file.
+
+    Returns
+    -------
+    FitnessTransform
+        A FitnessTransform object initialized with the provided parameters
+    """
+    try:
+        transform_class = PREDEFINED_TRANSFORMATIONS[fitness_transform_dict['cls']]
+    except KeyError:
+        raise ValueError(f"Unknown transform type: {fitness_transform_dict['cls']}. "
+                         f"Valid types are: {list(PREDEFINED_TRANSFORMATIONS.keys())}")
+    fitness_transform_dict.pop('cls')
+    return transform_class(
+        **fitness_transform_dict
+    )
+    

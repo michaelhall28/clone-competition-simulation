@@ -134,3 +134,9 @@ class UniformDist:
         return (self.high + self.low)/2
 
 
+PREDEFINED_DISTRIBUTIONS = {
+    'NormalDist': NormalDist,
+    'FixedValue': FixedValue,
+    'ExponentialDist': ExponentialDist,
+    'UniformDist': UniformDist
+}
