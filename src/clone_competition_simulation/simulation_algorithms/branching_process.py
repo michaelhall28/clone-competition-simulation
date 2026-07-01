@@ -155,7 +155,7 @@ class Branching(BaseSimClass):
         """
         if self.i > 0:
             # Not the first time it has been run
-            if self.finished:
+            if self._finished:
                 print('Simulation already run')
                 return
             elif continue_sim:
@@ -177,7 +177,7 @@ class Branching(BaseSimClass):
                 if self.population_limit is not None:
                     total_pop = self.population_array[:, -1].sum()
                     if total_pop > self.population_limit:
-                        self.finished = True
+                        self._finished = True
                         raise OverPopulationError('Ending early as population limit exceeded')
                 progress.update(task, advance=1)
 
@@ -194,7 +194,7 @@ class Branching(BaseSimClass):
                     if self.population_limit is not None:
                         total_pop = self.population_array[:, -1].sum()
                         if total_pop > self.population_limit:
-                            self.finished = True
+                            self._finished = True
                             raise OverPopulationError('Ending early as population limit exceeded')
                         
                 progress.update(task, completed=len(self.clones_array), 
@@ -202,7 +202,7 @@ class Branching(BaseSimClass):
         
         # Tidy up the results arrays.
         self._finish_up()
-        self.finished = True
+        self._finished = True
 
     def _run_for_clone(self, clone_id: int, start_time: float):
         """Simulate an individual clone.

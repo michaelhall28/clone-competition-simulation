@@ -189,7 +189,7 @@ class SimulationPlottingMixin:
         axes.Axes
             Axes with the plot
         """
-        if self.is_lil:
+        if self._is_lil:
             self.change_sparse_to_csr()
 
         # Get the colours used for the plots
@@ -693,7 +693,7 @@ class SimulationPlottingMixin:
         fps : int, optional
             Frames per second, by default 5
         """
-        if self.is_lil:
+        if self._is_lil:
             self.change_sparse_to_csr()
 
         animator = NonSpatialToGridAnimator(self, grid_size=grid_size, generations_per_frame=generations_per_frame,

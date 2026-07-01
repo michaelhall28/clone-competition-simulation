@@ -198,10 +198,10 @@ def test_view_clone_info4(monkeypatch):
 
 
 def test_change_sparse_to_csr(non_mutating_sim):
-    assert non_mutating_sim.is_lil
+    assert non_mutating_sim._is_lil
     assert isinstance(non_mutating_sim.population_array, lil_matrix)
     non_mutating_sim.change_sparse_to_csr()
-    assert not non_mutating_sim.is_lil
+    assert not non_mutating_sim._is_lil
     assert isinstance(non_mutating_sim.population_array, csr_matrix)
 
 

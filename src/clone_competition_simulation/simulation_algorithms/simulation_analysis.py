@@ -64,9 +64,9 @@ class SimulationAnalysisMixin:
 
         Required for some of the post-processing and plotting functions.
         """
-        if self.is_lil:
+        if self._is_lil:
             self.population_array = self.population_array.tocsr()
-        self.is_lil = False
+        self._is_lil = False
 
     def _convert_time_to_index(self, t: float, nearest: bool=True) -> int:
         """Converts a time to an index of a sample point
@@ -155,7 +155,7 @@ class SimulationAnalysisMixin:
         np.ndarray[tuple[int], np.dtype[np.int_]]
             Array of clone sizes
         """
-        if self.is_lil:
+        if self._is_lil:
             self.change_sparse_to_csr()
 
         if t is None:

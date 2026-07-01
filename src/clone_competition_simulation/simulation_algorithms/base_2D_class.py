@@ -289,7 +289,7 @@ class BaseHexagonalGridSim:
             in terms of the number of cells per unit due to the 
             tesselation of the hexagons. By default False.
         """
-        if self.is_lil:
+        if self._is_lil:
             self.change_sparse_to_csr()
 
         if fitness:

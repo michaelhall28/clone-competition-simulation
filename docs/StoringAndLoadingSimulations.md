@@ -52,11 +52,11 @@ plt.show()
 For very long running simulations that may be interrupted, it can be helpful to store the results at a checkpoint.  
 The simulations can then be continued from that point.  
 
-This functionality that was added when the simulations were much slower to run, but has been left in case it is still 
+This functionality was added when the simulations were much slower to run, but has been left in case it is still 
 helpful.  
 
 This will store a new file for every sample point. So best used if there is a long simulation time between sample 
-points of the storage will be a substantial part of the simulation time.  
+points or the storage will add a substantial chunk to the simulation time.  
 
 Two tmp files are used - the storage alternates between the two files.  
 This ensures that if the simulation stops due to issues with the pickle dump, there is still a backup from the 
@@ -64,39 +64,44 @@ previous checkpoint.
 
 ------ 
 Will set up a long(ish) simulation but stop it before it finishes. 
+Using a custom rule that will stop the simulation at a certain step. 
 
-```python
-import signal   # Using signal to stop the simulation after a few seconds
+```python 
+from clone_competition_simulation import pickle_load, Moran
 
-def timeout_handler(signum, frame):
-    raise TimeoutError("Function execution exceeded the timeout limit")
+class CustomBreakingSim(Moran): 
 
-signal.signal(signal.SIGALRM, timeout_handler)
+    def __init__(self, parameters, last_step):
+        super().__init__(parameters)
+        self.last_step = last_step
 
-np.random.seed(0)
+    def get_dividing_cell(self, current_data):
+        if self.i == self.last_step:  # Stop at this step
+            raise TimeoutError("Stop simulation")
+        return super().get_dividing_cell(current_data)
+        
 p = Parameters(
     algorithm='Moran',
     times=TimeParameters(
-        max_time=500,
+        max_time=100,
         division_rate=1,
-        samples=4,  # Only take a few samples so there is a large gap between
+        samples=5,  
     ),
-    population=PopulationParameters(initial_size_array=np.ones(5000)),
-    tmp_store='tmp_store.pickle.gz',  # Set the file path to the storage at checkpoints
-    progress=50000
+    population=PopulationParameters(initial_size_array=np.ones(5000)), 
+    tmp_store='tmp_store.pickle.gz'  # Set the file path to the storage at checkpoints
 )
-s = p.get_simulator()
 
-signal.alarm(5)  # Interrupt the simulation after 5 seconds
+np.random.seed(0)
 
+# Interrupt the simulation after 250,000 steps
+s = CustomBreakingSim(p, 250000) 
 s.run_sim()
 ```
-    Steps completed:
-    50000, 100000, 150000, 200000, 250000, 300000, 350000, 400000, 450000, 500000, 550000, 600000,
-    ...
-    TimeoutError: Function execution exceeded the timeout limit
+    Running simulation... ━━━━━━━━━━━━━━━━━━━━╺━━━━━━━━━━━━━━━━━━━  50% 0:00:04
+    TimeoutError: Stop simulation
 
 ------
+
 This has placed files called tmp_store.pickle.gz and tmp_store.pickle.gz1 in the current directory 
 
 ```python
@@ -108,18 +113,19 @@ s_continued1 = pickle_load('tmp_store.pickle.gz1')
 print(f'First pickle step: {s_continued.i}')
 print(f'Second pickle step: {s_continued1.i}')
 ```
-    First pickle step: 250000
-    Second pickle step: 500000
+    First pickle step: 100000
+    Second pickle step: 200000
+
 
 The second pickle is the most recent backup of the simulation.  
 We can continue where that simulation left off:
 
+
 ```python
+# First change last_step so it can complete the simulation
+s_continued1.last_step = -1 
 s_continued1.continue_sim()
 ```
-
-    Continuing from step 500000
-    Steps completed:
-    550000, 600000, 650000, 700000, 750000, 800000, 850000, 900000, 950000, 1000000, 1050000, 1100000, 1150000, 1200000, 1250000, Finished 1250000 steps
-
+    09:50:10 | INFO | Continuing from step 200000
+    Running simulation... ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00
 
