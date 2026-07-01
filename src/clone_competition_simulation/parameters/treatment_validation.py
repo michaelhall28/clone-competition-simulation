@@ -33,7 +33,8 @@ class TreatmentParameters(ParameterBase):
             should have one value per initial clone.
 
             Example:
-                treatment_effects = [0.5, 1.0, 0.8]
+                # for two initial clones
+                treatment_effects = [[0.5, 1.5], [1.0, 0.2], [0.8, 1.5]]
 
         treatment_replace_fitness:
             A boolean that controls how the treatment effect is applied to fitness.
@@ -46,9 +47,9 @@ class TreatmentParameters(ParameterBase):
                 treatment_replace_fitness = False
 
     Examples:
-        Single treatment change at time 10:
+        Single treatment change for two clones at time 10:
             treatment_timings = [10]
-            treatment_effects = [0.75]
+            treatment_effects = [[0.75, 1.5]]
             treatment_replace_fitness = False
 
         Two treatment changes with multi-gene effects:
@@ -106,6 +107,8 @@ class TreatmentValidator(TreatmentParameters, ValidationBase):
                     logger.debug('Treatment effects will be applied prior to the diminishing returns')
                 else:
                     logger.debug('Treatment effects will be applied after the diminishing returns')
+            if sum([self.treatment_timings is None, self.treatment_effects is None]) == 1:
+                raise ValueError('treatment_timings and treatment_effects must both be given or neither')
             if not isinstance(self.treatment_timings, (list, np.ndarray)) or not isinstance(self.treatment_effects,
                                                                                             (list, np.ndarray)):
                 raise ValueError('treatment_timings and treatment_effects must be lists or arrays')
