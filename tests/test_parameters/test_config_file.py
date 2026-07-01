@@ -27,12 +27,16 @@ def test_validation_from_config1():
     """
     p = Parameters(run_config_file=os.path.join(CURRENT_DIR, "test_run_config.yml"))
     assert p.algorithm == Algorithm.MORAN
-    assert p.times.division_rate == 1
-    assert p.times.max_time == 10
-    assert p.times.samples == 100
-    assert p.population.initial_cells == 200
 
-    # Check the fitness 
+    assert p.population.initial_cells == 200
+    np.testing.assert_array_equal(p.population.initial_size_array, [100, 100])
+
+    assert p.times.division_rate == 1.2
+    assert p.times.max_time == 10
+    assert p.times.samples == 5
+    np.testing.assert_array_equal(p.times.times, [0, 2, 4, 6, 8, 10])
+
+    
     np.testing.assert_array_equal(p.fitness.initial_fitness_array, 
                                   [[1., 1, np.nan], 
                                    [1., np.nan, 2]])
@@ -66,6 +70,15 @@ def test_validation_from_config1():
     assert epistatic_effect.fitness_distribution.__class__ == ExponentialDist
     assert epistatic_effect.fitness_distribution.mean == 1.5
     assert epistatic_effect.fitness_distribution.offset == 1.1
+
+
+    np.testing.assert_array_equal(p.labels.initial_label_array, [1, 2])
+    np.testing.assert_array_equal(p.labels.label_times, [3, 6])
+    np.testing.assert_array_equal(p.labels.label_frequencies, [0.04, 0.1])
+    np.testing.assert_array_equal(p.labels.label_values, [3, 4])
+    np.testing.assert_array_equal(p.labels.label_fitness, [2, 3])
+    np.testing.assert_array_equal(p.labels.label_genes, 
+                                  ["Gene1", "Gene2"])
 
 
     assert p.differentiated_cells.r == 0.1

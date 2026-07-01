@@ -1,10 +1,12 @@
 algorithm: "Moran"
 times:
-  division_rate: 1
+  division_rate: 1.2
   max_time: 10
-  samples: 100
+  samples: 5
 population:
   initial_size_array: [100, 100]
+  cell_in_own_neighbourhood: false
+  population_limit: 201
 fitness:
   initial_fitness_array: [1, 2]
   mutation_rates: 0
@@ -38,6 +40,13 @@ fitness:
           cls: ExponentialDist
           mean: 1.5
           offset: 1.1
+labels:
+  initial_label_array: [1, 2]
+  label_times: [3, 6]
+  label_frequencies: [0.04, 0.1]
+  label_values: [3, 4]
+  label_fitness: [2, 3] 
+  label_genes: [Gene1, Gene2]
 differentiated_cells:
   r: 0.1
   gamma: 1.4
