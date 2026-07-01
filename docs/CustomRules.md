@@ -77,6 +77,7 @@ This function selects the clone that will gain a cell. Same as `get_differentiat
 Here is an example where the dividing cell will always come from the non-extinct clone with the highest id, and the dying cell will always come from the non-extinct clone with the lowest id. 
 
 ```python
+import numpy as np
 from clone_competition_simulation import (
     Moran, 
     NonSpatialCurrentData, 
