@@ -144,20 +144,11 @@ class LabelValidator(LabelParameters, ValidationBase):
         elif len(self.initial_label_array) != len(initial_size_array):
             raise ValueError('Inconsistent initial_size_array and label_array. Ensure same length.')
 
-        if self.label_times is None:
-            self.label_times = self.get_value_from_config("label_times")
-
-        if self.label_frequencies is None:
-            self.label_frequencies = self.get_value_from_config("label_frequencies")
-
-        if self.label_values is None:
-            self.label_values = self.get_value_from_config("label_values")
-
-        if self.label_fitness is None:
-            self.label_fitness = self.get_value_from_config("label_fitness")
-
-        if self.label_genes is None:
-            self.label_genes = self.get_value_from_config("label_genes")
+        self.label_times = self.get_value_from_config("label_times")
+        self.label_frequencies = self.get_value_from_config("label_frequencies")
+        self.label_values = self.get_value_from_config("label_values")
+        self.label_fitness = self.get_value_from_config("label_fitness")
+        self.label_genes = self.get_value_from_config("label_genes")
 
         if self.label_times is not None:
             if self.label_frequencies is None or self.label_values is None:

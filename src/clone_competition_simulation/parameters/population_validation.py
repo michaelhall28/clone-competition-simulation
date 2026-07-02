@@ -119,6 +119,8 @@ class PopulationValidator(PopulationParameters, ValidationBase):
                 raise ValueError('Must provide initial_cells or initial_size_array')
             self._setup_initial_population_non_spatial()
 
+        self.population_limit = self.get_value_from_config("population_limit")
+
     def _setup_2D_initial_population(self):
         """Initialize and validate population arrays for 2D simulations.
 

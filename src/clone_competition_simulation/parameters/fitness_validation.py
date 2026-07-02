@@ -128,6 +128,8 @@ class FitnessValidator(FitnessParameters, ValidationBase):
 
         if self.fitness_calculator is None:
             self.fitness_calculator = self._get_fitness_calculator_from_config_file()
+        elif isinstance(self.fitness_calculator, dict):
+            self.fitness_calculator = FitnessCalculator(**self.fitness_calculator)
 
         self._check_initial_mutant_gene_array()
 
@@ -198,19 +200,26 @@ class FitnessValidator(FitnessParameters, ValidationBase):
             FitnessCalculator with settings from the config file
         """
         fitness_settings = self.config_file_settings.fitness_calculator
-        # Replace the gene definitions with objects
+        if fitness_settings is None:
+            return None
+        
+        # Replace the config definitions with objects
         fitness_settings['genes'] = [
             _create_gene_obj_from_config_file(gene_dict) for 
             gene_dict in fitness_settings['genes']
         ]
-        fitness_settings['epistatics'] = [
-            _create_epistatic_effect_from_config_file(epistatic_dict) for 
-            epistatic_dict in fitness_settings['epistatics']
-        ]
-        fitness_settings['mutation_combination_class'] = \
-            _create_fitness_transform_from_config_file(
-                fitness_settings['mutation_combination_class']
-            )
+        if 'epistatics' in fitness_settings and \
+                fitness_settings['epistatics'] is not None:
+            fitness_settings['epistatics'] = [
+                _create_epistatic_effect_from_config_file(epistatic_dict) for 
+                epistatic_dict in fitness_settings['epistatics']
+            ]
+        if 'mutation_combination_class' in fitness_settings and \
+                fitness_settings['mutation_combination_class'] is not None:
+            fitness_settings['mutation_combination_class'] = \
+                _create_fitness_transform_from_config_file(
+                    fitness_settings['mutation_combination_class']
+                )
         return FitnessCalculator(
             **fitness_settings
         )
