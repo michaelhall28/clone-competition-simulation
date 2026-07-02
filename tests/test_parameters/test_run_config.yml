@@ -1,10 +1,74 @@
 algorithm: "Moran"
 times:
-  division_rate: 1
+  division_rate: 1.2
   max_time: 10
-  samples: 100
+  samples: 5
 population:
-  initial_cells: 100
+  initial_size_array: [100, 100]
+  cell_in_own_neighbourhood: false
+  population_limit: 201
 fitness:
-  initial_fitness_array: 1  # For initial clones. Integers be converted to a list
+  initial_fitness_array: [1, 2]
   mutation_rates: 0
+  initial_mutant_gene_array: [Gene1, Gene2]
+  fitness_calculator: 
+    genes:
+      - name: Gene1
+        mutation_distribution: 
+          cls: NormalDist
+          var: 1.1
+          mean: 1.2
+        synonymous_proportion: 0.5
+        weight: 1
+      - name: Gene2
+        mutation_distribution: 
+          cls: FixedValue
+          value: 1.1
+        synonymous_proportion: 0.8
+        weight: 2
+    combine_mutations: multiply
+    multi_gene_array: true
+    combine_array: add
+    mutation_combination_class:
+      cls: BoundedLogisticFitness
+      a: 1.2
+      b: 2.3
+    epistatics: 
+      - name: Epi1
+        gene_names: [Gene1, Gene2]
+        fitness_distribution:
+          cls: ExponentialDist
+          mean: 1.5
+          offset: 1.1
+labels:
+  initial_label_array: [1, 2]
+  label_times: [3, 6]
+  label_frequencies: [0.04, 0.1]
+  label_values: [3, 4]
+  label_fitness: [2, 3] 
+  label_genes: [Gene1, Gene2]
+treatment:
+  treatment_timings: [2, 5]
+  treatment_effects: [[1, 0.5, 1.2], [1, 0.8, 0.3]]
+  treatment_replace_fitness: true
+differentiated_cells:
+  r: 0.1
+  gamma: 1.4
+  stratification_sim_proportion: 0.99
+plotting:
+  figsize: [10, 8]
+  plot_colour_maps:
+    colour_rules:
+      - rule_filter:
+          - clone_feature: label
+            value: 1
+          - clone_feature: last_mutated_gene
+            value: Gene1
+        colourmap: viridis
+      - rule_filter:
+          - clone_feature: initial
+            value: true
+        colourmap: Reds
+    all_clones_noisy: true
+    use_fitness: true
+tmp_store: tmp1.pickle

@@ -1,8 +1,9 @@
 from typing import Annotated, Literal
+import matplotlib
 
 from pydantic import BeforeValidator, ConfigDict, Tag
 
-from ..plotting import PlotColourMaps
+from ..plotting import PlotColourMaps, ColourRule
 from .validation_utils import (ParameterBase, ValidationBase,
                                assign_config_settings)
 
@@ -32,7 +33,7 @@ class PlottingParameters(ParameterBase):
     tag: Literal['Base'] = 'Base'
     model_config = ConfigDict(arbitrary_types_allowed=True)
     figsize: tuple[int, int] | None = None
-    plot_colour_maps: PlotColourMaps | None = None
+    plot_colour_maps: PlotColourMaps | dict | None = None
 
 
 class PlottingValidator(PlottingParameters, ValidationBase):
@@ -52,10 +53,50 @@ class PlottingValidator(PlottingParameters, ValidationBase):
         Initializes colour maps with a default PlotColourMaps object if
         not explicitly provided.
         """
-        self.plot_colour_maps = self.get_value_from_config("plot_colour_maps")
         if self.plot_colour_maps is None:
-            self.plot_colour_maps = PlotColourMaps()
+            self.plot_colour_maps = self._get_plot_colour_maps_from_config()
         self.figsize = self.get_value_from_config("figsize")
+
+    def _get_plot_colour_maps_from_config(self) -> PlotColourMaps:
+        """Retrieve the PlotColourMaps object from configuration.
+
+        Returns:
+            PlotColourMaps: The colour maps for plotting clones and mutations.
+        """
+        plot_colour_maps_dict = self.config_file_settings.plot_colour_maps
+        if plot_colour_maps_dict is None:
+            return PlotColourMaps()
+        
+        if 'colour_rules' in plot_colour_maps_dict:
+            colour_rules = _get_colour_rules_from_config_file(
+                plot_colour_maps_dict['colour_rules'])
+            plot_colour_maps_dict['colour_rules'] = colour_rules
+        return PlotColourMaps(**plot_colour_maps_dict)
+
+
+def _get_colour_rules_from_config_file(colour_rules_dict: list[dict]) -> list[ColourRule]:
+    """Create colour_rules objects from config file settings
+
+    Replaces the colourmap string with the MatPlotlib colourmap object.
+
+    Parameters
+    ----------
+    colour_rules_dict : dict
+        Dictionary of gene parameters from the config file.
+
+    Returns
+    -------
+    Gene
+        A Gene object initialized with the provided parameters.
+    """
+    colour_rules = []
+    for rule_dict in colour_rules_dict:
+        rule_dict['colourmap'] = getattr(matplotlib.cm, rule_dict['colourmap'])
+        rule = ColourRule(
+            **rule_dict
+        )
+        colour_rules.append(rule)
+    return colour_rules
 
 
 plotting_validation_type = Annotated[

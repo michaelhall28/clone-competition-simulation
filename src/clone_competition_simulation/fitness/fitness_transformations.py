@@ -72,3 +72,9 @@ class BoundedLogisticFitness:
 
     def inverse(self, y: T) -> T:
         return np.emath.logn(self.b, (self.c / (self.a / y - 1)))
+
+
+PREDEFINED_TRANSFORMATIONS = {
+    "UnboundedFitness": UnboundedFitness, 
+    "BoundedLogisticFitness": BoundedLogisticFitness
+}

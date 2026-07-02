@@ -140,7 +140,8 @@ def default_noise_fn() -> float:
 class PlotColourMaps:
     """Assigns the colours for plotting clones and mutations"""
 
-    def __init__(self, colour_rules: list[ColourRule] | None = None, all_clones_noisy=False, use_fitness=False, 
+    def __init__(self, colour_rules: list[ColourRule] | None = None, 
+                 all_clones_noisy=False, use_fitness=False, 
                  random_noise_fn: Callable[[], float]=default_noise_fn):
         """This establishes the rules for the colours of clones in the Muller plots, grid plots and animations of the
         simulations.
