@@ -2,6 +2,7 @@ import os
 
 import pytest
 import numpy as np
+from copy import deepcopy
 from pydantic import ValidationError
 
 from src.clone_competition_simulation.parameters import (
@@ -9,7 +10,8 @@ from src.clone_competition_simulation.parameters import (
     Algorithm, 
     FitnessParameters, 
     TimeParameters, 
-    PopulationParameters
+    PopulationParameters, 
+    DifferentiatedCellsParameters
 )
 
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -53,3 +55,62 @@ def test_validation_with_typo_2():
         
     assert "Extra inputs are not permitted" in str(exc_info)
 
+
+def test_factory_reset():
+    p = Parameters(algorithm=Algorithm.WF, 
+                   population=PopulationParameters(
+                       initial_size_array=[100, 200, 300]),
+                   times=TimeParameters(division_rate=1, max_time=10)
+                   )
+    
+    # Check that the population array is started afresh
+    np.random.seed(0)
+    sim1 = p.get_simulator()
+    sim1.run_sim()
+    assert sim1.population_array.size > 3
+
+    sim2 = p.get_simulator()
+    assert sim2.population_array.size == 3
+
+
+@pytest.mark.parametrize("alg", [
+    Algorithm.MORAN2D,Algorithm.WF2D
+])
+def test_factory_reset2(alg):
+    # Check the initial grid isn't overwritten
+    initial_grid = np.arange(16).reshape((4,4))
+    p = Parameters(algorithm=alg, 
+                   population=PopulationParameters(
+                       initial_grid=deepcopy(initial_grid), 
+                       cell_in_own_neighbourhood=True),
+                   times=TimeParameters(division_rate=1, max_time=10)
+                   )
+    np.random.seed(0)
+    sim1 = p.get_simulator()
+    sim1.run_sim()
+
+    sim2 = p.get_simulator()
+    np.testing.assert_array_equal(sim2.parameters.population.initial_grid, 
+                                  initial_grid)
+    
+
+def test_factory_reset3():
+    # Check the initial grid isn't overwritten
+    initial_grid = np.arange(16).reshape((4,4))
+    p = Parameters(algorithm=Algorithm.MORAN2D, 
+                   population=PopulationParameters(
+                       initial_grid=deepcopy(initial_grid), 
+                       cell_in_own_neighbourhood=True),
+                   times=TimeParameters(division_rate=1, max_time=10), 
+                   differentiated_cells=DifferentiatedCellsParameters(
+                       r=0.1, gamma=0.7, 
+                       stratification_sim_proportion=0.7
+                   )
+                   )
+    np.random.seed(0)
+    sim1 = p.get_simulator()
+    sim1.run_sim()
+
+    sim2 = p.get_simulator()
+    np.testing.assert_array_equal(sim2.parameters.population.initial_grid, 
+                                  initial_grid)

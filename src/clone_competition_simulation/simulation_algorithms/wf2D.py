@@ -1,10 +1,14 @@
 """
 A class to run Wright-Fisher style simulations on a 2D hexagonal grid
 """
-from .wf import WF
-from .base_2D_class import BaseHexagonalGridSim, get_neighbour_map, SpatialCurrentData
-import numpy as np
+from copy import deepcopy
 from typing import TYPE_CHECKING
+
+import numpy as np
+
+from .base_2D_class import (BaseHexagonalGridSim, SpatialCurrentData,
+                            get_neighbour_map)
+from .wf import WF
 
 if TYPE_CHECKING:
     from ..parameters import Parameters
@@ -33,7 +37,7 @@ class WF2D(BaseHexagonalGridSim, WF):
             grid_shape=self.grid_shape,
             cell_in_own_neighbourhood=parameters.population.cell_in_own_neighbourhood
         )
-        initial_grid = parameters.population.initial_grid.copy()
+        initial_grid = deepcopy(parameters.population.initial_grid)
         self.grid_results = [initial_grid]
 
     def _sim_step(self, i: int, current_data: SpatialCurrentData) -> SpatialCurrentData:
