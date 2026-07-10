@@ -1,7 +1,13 @@
 import pytest
 import matplotlib.pyplot as plt
 import numpy as np
-from src.clone_competition_simulation.parameters import Algorithm, Parameters, TimeParameters, PopulationParameters, FitnessParameters
+from src.clone_competition_simulation.parameters import (
+    Algorithm, Parameters, TimeParameters, PopulationParameters, 
+    FitnessParameters, PlottingParameters
+)
+from src.clone_competition_simulation.plotting import (
+    ColourRule, PlotColourMaps, CloneFeature, FeatureValue
+)
 
 
 @pytest.fixture()
@@ -121,3 +127,42 @@ def test_animate1(simulation):
 
 def test_animate2(simulation3):
     simulation3.animate("animation_output2.mp4", grid_size=10)
+
+
+def test_animate3(fitness_calculator):
+    np.random.seed(0)
+    rules = [
+        ColourRule(
+            rule_filter=[
+                FeatureValue(
+                    clone_feature=CloneFeature.INITIAL, 
+                    value=True
+                )
+            ], 
+            colourmap=lambda x: 'tab:blue'
+        ), 
+        ColourRule(
+            rule_filter=[
+                FeatureValue(
+                    clone_feature=CloneFeature.INITIAL, 
+                    value=False
+                )
+            ], 
+            colourmap=lambda x: 'xkcd:red'
+        )
+    ]
+
+    colourscale = PlotColourMaps(
+        colour_rules=rules
+    )
+    parameters = Parameters(
+        algorithm=Algorithm.MORAN2D,
+        times=TimeParameters(max_time=10, division_rate=1), 
+        population=PopulationParameters(initial_cells=100, cell_in_own_neighbourhood=True), 
+        fitness=FitnessParameters(fitness_calculator=fitness_calculator, mutation_rates=0.1), 
+        plotting=PlottingParameters(plot_colour_maps=colourscale)
+
+    )
+    sim = parameters.get_simulator()
+    sim.run_sim()
+    sim.animate("animation_output3.mp4")

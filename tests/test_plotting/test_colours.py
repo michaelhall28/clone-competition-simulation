@@ -1,13 +1,10 @@
-from clone_competition_simulation.plotting.plot_colours import (
-    CloneFeature, 
-    FeatureValue, 
-    ColourRule, 
-    PlotColourMaps, 
-    DEFAULT_BACKGROUND_COLOUR_RULE, 
-    DEFAULT_COLOUR_RULE
-)
-import numpy as np
 import matplotlib.cm as cm
+import pytest
+import numpy as np
+
+from clone_competition_simulation.plotting.plot_colours import (
+    DEFAULT_BACKGROUND_COLOUR_RULE, DEFAULT_COLOUR_RULE, CloneFeature,
+    ColourRule, FeatureValue, PlotColourMaps)
 
 
 def test_colour_rule():
@@ -176,6 +173,38 @@ def test_colour_scale2():
         label=0, ns=False, 
         initial=False, last_mutated_gene=None, genes_mutated={"Gene1", "Gene2"})
     assert cm4 == cm.Greens
+
+
+def test_colour_scale3():
+    colourscale = PlotColourMaps()
+    assert len(colourscale.colour_rules) == 1
+    assert colourscale.colour_rules[0] == DEFAULT_COLOUR_RULE
     
 
+@pytest.mark.parametrize(
+    "colour,expected", [
+        ('red', (1.0, 0.0, 0.0, 1.0)),
+        ('#ffbb11', (1.0, 0.7333333333333333, 0.06666666666666667, 1.0)),
+        ('tab:green', (0.17254901960784313, 0.6274509803921569, 0.17254901960784313, 1.0)),
+    ] 
+)
+def test_colour_conversion(colour, expected):
+    rules = [
+        ColourRule(
+            rule_filter=[
+            ], 
+            colourmap=lambda x: colour
+        )
+        
+    ]
 
+    colourscale = PlotColourMaps(
+        colour_rules=rules
+    )
+    output_colour = colourscale._get_colour(
+        fitness=1, label=0, ns=True, initial=True, 
+        last_mutated_gene=None, genes_mutated=set()
+    )
+    np.testing.assert_almost_equal(
+        output_colour, expected
+    )
