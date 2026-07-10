@@ -166,7 +166,7 @@ wheels = [
 
 [[package]]
 name = "clone-competition-simulation"
-version = "0.5.1"
+version = "0.5.2"
 source = { editable = "." }
 dependencies = [
     { name = "cython" },
