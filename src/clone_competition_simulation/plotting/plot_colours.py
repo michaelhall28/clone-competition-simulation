@@ -8,7 +8,7 @@ from typing import Any, Callable, Iterable, Self
 
 import matplotlib.cm as cm
 import numpy as np
-from matplotlib.colors import Normalize
+from matplotlib.colors import Normalize, to_rgba
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -225,7 +225,11 @@ class PlotColourMaps:
                 noise = 0
             value = fitness + noise
         
-        return cs(value)
+        colour = cs(value)
+        if isinstance(colour, str):
+            # If a string colour, convert to RGB. Required for animation
+            colour = to_rgba(colour)
+        return colour
     
     def _get_colourmap(self, label: float, ns: bool, 
                        initial: bool, last_mutated_gene: str | None, 
