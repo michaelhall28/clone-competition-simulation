@@ -2,14 +2,17 @@
 A class to set up the hexagonal grids and general functions that apply 
 to both the Moran2D and WF2D simulations.
 """
+from copy import deepcopy
 from dataclasses import dataclass
-from typing import Self, Callable
+from typing import Callable, Self
+
 import numpy as np
-from numpy.typing import NDArray
 from matplotlib import axes, cm
+from numpy.typing import NDArray
 from scipy.sparse import lil_matrix
+
 from ..plotting.animator import HexAnimator, HexFitnessAnimator
-from .base_sim_class import CurrentData, BaseSimClass
+from .base_sim_class import BaseSimClass, CurrentData
 
 
 @dataclass
@@ -37,7 +40,9 @@ class SpatialCurrentData(CurrentData):
         Self
             An instance of SpatialCurrentData with the grid_array defined.
         """
-        grid_array = np.ravel(sim.parameters.population.initial_grid)
+        grid_array = deepcopy(
+            np.ravel(sim.parameters.population.initial_grid)
+        )
         return cls(
             grid_array=grid_array, 
         )

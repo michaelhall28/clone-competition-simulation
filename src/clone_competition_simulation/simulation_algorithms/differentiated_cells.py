@@ -8,6 +8,7 @@ Uses Cython code (diff_cell_functions.pyx) to increase speed of the differentiat
 
 Not used or tested extensively, and not all functions will work well with these simulations.
 """
+from copy import deepcopy
 from dataclasses import dataclass
 from typing import Self, Literal
 
@@ -119,7 +120,9 @@ class DiffSpatialCurrentData(SpatialCurrentData):
             DiffSpatialCurrentData, with the initial clone population
             Starts with zero differentiated cells
         """
-        grid_array = np.ravel(sim.parameters.population.initial_grid)
+        grid_array = deepcopy(
+            np.ravel(sim.parameters.population.initial_grid)
+        )
 
         current_diff_cell_population = np.zeros(
             shape=len(sim.clones_array), dtype=np.int_)

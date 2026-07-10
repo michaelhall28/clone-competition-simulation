@@ -1,10 +1,13 @@
 """
 A class to run Moran-style simulations on a 2D hexagonal grid
 """
+from copy import deepcopy
 
 import numpy as np
+
+from .base_2D_class import (BaseHexagonalGridSim, SpatialCurrentData,
+                            get_neighbour_map)
 from .moran import Moran
-from .base_2D_class import BaseHexagonalGridSim, get_neighbour_map, SpatialCurrentData
 
 
 class Moran2D(BaseHexagonalGridSim, Moran):
@@ -17,8 +20,10 @@ class Moran2D(BaseHexagonalGridSim, Moran):
     def __init__(self, parameters):
 
         super().__init__(parameters)
-        initial_grid = parameters.population.initial_grid.copy()  # The 2D grid for the simulation.
-                                                    # Copy in case same grid used for other simulations.
+        # The 2D grid for the simulation.
+        # Copy in case same grid used for other simulations.
+        initial_grid = deepcopy(parameters.population.initial_grid)  
+                                                    
         self.grid_shape = parameters.population.grid_shape
         self.neighbour_map = get_neighbour_map(
             grid_shape=self.grid_shape,
