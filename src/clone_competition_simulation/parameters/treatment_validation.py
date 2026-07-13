@@ -121,15 +121,15 @@ class TreatmentValidator(TreatmentParameters, ValidationBase):
                 # Insert a neutral treatment at start if initial treatment is not defined.
                 if self.treatment_timings[0] != 0:
                     if self.treatment_replace_fitness:
-                        self.treatment_effects = [np.full(len(fitness_calculator.genes) + 1, np.nan)] + list(
+                        self.treatment_effects = [np.full(fitness_calculator.n_cols, np.nan)] + list(
                             self.treatment_effects)
                     else:
-                        self.treatment_effects = [np.ones(len(fitness_calculator.genes)+1)] + list(self.treatment_effects)
+                        self.treatment_effects = [np.ones(fitness_calculator.n_cols)] + list(self.treatment_effects)
                     self.treatment_timings = np.concatenate(([0], self.treatment_timings))
 
-                if any([len(t) != len(fitness_calculator.genes)+1 for t in self.treatment_effects]):
+                if any([len(t) != fitness_calculator.n_cols for t in self.treatment_effects]):
                     raise ValueError(
-                        'Each treatment effect must have the same length as the number of genes plus 1.')
+                        'Each treatment effect must have the same length as the number of genes + epistatics plus 1.')
             else:
                 # Fitness changes apply to each clone
                 if not np.array_equal(self.fitness.mutation_rates, np.array([[0, 0]])):

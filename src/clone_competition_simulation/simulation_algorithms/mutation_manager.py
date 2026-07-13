@@ -144,18 +144,15 @@ class MutationManagerMixin:
                 current_population[i] -= 1
                 self._add_labelled_clone(n, label, label_fitness, label_gene_name)
 
-        gr_z = np.where(current_population > 0)[0]  # The indices of clones alive at this point in the current pop
-        non_zero_clones = non_zero_clones[gr_z]  # Convert to the original clone numbers
-        current_population = current_population[gr_z]  # Only keep the currently alive clones in current pop
+        current_data.update(current_population=current_population,
+                            non_zero_clones=non_zero_clones)
 
         self.label_count += 1
         if len(self.label_times) > self.label_count:
             self.next_label_time = self.label_times[self.label_count]
         else:
             self.next_label_time = np.inf
-
-        current_data.update(current_population=current_population,
-                            non_zero_clones=non_zero_clones)
+        
         return current_data
 
     def _add_labelled_clone(self, parent_idx: int, label: int, 

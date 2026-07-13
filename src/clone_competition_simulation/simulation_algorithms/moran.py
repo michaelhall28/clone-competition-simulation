@@ -101,9 +101,6 @@ class Moran(BaseSimClass):
         else:
             current_population[birth_idx] += 1
         current_population[death_idx] -= 1
-        if current_population[death_idx] == 0:  # A clone has gone extinct. Remove from the current arrays
-            current_population = np.concatenate([current_population[:death_idx], current_population[death_idx + 1:]])
-            non_zero_clones = np.concatenate([non_zero_clones[:death_idx], non_zero_clones[death_idx + 1:]])
 
         current_data.update(
             current_population=current_population, 

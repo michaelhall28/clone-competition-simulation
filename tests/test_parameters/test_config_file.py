@@ -33,8 +33,8 @@ def test_validation_from_config1():
     np.testing.assert_array_equal(p.times.times, [0, 2, 4, 6, 8, 10])
 
     np.testing.assert_array_equal(p.fitness.initial_fitness_array, 
-                                  [[1., 1, np.nan], 
-                                   [1., np.nan, 2]])
+                                  [[1., 1, np.nan, np.nan], 
+                                   [1., np.nan, 2, np.nan]])
     np.testing.assert_array_equal(p.fitness.mutation_rates, [[0, 0]])
     np.testing.assert_array_equal(p.fitness.initial_mutant_gene_array, 
                                   [0, 1])
@@ -76,7 +76,7 @@ def test_validation_from_config1():
     
     np.testing.assert_array_equal(p.treatment.treatment_timings, [0, 2, 5])
     np.testing.assert_array_equal(p.treatment.treatment_effects, [
-        [np.nan, np.nan, np.nan],[1, 0.5, 1.2], [1, 0.8, 0.3]])
+        [np.nan, np.nan, np.nan, np.nan],[1, 0.5, 1.2, 1.3], [1, 0.8, 0.3, 0.9]])
     assert p.treatment.treatment_replace_fitness is True
 
     assert p.differentiated_cells.r == 0.1
@@ -136,8 +136,8 @@ def test_validation_from_config5(monkeypatch):
         assert p.times.samples == 5
         assert p.population.initial_cells == 200
         np.testing.assert_array_equal(p.fitness.initial_fitness_array, 
-                                      [[1., 1, np.nan], 
-                                       [1., np.nan, 2]])
+                                      [[1., 1, np.nan, np.nan], 
+                                       [1., np.nan, 2, np.nan]])
         np.testing.assert_array_equal(p.fitness.mutation_rates, [[0, 0]])
         del os.environ["CCS_RUN_CONFIG"]
 

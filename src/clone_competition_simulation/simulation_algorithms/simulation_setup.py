@@ -138,15 +138,11 @@ class SimulationSetupMixin:
         # For each clone, need an raw fitness array as long as the number of genes
         # Needs to be dtype=float, which is the default of np.zeros
         if self.fitness_calculator and self.fitness_calculator.multi_gene_array:
-            num_cols_genes = len(self.fitness_calculator.genes) + 1
-            if self.fitness_calculator.epistatics is not None:
-                num_cols = num_cols_genes + len(self.fitness_calculator.epistatics)
-            else:
-                num_cols = num_cols_genes
-            blank_fitness_array = np.full((self.total_clone_count, num_cols),
-                                          np.nan, dtype=float)
+            blank_fitness_array = np.full(
+                (self.total_clone_count, self.fitness_calculator.n_cols),
+                np.nan, dtype=float)
             blank_fitness_array[:, 0] = self.parameters.fitness._wt_fitness
-            blank_fitness_array[:self.initial_clones, :num_cols_genes] = input_fitness_array
+            blank_fitness_array[:self.initial_clones, :self.fitness_calculator.n_cols] = input_fitness_array
             self.raw_fitness_array = blank_fitness_array
         else:
             blank_fitness_array = np.full((self.total_clone_count, 1), self.parameters.fitness._wt_fitness,

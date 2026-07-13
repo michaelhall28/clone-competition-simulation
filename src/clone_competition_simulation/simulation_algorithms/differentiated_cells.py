@@ -69,7 +69,7 @@ class DiffNonSpatialCurrentData(NonSpatialCurrentData):
 
     def update(self, current_population: np.ndarray[tuple[int], np.dtype[np.int_]], 
                non_zero_clones: np.ndarray[tuple[int], np.dtype[np.int_]], 
-               current_diff_cell_population: np.ndarray[tuple[int], np.dtype[np.int_]]) -> None:
+               current_diff_cell_population: np.ndarray[tuple[int], np.dtype[np.int_]] | None = None) -> None:
         """Update the current data
 
         Parameters
@@ -78,10 +78,32 @@ class DiffNonSpatialCurrentData(NonSpatialCurrentData):
             New progenitor cell count for each clone
         non_zero_clones : np.ndarray[tuple[int], np.dtype[np.int_]]
             New array of ids of surviving clones
-        current_diff_cell_population : np.ndarray[tuple[int], np.dtype[np.int_]]
-            New differentiated cell count for each clone
+        current_diff_cell_population : np.ndarray[tuple[int], np.dtype[np.int_]] | None
+            New differentiated cell count for each clone, by default None. 
+            If None, will assume the current diff cell population has 
+            not changed - for use with functions shared with non-diff
+            cell algorithms that do not update diff cells. 
         """
-        super().update(current_population=current_population, non_zero_clones=non_zero_clones)
+        if current_diff_cell_population is None:
+            # Current diff cell population not changed. Use previous
+            current_diff_cell_population = self.current_diff_cell_population
+            # May need to add zeros for any new clones (e.g. labels)
+            if len(current_population) > len(current_diff_cell_population):
+                current_diff_cell_population = np.concat([
+                    current_diff_cell_population, 
+                    np.zeros(len(current_population) - len(current_diff_cell_population), 
+                             dtype=np.int_)
+                ])
+
+        full_clone_sizes = current_population + current_diff_cell_population
+
+        gr_z = np.nonzero(full_clone_sizes > 0)[0]  # The indices of clones alive at this point in the current pop
+        non_zero_clones = non_zero_clones[gr_z]  # Convert to the original clone numbers
+        current_population = current_population[gr_z]  # Only keep the currently alive clones in current pop
+        current_diff_cell_population = current_diff_cell_population[gr_z]
+
+        self.current_population = current_population
+        self.non_zero_clones = non_zero_clones
         self.current_diff_cell_population = current_diff_cell_population
 
     def update_diff_cell_population_array(
@@ -133,18 +155,22 @@ class DiffSpatialCurrentData(SpatialCurrentData):
         )
 
     def update(self, grid_array: np.ndarray[tuple[int], np.dtype[np.int_]], 
-               current_diff_cell_population: np.ndarray[tuple[int], np.dtype[np.int_]]) -> None:
+               current_diff_cell_population: np.ndarray[tuple[int], np.dtype[np.int_]] | None = None) -> None:
         """Update the current data
 
         Parameters
         ----------
         grid_array : np.ndarray[tuple[int], np.dtype[np.int_]]
-            NEw clone grid array
+            New clone grid array
         current_diff_cell_population : np.ndarray[tuple[int], np.dtype[np.int_]]
-            New differentiated cell count for each clone
+            New differentiated cell count for each clone, by default None. 
+            If None, will assume the current diff cell population has 
+            not changed - for use with functions shared with non-diff
+            cell algorithms that do not update diff cells. 
         """
         super().update(grid_array=grid_array)
-        self.current_diff_cell_population = current_diff_cell_population
+        if current_diff_cell_population is not None:
+            self.current_diff_cell_population = current_diff_cell_population
 
     @property
     def current_population(self) -> np.ndarray[tuple[int], np.dtype[np.int_]]:
@@ -251,7 +277,7 @@ class BaseSimDiffCells(BaseSimClass):
                 self.pickle_dump(self._tmp_store, current_data)
                 self._store_rotation = 1
             else:
-                self.pickle_dump(self._tmp_store + '1', current_data)
+                self.pickle_dump(str(self._tmp_store) + '1', current_data)
                 self._store_rotation = 0
 
     def _switch_diff_cell_simulations_on_off(
@@ -288,6 +314,25 @@ class BaseSimDiffCells(BaseSimClass):
         if self.sim_diff_cells:
             current_diff_population = np.zeros_like(current_population)
         return current_diff_population
+    
+    def _extend_arrays_fixed_amount(self, extension: int) -> None:
+        """Add new rows to the population and clones arrays. 
+        
+        For when labels are added.
+
+        Parameters
+        ----------
+        extension : int
+            The number of rows to add
+        """
+        # Extend the population, clones and raw fitness arrays
+        super()._extend_arrays_fixed_amount(extension=extension)
+
+        # Extend the diff cell array
+        s = self.diff_cell_population.shape[0]
+        new_pop_array = lil_matrix((s + extension, self.sim_length))
+        new_pop_array[:s] = self.diff_cell_population
+        self.diff_cell_population = new_pop_array
 
     ############ Functions for post-processing simulations ############
     def change_sparse_to_csr(self):
@@ -706,12 +751,6 @@ class MoranWithDiffCells(Moran, BaseSimDiffCells):
 
         if self.sim_diff_cells:
             current_diff_cell_population[death_idx] += 2  # Two differentiated cells created if progenitor cell 'dies'
-        full_clone_sizes = current_population + current_diff_cell_population
-
-        gr_z = np.nonzero(full_clone_sizes > 0)[0]  # The indices of clones alive at this point in the current pop
-        non_zero_clones = non_zero_clones[gr_z]  # Convert to the original clone numbers
-        current_population = current_population[gr_z]  # Only keep the currently alive clones in current pop
-        current_diff_cell_population = current_diff_cell_population[gr_z]
 
         current_data.update(
             current_population=current_population, 

@@ -100,6 +100,11 @@ class NonSpatialCurrentData(CurrentData):
         non_zero_clones : np.ndarray[tuple[int], np.dtype[np.int_]]
             New array of ids of surviving clones
         """
+        # First remove any clones that are extinct
+        gr_z = np.where(current_population > 0)[0]  # The indices of clones alive at this point in the current pop
+        non_zero_clones = non_zero_clones[gr_z]  # Convert to the original clone numbers
+        current_population = current_population[gr_z]  # Only keep the currently alive clones in current pop
+
         self.current_population = current_population
         self.non_zero_clones = non_zero_clones
 

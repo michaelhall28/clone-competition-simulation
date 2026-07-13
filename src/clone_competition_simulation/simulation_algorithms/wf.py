@@ -68,14 +68,9 @@ class WF(BaseSimClass):
 
         new_population = self.get_next_generation(current_data)
 
-        # Remove the extinct clones from the current data
-        gr_z = np.nonzero(new_population > 0)[0]  # The indices of clones alive at this point in the current pop
-        new_non_zero_clones = current_data.non_zero_clones[gr_z]  # Convert those indices to the original clone numbers
-        new_population = new_population[gr_z]  # Only keep the currently alive clones in current pop
-
         current_data.update(
             current_population=new_population, 
-            non_zero_clones=new_non_zero_clones
+            non_zero_clones=current_data.non_zero_clones
         )
         return current_data
 
