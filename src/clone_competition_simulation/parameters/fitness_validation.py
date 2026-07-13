@@ -141,7 +141,7 @@ class FitnessValidator(FitnessParameters, ValidationBase):
             # First column is the wild type/non-gene associated fitness. Can still vary if specified.
             if isinstance(self.initial_fitness_array, float):
                 # Assume all genes have the same fitness
-                fitness_array = np.full((len(initial_size_array), len(self.fitness_calculator.genes)+1),
+                fitness_array = np.full((len(initial_size_array), self.fitness_calculator.n_cols),
                                              np.nan, dtype=float)
                 fitness_array[:, 0] = self.initial_fitness_array
                 self.initial_fitness_array = fitness_array
@@ -151,7 +151,7 @@ class FitnessValidator(FitnessParameters, ValidationBase):
                     # One gene mutated for each initial clone (could be the wild type fitness that is given)
 
                     # Make blank array
-                    blank_fitness_array = np.full((len(initial_size_array), len(self.fitness_calculator.genes)+1),
+                    blank_fitness_array = np.full((len(initial_size_array), self.fitness_calculator.n_cols),
                                                   np.nan, dtype=float)
                     if self.initial_mutant_gene_array is None:
                         # No mutant genes specified, so all fitness values in the first column (wild type fitness)
@@ -173,7 +173,7 @@ class FitnessValidator(FitnessParameters, ValidationBase):
                             np.arange(len(initial_size_array)), mutant_locs] = self.initial_fitness_array
 
                     self.initial_fitness_array = blank_fitness_array
-                elif self.initial_fitness_array.shape == (len(initial_size_array), len(self.fitness_calculator.genes)+1):
+                elif self.initial_fitness_array.shape == (len(initial_size_array), self.fitness_calculator.n_cols):
                     pass  # Fully specified fitness array for each initial clone.
                 else:
                     raise ValueError("Incorrect shape of fitness_array. \

@@ -5,7 +5,8 @@ import numpy as np
 from clone_competition_simulation import (Algorithm, FitnessCalculator,
                                           FitnessParameters, Parameters,
                                           PlotColourMaps, PlottingParameters, 
-                                          Gene, FixedValue, add_fitness)
+                                          Gene, FixedValue, add_fitness, 
+                                          EpistaticEffect)
 
 DIR_PATH = os.path.dirname(os.path.realpath(__file__))
 LOCAL_CONFIG_FILE = os.path.join(DIR_PATH, "..", "..", "example_run_config.yml")
@@ -52,6 +53,13 @@ def test_config4():
                         synonymous_proportion=0.5, weight=1
                     )
                 ], 
+                epistatics=[
+                    EpistaticEffect(
+                        name='epi1', 
+                        gene_names=['Gene1', 'Gene2'], 
+                        fitness_distribution=FixedValue(0.5)
+                    )
+                ],
                 combine_mutations="add"
             )
         ), 

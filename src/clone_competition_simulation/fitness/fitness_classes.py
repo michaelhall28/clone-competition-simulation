@@ -189,6 +189,22 @@ class FitnessCalculator(BaseModel):
     def __str__(self) -> str:
         s = f"<MutGen: comb_muts={self.combine_mutations}, genes={self.genes}, fitness_class={self.mutation_combination_class}>"
         return s
+    
+    @property
+    def n_cols(self) -> int:
+        """The number of columns in the fitness array
+
+        Returns
+        -------
+        int
+            Number of columns in the array
+        """
+        if self.multi_gene_array:
+            cols = 1 + len(self.genes)
+            if self.epistatics is not None:
+                cols += len(self.epistatics)
+            return cols
+        return 1
 
     def get_new_fitnesses(self, old_fitnesses: NDArray[np.float64], old_mutation_arrays: NDArray[np.float64]) \
         -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.int64], NDArray[np.int64]]:
