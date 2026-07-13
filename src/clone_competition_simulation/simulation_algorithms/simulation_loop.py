@@ -63,7 +63,9 @@ class SimulationLoopMixin:
                                             self.label_fitness[self.label_count],
                                             self.label_genes[self.label_count])
 
-        with Progress(console=console, redirect_stdout=True, redirect_stderr=True) as progress:
+        with Progress(console=console, redirect_stdout=True, 
+                      redirect_stderr=True, 
+                      disable=self.hide_progress) as progress:
             task = progress.add_task("Running simulation...", 
                                      total=self.sim_length, 
                                      completed=self.plot_idx)

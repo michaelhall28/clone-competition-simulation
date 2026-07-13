@@ -8,7 +8,7 @@ from pydantic import (
     field_validator,
     model_validator,
     ModelWrapValidatorHandler,
-    ValidationError
+    ValidationError, 
 )
 from pydantic_settings import (
     BaseSettings,
@@ -63,6 +63,8 @@ class RunSettingsBase(BaseSettings):
         Optional custom function to determine early stopping conditions.
     tmp_store : Path | None
         Optional path for temporary storage of simulation state.
+    show_progress: bool
+        Show progress bar when running simulations, by default True
     """
     algorithm: Algorithm | None = None
     population: population_validation_type = ValidationModelField
@@ -75,6 +77,7 @@ class RunSettingsBase(BaseSettings):
 
     end_condition_function: Callable[[BaseSimClass], None] | None = None
     tmp_store: Path | None = None
+    show_progress: bool = True
 
 
 class ConfigFileSettings(BaseModel):
@@ -214,6 +217,12 @@ class Parameters(RunSettingsBase, ConfigFileSettings):
         B cell simulation configuration.
     plotting : plotting_validation_type
         Plotting settings.
+    end_condition_function : Callable | None
+        Optional custom function to determine early stopping conditions.
+    tmp_store : Path | None
+        Optional path for temporary storage of simulation state.
+    show_progress: bool
+        Show progress bar when running simulations, by default True
     non_zero_calc : bool
         Read-only property. True if algorithm uses full population for calculations.
     """
@@ -248,16 +257,17 @@ class Parameters(RunSettingsBase, ConfigFileSettings):
             model = handler(data)
             # Get any values from the config file that aren't in the nested models
             for field, field_info in cls.model_fields.items():
-                if field == "run_config_file":  # Not in the config file
+                if field in ["run_config_file", "config_file_settings"]:  # Not in the config file
                     continue
                 if field_info.json_schema_extra and field_info.json_schema_extra.get("config_validation") is not None:
                     # One of the sub-models. The parameters from the config file are dealt with in those models
                     continue
-                if getattr(model, field) is not None:
+                if field in model.model_fields_set:
                     # The fields is already defined by a value in the init
                     continue
                 # If we got here, then we want to grab the value from the config file (if there is one)
-                setattr(model, field, getattr(model.config_file_settings, field))
+                if (config_value := getattr(model.config_file_settings, field)) is not None:
+                    setattr(model, field, config_value)
             return model
         except ValidationError as e:
             clean_errors = []
@@ -287,7 +297,6 @@ class Parameters(RunSettingsBase, ConfigFileSettings):
                 clean_errors.append(error)
 
             raise ValidationError.from_exception_data(title=cls.__name__, line_errors=clean_errors)
-
 
     @property
     def non_zero_calc(self):

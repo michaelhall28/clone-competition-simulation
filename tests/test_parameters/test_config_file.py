@@ -98,17 +98,20 @@ def test_validation_from_config1():
     assert rule2.colourmap == cm.Reds
 
     assert p.tmp_store == Path("tmp1.pickle")
+    assert p.show_progress is False
 
 
 def test_validation_from_config2():
     p = Parameters(run_config_file=os.path.join(CURRENT_DIR, "test_run_config.yml"),
-                   algorithm=Algorithm.BRANCHING, population={'initial_size_array': [10, 10]})
+                   algorithm=Algorithm.BRANCHING, population={'initial_size_array': [10, 10]},
+                   show_progress=True)
     assert p.algorithm == Algorithm.BRANCHING
     assert p.times.division_rate == 1.2
     assert p.times.max_time == 10
     assert p.times.samples == 5
     assert p.population.initial_cells == 20
     assert p.population.population_limit == 201
+    assert p.show_progress is True
 
 
 def test_validation_from_config3():

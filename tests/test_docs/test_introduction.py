@@ -24,6 +24,8 @@ def test_introduction_example():
             initial_fitness_array=[1, 1.02, 1.04]    # Each clone has a different fitness value
         )
     )
+    
+    assert p.show_progress is True
 
     sim = p.get_simulator()
     sim.run_sim()
@@ -59,3 +61,26 @@ def test_introduction_example():
     sim.plot_average_fitness_over_time()
 
     
+def test_introduction_example2():
+    from rich.progress import track
+
+    p = Parameters(
+        algorithm='Moran', 
+        times=TimeParameters(
+            max_time=25,
+            division_rate=1.4 
+        ), 
+        population=PopulationParameters( 
+            initial_size_array=[100, 100, 100] 
+        ),
+        fitness=FitnessParameters( 
+            initial_fitness_array=[1, 1.02, 1.04]   
+        ), 
+        show_progress=False  # Set this to hide the progress bar
+    )
+
+    # Tracking the progress of the entire set of simulations
+    for i in track(range(5), description="Running simulations..."):
+        np.random.seed(i)
+        s = p.get_simulator()
+        s.run_sim()
