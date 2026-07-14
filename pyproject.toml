@@ -1,6 +1,6 @@
 [project]
 name = "clone-competition-simulation"
-version = "0.5.2"
+version = "0.6.0"
 description = "Python simulations of clone competition during ongoing mutagenesis."
 authors = [
     {name="Michael Hall", email="mh28@sanger.ac.uk"}

@@ -223,4 +223,51 @@ plt.show()
 ```
 
 ![png](1.Introduction_files/1.Introduction_18_0.png)
-    
+
+
+## Hiding the progress bar
+
+If you are running multple simulations in one go the output can 
+get messy - one progress bar will be shown for each simulation. 
+
+```python
+for i in range(5):
+    np.random.seed(i)
+    s = p.get_simulator()
+    s.run_sim()
+```
+    Running simulation... ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00  
+    Running simulation... ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00  
+    Running simulation... ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00  
+    Running simulation... ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00  
+    Running simulation... ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00  
+
+You can hide the progress bars with `show_progess=False`. 
+
+Here the progress bars for the individual simulations are hidden. 
+```python
+from rich.progress import track
+
+p = Parameters(
+    algorithm='Moran', 
+    times=TimeParameters(
+        max_time=25,
+        division_rate=1.4 
+    ), 
+    population=PopulationParameters( 
+        initial_size_array=[100, 100, 100] 
+    ),
+    fitness=FitnessParameters( 
+        initial_fitness_array=[1, 1.02, 1.04]   
+    ), 
+    show_progress=False  # Set this to hide the progress bar
+)
+
+# Tracking the progress of the entire set of simulations
+for i in track(range(100), description="Running 100 simulations..."):
+    np.random.seed(i)
+    s = p.get_simulator()
+    s.run_sim()
+```
+
+    Running 100 simulations... ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:08  
