@@ -26,10 +26,12 @@ def test_validation_failure1():
 
 def test_validation_no_config():
     p = Parameters(algorithm=Algorithm.BRANCHING, population={'initial_cells': 100},
-                   times={"division_rate": 1, "max_time": 10})
+                   times={"division_rate": 1, "max_time": 10}, 
+                   show_progress=False)
     assert p.algorithm == Algorithm.BRANCHING
     assert p.times.division_rate == 1
     assert p.times.max_time == 10
+    assert p.show_progress is False
 
 
 def test_validation_with_typo_1():

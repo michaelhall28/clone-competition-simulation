@@ -72,3 +72,4 @@ plotting:
     all_clones_noisy: true
     use_fitness: true
 tmp_store: tmp1.pickle
+show_progress: false
