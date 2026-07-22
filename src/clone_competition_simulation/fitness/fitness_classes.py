@@ -8,6 +8,7 @@ from typing import Self, Callable
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from loguru import logger
 from numpy.typing import NDArray
 from pydantic import BaseModel, field_validator, ConfigDict, Field, model_validator
@@ -73,16 +74,85 @@ class EpistaticEffect(BaseModel):
     ----------
     name : str
         Name of the epistatic interaction.
-    gene_names : list[str]
+    gene_names : set[str]
         Genes participating in the interaction.
     fitness_distribution : DistributionProtocol
         Distribution for the epistatic fitness effect.
     """
     model_config = ConfigDict(arbitrary_types_allowed=True)
     name: str
-    gene_names: list[str]
+    gene_names: set[str]
     fitness_distribution: DistributionProtocol
 
+    @field_validator('gene_names')
+    @classmethod
+    def validate_gene_names(cls, v):
+        if len(v) <= 1:
+            raise ValueError(
+                "Must have at least two genes in an epistatic effect"
+            )
+        return v
+
+
+class EpistaticEffectInfo(EpistaticEffect):
+    """Extending the EpistaticEffect with information about related 
+    genes and EpistaticEffects. 
+
+    Parameters
+    ----------
+    index: int
+        The index of this effect in the epistatics list
+    full_col_idx: int
+        The index of this effect in the full fitness array including WT
+        and genes
+    gene_columns: tuple[int]
+        Columns in the fitness array for the genes
+    subsets: list[int]
+        Indices of genes and epistatic effects which have their fitness
+        values superseded by this effect. Index including genes, i.e 
+        first gene = 1
+    subset_epistatics: list[int]
+        Indices of any epistatic effects superseded by this one. Index 
+        of just epistatic effects. First epistatic effect = 0.
+    """
+    index: int
+    full_col_idx: int
+    gene_columns: tuple[int, ...]
+    subset_cols: list[int]
+    superset_epistatics: list[int] = Field(default_factory=list)
+
+    @classmethod
+    def from_effect(cls, index: int, 
+                    epistatic_effect: EpistaticEffect, 
+                    fitness_calculator: "FitnessCalculator") -> Self:
+        
+        # Add one to the gene number to get the column index
+        gene_columns = tuple(
+            fitness_calculator.get_gene_number(e) + 1
+            for e in epistatic_effect.gene_names
+        )
+        subset_cols = list(gene_columns)
+        return cls(
+            full_col_idx=fitness_calculator._num_genes + index + 1,
+            index=index,
+            gene_columns=gene_columns,
+            subset_cols=subset_cols,
+            **epistatic_effect.model_dump()
+        )
+    
+    def register_if_superset(self, ee: "EpistaticEffectInfo"):
+        """Add the index of an epistatic effect if it is a superset of this one
+
+        Also add the column of this effect to the subsets of the input ee
+
+        Parameters
+        ----------
+        ee : EpistaticEffectInfo
+            Other epistatic effect to compare to. 
+        """
+        if (self.index != ee.index) and ee.gene_names.issuperset(self.gene_names):
+            self.superset_epistatics.append(ee.index)
+            ee.subset_cols.append(self.full_col_idx)
 
 
 ##################
@@ -122,14 +192,14 @@ class FitnessCalculator(BaseModel):
     epistatics: list[EpistaticEffect] | None = None
 
     # attributes used internally
-    num_genes: int | None = None
-    gene_indices: dict[str, int] | None = None
-    mutation_distributions: list[DistributionProtocol] | None = None
-    synonymous_proportion: NDArray[np.float64] | None = None
-    overall_synonymous_proportion: float | None = None
-    relative_weights_cumsum: NDArray[np.float64] | None = None
-    epistatics_dict: dict[tuple[int, ...], EpistaticEffect] | None = None
-    epistatic_cols: NDArray[np.int64] | None = None
+    _num_genes: int | None = None
+    _gene_indices: dict[str, int] | None = None
+    _mutation_distributions: list[DistributionProtocol] | None = None
+    _synonymous_proportions: NDArray[np.float64] | None = None
+    _overall_synonymous_proportion: float | None = None
+    _relative_weights_cumsum: NDArray[np.float64] | None = None
+    _epistatics_info: list[EpistaticEffectInfo] | None = None
+    _epistatic_cols: NDArray[np.int64] | None = None
 
     @field_validator("combine_mutations", mode="before")
     @classmethod
@@ -164,27 +234,68 @@ class FitnessCalculator(BaseModel):
         This method computes derived fields such as gene indices, distribution lists,
         synonymous proportions, and epistatic index lookups.
         """
-        self.num_genes = len(self.genes)
-        self.gene_indices = {g.name: i for i, g in enumerate(self.genes)}
-        self.mutation_distributions = [g.mutation_distribution for g in self.genes]
+        self._num_genes = len(self.genes)
+        self._gene_indices = {g.name: i for i, g in enumerate(self.genes)}
+        self._mutation_distributions = [g.mutation_distribution for g in self.genes]
         gene_weights = np.array([g.weight for g in self.genes])
-        self.synonymous_proportion = np.array([g.synonymous_proportion for g in self.genes])
-        self.overall_synonymous_proportion = np.array(
+        self._synonymous_proportions = np.array([g.synonymous_proportion for g in self.genes])
+        self._overall_synonymous_proportion = np.array(
             [g.synonymous_proportion * g.weight for g in self.genes]).sum() / gene_weights.sum()
 
         relative_weights = gene_weights / gene_weights.sum()
-        self.relative_weights_cumsum = relative_weights.cumsum()
+        self._relative_weights_cumsum = relative_weights.cumsum()
         if self.epistatics is not None:
             if not self.multi_gene_array:
                 logger.debug('Using multi_gene_array because there are epistatic relationships')
                 self.multi_gene_array = True
             # Add the names to the gene list
-            self.gene_indices.update({e.name: j+self.num_genes for j, e in enumerate(self.epistatics)})
-            # Convert to the gene indices
-            self.epistatics_dict = {tuple([self.get_gene_number(ee) for ee in e.gene_names]): e for e in self.epistatics}
-            self.epistatic_cols = np.arange(len(self.genes) + 1, len(self.genes) + len(self.epistatics) + 1)
+            self._gene_indices.update({e.name: j+self._num_genes for j, e in enumerate(self.epistatics)})
+
+            # Process the epistatic effects
+            self._process_epistatic_effects()
+            self._epistatic_cols = np.arange(len(self.genes) + 1, len(self.genes) + len(self.epistatics) + 1)
 
         return self
+    
+    def _process_epistatic_effects(self) ->  dict[tuple[int, ...], EpistaticEffect]:
+        """Find included genes and epistatic effects for each epistatic
+
+        Epistatic effects for larger gene sets will replace the effect
+        for any subsets. 
+        E.g. effect for Gene1 + Gene2 will be replaced by the effect
+        for Gene1 + Gene2 + Gene3. 
+        """
+        if not self.multi_gene_array:
+            logger.debug('Using multi_gene_array because there are epistatic relationships')
+            self.multi_gene_array = True
+        
+        # Add the names to the gene list
+        self._gene_indices.update({e.name: j+self._num_genes for j, e in enumerate(self.epistatics)})
+        self._epistatic_cols = np.arange(len(self.genes) + 1, len(self.genes) + len(self.epistatics) + 1)
+        
+        self._order_epistatic_effects()
+
+    def _order_epistatic_effects(self) -> list[EpistaticEffectInfo]:
+        # Create the information about each epistatic specific to this 
+        # FitnessCalculator
+        epistatic_info = [
+            EpistaticEffectInfo.from_effect(
+                index=i, 
+                epistatic_effect=e, 
+                fitness_calculator=self)
+            for i, e in enumerate(self.epistatics)
+        ]
+        # Sort by number of genes involved.
+        # This will make sure epistatics with larger sets of genes 
+        # are applied before/instead of subsets of those genes
+        epistatic_info.sort(key=lambda x: -len(x.gene_names))
+
+        # Find any subsets
+        for e in epistatic_info:
+            for ee in epistatic_info:
+                e.register_if_superset(ee)
+
+        self._epistatics_info = epistatic_info
 
     def __str__(self) -> str:
         s = f"<MutGen: comb_muts={self.combine_mutations}, genes={self.genes}, fitness_class={self.mutation_combination_class}>"
@@ -246,7 +357,7 @@ class FitnessCalculator(BaseModel):
         NDArray
             Binary array where 1 indicates a synonymous mutation.
         """
-        return np.random.binomial(1, self.synonymous_proportion[mut_types])
+        return np.random.binomial(1, self._synonymous_proportions[mut_types])
 
     def _get_genes(self, num: int) -> NDArray[np.int64]:
         """Select gene indices for new mutations.
@@ -262,7 +373,7 @@ class FitnessCalculator(BaseModel):
             Indices of selected genes for each clone.
         """
         r = np.random.rand(num, 1)
-        k = (self.relative_weights_cumsum < r).sum(axis=1)
+        k = (self._relative_weights_cumsum < r).sum(axis=1)
         return k
 
     def _update_fitness_arrays(self, old_mutation_arrays: NDArray[np.float64],
@@ -287,7 +398,7 @@ class FitnessCalculator(BaseModel):
         """
         # Only have to update the cells in which non-synonymous mutations occur
         non_syns = np.where(1 - syns)
-        new_mutation_fitnesses_non_syn = [self.mutation_distributions[g]() for g in
+        new_mutation_fitnesses_non_syn = [self._mutation_distributions[g]() for g in
                                           genes_mutated[non_syns]]  # The fitness of the new mutation alone
         if self.multi_gene_array:
             array_idx = genes_mutated[non_syns] + 1  # +1 for the wild type column
@@ -349,21 +460,35 @@ class FitnessCalculator(BaseModel):
             has individual gene contributions blanked where the epistatic effect applies.
         """
 
-        raw_gene_arr = fitness_arrays[:, :self.epistatic_cols[0]]
+        raw_gene_arr = fitness_arrays[:, :self._epistatic_cols[0]]
         non_nan = ~np.isnan(raw_gene_arr)
 
-        epi_rows = fitness_arrays[:, self.epistatic_cols]
+        epi_rows = fitness_arrays[:, self._epistatic_cols]
         not_already_epi_rows = np.isnan(epi_rows)
         row_positions_to_blank = []
         col_positions_to_blank = []
-        for i, (epi_genes, epi) in enumerate(self.epistatics_dict.items()):
-            matching_rows = np.all(non_nan[:, tuple([g+1 for g in epi_genes])], axis=1)  # +1 because of the WT column
-            new_matching_rows = matching_rows * not_already_epi_rows[:, i]
-            new_draws = [epi.fitness_distribution() for j in new_matching_rows if j]
-            epi_rows[new_matching_rows, i] = new_draws
-            for g in epi_genes:
+        for epistatic_effect in self._epistatics_info:
+            # Find all rows where this epistatic effect applies
+            matching_rows = np.all(
+                non_nan[:, epistatic_effect.gene_columns], axis=1) 
+            # Exclude rows it has already been applied to
+            new_matching_rows = matching_rows * not_already_epi_rows[:, epistatic_effect.index]
+
+            # Exclude any rows that already have a superseding effect applied
+            for i in epistatic_effect.superset_epistatics:
+                new_matching_rows *= not_already_epi_rows[:, i]
+            
+            # Draw new values for the epistatic effect and add to the epistatic fitness array
+            new_draws = [epistatic_effect.fitness_distribution() for j in new_matching_rows if j]
+            epi_rows[new_matching_rows, epistatic_effect.index] = new_draws
+
+            for col in epistatic_effect.subset_cols:
                 row_positions_to_blank.extend(np.where(matching_rows)[0])
-                col_positions_to_blank.extend([g + 1] * matching_rows.sum())
+                col_positions_to_blank.extend([col] * matching_rows.sum())
+
+            # Update the positions that don't have epistatic effects applied
+            not_already_epi_rows = np.isnan(epi_rows)
+
 
         fitness_array = np.concatenate([raw_gene_arr, epi_rows], axis=1)
         epistatic_fitness_array = fitness_array.copy()
@@ -419,9 +544,9 @@ class FitnessCalculator(BaseModel):
         ValueError
             If the gene name is not found.
         """
-        if gene_name not in self.gene_indices:
+        if gene_name not in self._gene_indices:
             raise ValueError(f"Gene name {gene_name} not found")
-        return self.gene_indices[gene_name]
+        return self._gene_indices[gene_name]
 
     def get_gene_name(self, gene_number: int | float | None) -> str | None:
         """Convert a gene index to a gene name.
@@ -461,11 +586,11 @@ class FitnessCalculator(BaseModel):
             Synonymous mutation proportion for the requested gene or overall average.
         """
         if gene_num is None:
-            return self.overall_synonymous_proportion
+            return self._overall_synonymous_proportion
         else:
-            return self.synonymous_proportion[gene_num]
+            return self._synonymous_proportions[gene_num]
 
-    def plot_fitness_combinations(self):
+    def plot_fitness_combinations(self) -> pd.Series:
         """Plot fitness outcomes for all combinations of gene mutations.
 
         This function visualizes the average clone fitness for every possible
@@ -477,7 +602,7 @@ class FitnessCalculator(BaseModel):
         NDArray[np.float64]
             Computed fitness values for all mutation combinations.
         """
-        if not self.multi_gene_array and self.combine_mutations == MutationCombination.REPLACE:
+        if not self.multi_gene_array and self.combine_mutations == GENE_COMBINATION_FUNCTIONS['replace']:
             # No combinations here. Just need to plot individual genes
             logger.info('No combinations defined. Only most recent non-silent mutation defines fitness')
             xticklabels = ['Background']
@@ -488,6 +613,9 @@ class FitnessCalculator(BaseModel):
             plt.bar(range(len(fitness_values)), fitness_values)
             plt.ylabel('Fitness')
             plt.xticks(range(len(fitness_values)), xticklabels, rotation=90)
+            fitness_values = pd.Series(
+                fitness_values, index=xticklabels
+            )
             return fitness_values
         else:
             # Make a fitness array with all possible combinations of genes
@@ -507,7 +635,7 @@ class FitnessCalculator(BaseModel):
                 for j, b in enumerate(binary_string):
                     if b == '1':
                         # Mutate the gene
-                        gene_fitness = self.mutation_distributions[j].get_mean()
+                        gene_fitness = self._mutation_distributions[j].get_mean()
                         fitness_array[i, j + 1] = gene_fitness
                         tick_label.append(self.genes[j].name)
                 if i > 0:
@@ -522,4 +650,7 @@ class FitnessCalculator(BaseModel):
             plt.ylabel('Fitness')
             plt.xticks(range(fitness_array.shape[0]), xticklabels, rotation=90)
 
+            new_fitnesses = pd.Series(
+                new_fitnesses, index=xticklabels
+            )
             return new_fitnesses

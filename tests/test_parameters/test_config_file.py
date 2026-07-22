@@ -61,7 +61,7 @@ def test_validation_from_config1():
     assert gene2.weight == 2
     assert len(fitness_calculator.epistatics) == 1
     epistatic_effect = fitness_calculator.epistatics[0]
-    assert epistatic_effect.gene_names == ['Gene1', 'Gene2']
+    assert epistatic_effect.gene_names == {'Gene1', 'Gene2'}
     assert epistatic_effect.fitness_distribution.__class__ == ExponentialDist
     assert epistatic_effect.fitness_distribution.mean == 1.5
     assert epistatic_effect.fitness_distribution.offset == 1.1
