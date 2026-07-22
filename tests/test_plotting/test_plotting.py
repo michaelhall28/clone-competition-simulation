@@ -8,6 +8,9 @@ from src.clone_competition_simulation.parameters import (
 from src.clone_competition_simulation.plotting import (
     ColourRule, PlotColourMaps, CloneFeature, FeatureValue
 )
+from src.clone_competition_simulation.fitness import (
+    FitnessCalculator, Gene, EpistaticEffect, FixedValue
+)
 
 
 @pytest.fixture()
@@ -166,3 +169,31 @@ def test_animate3(fitness_calculator):
     sim = parameters.get_simulator()
     sim.run_sim()
     sim.animate("animation_output3.mp4")
+
+
+def test_plot_grid():
+    fitness_calculator = FitnessCalculator(
+        genes=[
+            Gene(name='1', mutation_distribution=FixedValue(1), synonymous_proportion=0), 
+            Gene(name='2', mutation_distribution=FixedValue(1), synonymous_proportion=0), 
+        ], 
+        epistatics=[
+            EpistaticEffect(
+                name='E1', 
+                gene_names={'1', '2'},
+                fitness_distribution=FixedValue(2), 
+                )
+        ]
+    )
+    parameters = Parameters(
+        algorithm=Algorithm.MORAN2D,
+        times=TimeParameters(max_time=10, division_rate=1), 
+        population=PopulationParameters(initial_cells=100, cell_in_own_neighbourhood=True), 
+        fitness=FitnessParameters(
+            fitness_calculator=fitness_calculator, 
+            mutation_rates=0.1, 
+        ), 
+    )
+    sim = parameters.get_simulator()
+    sim.run_sim()
+    sim.plot_grid()
