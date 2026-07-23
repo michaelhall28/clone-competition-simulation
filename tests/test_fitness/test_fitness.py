@@ -549,7 +549,6 @@ def test_epistatic_combinations4():
 
     assert fitness_combinations.equals(
         pd.Series(expected_values, index=expected_index
-
         )
     )
 
