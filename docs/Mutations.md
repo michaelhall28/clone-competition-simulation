@@ -13,7 +13,7 @@ This last point is can get pretty complicated and is covered in more detail in l
 
 This guide describes the basics of using mutations in simulations. 
 
-# Setting the mutation rate
+## Setting the mutation rate
 
 If mutation_rates is left undefined or set to zero, no mutations occur
 
@@ -113,7 +113,7 @@ Can see the higher density of mutations between times 1 and 4.
     
 
 
-# Controlling the mutation effects
+## Controlling the mutation effects
 
 The fitness effects of mutations are defined in two classes: Gene and FitnessCalculator.  
 

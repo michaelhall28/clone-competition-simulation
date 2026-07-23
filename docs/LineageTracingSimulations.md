@@ -10,7 +10,7 @@ These include plotting functions to produce the various hallmarks of neutral com
 
 This guide also explains labelling in the simulations.  
 
-# Neutral competition
+## Neutral competition
 
 We start by demonstrating a neutral lineage tracing simulation in a Moran model.   
 Later we'll compare the results with the other algorithms.   
@@ -171,7 +171,7 @@ plt.show()
 ![png](6.LineageTracingSimulations_files/6.LineageTracingSimulations_17_1.png)
 
 
-# Non-neutral simulations
+## Non-neutral simulations
 
 In this case, some of the clones have a higher fitness.  
 In all algorithms except "Branching", if all clones are given the same high fitness, then they will be competing 
@@ -225,7 +225,7 @@ plt.show()
 ![png](6.LineageTracingSimulations_files/6.LineageTracingSimulations_21_1.png)
 
 
-# Labelling
+## Labelling
 
 This is useful for tracking descendants of the labelled cells.  
 They act like neutral mutations (or like GFP/YFP labelling in lineage tracing experiments).   
