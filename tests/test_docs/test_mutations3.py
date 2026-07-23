@@ -329,3 +329,56 @@ def test_mutations13():
     s.run_sim()
 
     s.view_clone_info(include_raw_fitness=True)[-10:]
+
+
+
+def test_mutations14():
+
+    genes = [
+        Gene(name="Gene1", mutation_distribution=FixedValue(1), synonymous_proportion=0),
+        Gene(name="Gene2", mutation_distribution=FixedValue(1), synonymous_proportion=0),
+        Gene(name="Gene3", mutation_distribution=FixedValue(1), synonymous_proportion=0),
+        Gene(name="Gene4", mutation_distribution=FixedValue(1), synonymous_proportion=0),
+    ]
+    epistatic_effects = [
+        EpistaticEffect(
+            name="1+2", 
+            gene_names=["Gene1", "Gene2"], 
+            fitness_distribution=FixedValue(2)
+        ), 
+        EpistaticEffect(
+            name="1+2+3", 
+            gene_names=["Gene1", "Gene2", "Gene3"],
+            fitness_distribution=FixedValue(3)
+        ),
+        EpistaticEffect(
+            name="1+4", 
+            gene_names=["Gene1", "Gene4"], 
+            fitness_distribution=FixedValue(4)
+        )
+    ]
+
+    fit_calc = FitnessCalculator(
+        genes=genes,
+        epistatics=epistatic_effects,
+        combine_mutations=multiply_fitness
+    )
+
+    fitness_arrays = np.array([
+        [1, 1, 1, np.nan, np.nan, np.nan, np.nan, np.nan], # First
+        [1, 1, 1, 1     , np.nan, np.nan, np.nan, np.nan], # Second
+        [1, 1, 1, 1     , 1     , np.nan, np.nan, np.nan], # Second and third
+    ])
+    new_fitness_array, full_fitness_arrays = fit_calc.combine_vectors(fitness_arrays)
+    np.testing.assert_almost_equal(
+        full_fitness_arrays,
+        np.array([
+            [1, 1, 1, np.nan, np.nan, 2,     np.nan, np.nan], # First
+            [1, 1, 1, 1     , np.nan, np.nan,     3, np.nan], # Second
+            [1, 1, 1, 1     , 1     , np.nan,     3,      4], # Second and third
+        ])
+    )
+    np.testing.assert_almost_equal(
+        new_fitness_array,
+        np.array([2, 3, 12])
+    )

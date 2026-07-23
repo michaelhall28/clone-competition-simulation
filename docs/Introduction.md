@@ -4,7 +4,7 @@ This guide explains the basics of running simulations and plotting the results.
 See the subsequent guides for more in-depth guides to the various options available.  
 
 
-# Setting up and running simulations
+## Setting up and running simulations
 
 The Parameters class is used to define all aspects of the simulation to be run.  
 
@@ -88,7 +88,7 @@ print(np.all(sim3.population_array.toarray() == sim4.population_array.toarray())
 ```
     True
 
-# Viewing simulation results
+## Viewing simulation results
 
 The simulation has now been run, and we can look at some of the simulation results. This is just a few quick examples.     
 The particular functions appropriate for extracting and plotting the results will depend on the setup of the simulations, in particular whether new mutations occur during the simulations or whether they all mutations/clones in the simulation exist from the start.   

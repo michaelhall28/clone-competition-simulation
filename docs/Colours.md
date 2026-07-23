@@ -588,7 +588,7 @@ plt.show()
 
 ![png](12.Colours_files/multiple_rules.png)
 
-# Changing colours
+## Changing colours
 
 If you change your mind about the colours or forget to define the colours when setting up the Parameters, you can change them after the simulation has run.  
 

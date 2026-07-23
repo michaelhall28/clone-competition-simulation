@@ -724,7 +724,9 @@ You can also write your own function. It should take a 2D NumPy array and return
 The combination of mutations in different genes may be more complex than simply addition or multiplication.   
 Defining epistatic effects allows more control of the combinations of fitness.  
 
-For example, this can be used for haplosufficient or haploinsufficient genes by defining a separate Gene object for each allele and an epistatic effect for when both alleles are mutated.  
+For example, this can be used for haplosufficient or haploinsufficient genes by 
+defining a separate Gene object for each allele and an epistatic effect 
+for when both alleles are mutated.  
 
 
 ```python
@@ -880,6 +882,39 @@ print(s.view_clone_info(include_raw_fitness=True))
 
 Note that for the last three clones, their fitness is 3 because both genes are mutated. 
 
+------
+
+Epistatic effects override other epistatic effects when they include the same genes plus additional ones.
+
+For example, say we have four genes, "Gene1" to "Gene4", and the following epistatic effects:
+
+```python
+epistatic_effects = [
+    EpistaticEffect(
+        name="1+2", 
+        gene_names=["Gene1", "Gene2"], 
+        fitness_distribution=FixedValue(2)
+    ), 
+    EpistaticEffect(
+        name="1+2+3", 
+        gene_names=["Gene1", "Gene2", "Gene3"],
+        fitness_distribution=FixedValue(3)
+    ),
+    EpistaticEffect(
+        name="1+4", 
+        gene_names=["Gene1", "Gene4"], 
+        fitness_distribution=FixedValue(4)
+    )
+]
+```
+
+If a clone has only "Gene1" and "Gene2" mutated, the first EpistaticEffect applies, and the clone gets a fitness of 2.
+
+If a clone has "Gene1", "Gene2", and "Gene3" mutated, the second EpistaticEffect applies, but the first one does not. The clone gets a fitness of 3. The second effect replaces the first because it includes all the genes from the first effect (1+2) plus one more (3), so the genes from the first effect are a subset of the genes from the second.
+
+If a clone has all the genes mutated, it matches all three EpistaticEffects. The first is replaced by the second, and the third is also applied because its genes are neither a subset nor a superset of the genes in any other EpistaticEffect. The final fitness is the combination of the second and third effects. For example, if combine_array="multiply", the fitness would be 3 x 4 = 12.
+
+
 ## Checking fitness rules are correct
 
 It can be a complex system for defining the rules for mutation combinations.   
@@ -888,17 +923,22 @@ This assumes that there is at most a *single mutation per gene*.
 
 
 Use this function from the FitnessCalculator to plot the fitness of each combination of mutations. 
-This is for the epistatic example above. 
+This is for the first epistatic example above. 
 
 ```python
 import matplotlib.pyplot as plt
 
 fitness_combinations = fit_calc.plot_fitness_combinations()
-print(f"Fitness combinations:  {fitness_combinations}")
+print(f"Fitness combinations:\n{fitness_combinations}")
 plt.show()
 ```
 
-    Fitness combinations:  [1.   1.1  1.05 3.  ]
+    Fitness combinations:
+    Background       1.00
+    Gene1            1.10
+    Gene2            1.05
+    Gene1 + Gene2    3.00
+    dtype: float64
 
     
 ![png](9.Mutations3_files/9.Mutations3_21_1.png)
@@ -928,11 +968,20 @@ fit_calc2 = FitnessCalculator(
     combine_array=multiply_array_fitness
 )
 fitness_combinations = fit_calc2.plot_fitness_combinations()
-print(f"Fitness combinations:  {fitness_combinations}")
+print(f"Fitness combinations:\n{fitness_combinations}")
 plt.show()
 ```
 
-    Fitness combinations:  [1.    1.1   1.05  3.    1.5   1.65  1.575 4.5  ]
+    Fitness combinations:
+    Background               1.000
+    Gene1                    1.100
+    Gene2                    1.050
+    Gene1 + Gene2            3.000
+    Gene3                    1.500
+    Gene1 + Gene3            1.650
+    Gene2 + Gene3            1.575
+    Gene1 + Gene2 + Gene3    4.500
+    dtype: float64
 
 ![png](9.Mutations3_files/9.Mutations3_22_1.png)
 
@@ -957,11 +1006,20 @@ fit_calc2 = FitnessCalculator(
     combine_array=max_array_fitness
 )
 fitness_combinations = fit_calc2.plot_fitness_combinations()
-print(f"Fitness combinations:  {fitness_combinations}")
+print(f"Fitness combinations:\n{fitness_combinations}")
 plt.show()
 ```
 
-    Fitness combinations:  [1.   1.1  1.05 3.   1.5  1.5  1.5  3.  ]
+    Fitness combinations:
+    Background               1.00
+    Gene1                    1.10
+    Gene2                    1.05
+    Gene1 + Gene2            3.00
+    Gene3                    1.50
+    Gene1 + Gene3            1.50
+    Gene2 + Gene3            1.50
+    Gene1 + Gene2 + Gene3    3.00
+    dtype: float64
     
 ![png](9.Mutations3_files/9.Mutations3_23_1.png)
     

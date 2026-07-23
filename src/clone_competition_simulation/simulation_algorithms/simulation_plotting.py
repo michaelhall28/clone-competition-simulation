@@ -91,11 +91,16 @@ class SimulationPlottingMixin:
             return set()
         
         # Get the non-nan entries in the raw fitness array for this clone. 
-        # Skip the first column (the WT fitness). 
+        # Skip the first column (the WT fitness) and ignore any epistatic cols.
         # Then the index from np.where equals the gene number in the Mutation generator and 
         # we can get the gene name
-        mutated_gene_numbers = np.where(~np.isnan(self.raw_fitness_array[clone_id, 1:]))[0]
-        gene_names = {self.fitness_calculator.get_gene_name(gene_number) for gene_number in mutated_gene_numbers}
+        mutated_gene_numbers = np.where(
+            ~np.isnan(self.raw_fitness_array[
+                clone_id, 1:self.fitness_calculator._num_genes + 1
+            ])
+        )[0]
+        gene_names = {self.fitness_calculator.get_gene_name(gene_number) 
+                      for gene_number in mutated_gene_numbers}
         gene_names.discard(None)
         return gene_names
 

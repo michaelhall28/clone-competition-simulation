@@ -24,7 +24,7 @@ This guide also does not go into much detail on how to actually run the simulati
 See the other tutorial guides to the parameter settings and functions used here. 
 
 
-# Branching
+## Branching
 
 This is based on the single progenitor model.   
 
@@ -160,7 +160,7 @@ s.run_sim()
     OverPopulationError: Ending early as population limit exceeded
 
 
-# Moran 
+## Moran 
 
 At each step in this model one cell dies and another cell divides to replace it. The overall cell population remains constant.     
 The cells to die and divide are randomly selected at each step. One cell could divide many times before another has done anything. 
@@ -186,7 +186,7 @@ plt.show()
 ![png](2.Algorithms_files/2.Algorithms_14_0.png)
 
 
-# Wright-Fisher
+## Wright-Fisher
 
 At each step in this model, the entire population of cells is replaced.  
 Each cell "picks a parent" from the previous generation at random.
@@ -217,7 +217,7 @@ This is because the WF populations are only calculated once per generation,
 whereas the other algorithms can 
 update the populations as often as after every individual cell division. 
 
-# 2D simulations: Moran2D and WF2D
+## 2D simulations: Moran2D and WF2D
 
 The Moran2D and WF2D models are the Moran and WF models constrained to a 2D hexagonal grid with periodic boundary conditions. 
 
@@ -291,7 +291,7 @@ plt.show()
     
 You can however, use either neighbourhood option with both algorithms. 
 
-## Plotting grid snapshots
+### Plotting grid snapshots
 
 The 2D simulations store snapshots of the grid at each sample point
 in `s.grid_results`.  
